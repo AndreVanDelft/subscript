@@ -14,30 +14,49 @@ object Scripts {
   
   def swing[N<:CallGraphNodeTrait[_]](n:N) = {n.adaptExecuter(new SwingCodeExecuterAdapter[CodeExecuter])}             
 
-  case class AnchorClickedReactor[N<:N_atomic_action_eh[N]](n: N, b:AbstractButton) extends Reactor {
-    val clicked = new EventHandlingCodeFragmentExecuter(n, n.scriptExecuter)
-    val myReaction: PartialFunction[Event,Unit] = {case ButtonClicked(b) => clicked.execute } 
-    def subscribe: Unit = {
-      b.reactions += myReaction
+  // an extension on scala.swing.Reactor that supports event handling scripts in Subscript
+  abstract class ScriptReactor[N<:N_atomic_action_eh[N]](publisher:Publisher) extends Reactor {
+    var executer: EventHandlingCodeFragmentExecuter[N] = _
+    def execute: Unit = executer.execute
+    //val reaction0: PartialFunction[Event,Unit]
+    
+    private var myEnabled = false
+    def enabled = myEnabled
+    def enabled_=(b:Boolean) = {myEnabled=b}
+    
+    val event: Event
+    val reaction: PartialFunction[Event,Unit] = {case event => execute}
+    
+    def subscribe(n: N): Unit = {
+      executer = new EventHandlingCodeFragmentExecuter(n, n.scriptExecuter)
+      n.codeExecuter = executer
+      publisher.reactions += reaction;
+      enabled=true
     }
     def unsubscribe: Unit = {
-      b.reactions -= myReaction
+      publisher.reactions -= reaction
+      if (!publisher.reactions.isDefinedAt(event)) {enabled=false}
     }
+  }
+  
+  // a ScriptReactor that has a Component as a Publisher. Automatically enables and disables the component
+  abstract class ComponentScriptReactor[N<:N_atomic_action_eh[N]](publisher:Publisher with Component) extends ScriptReactor[N](publisher) {
+    override def enabled_=(b:Boolean) = {super.enabled_=(b); publisher.enabled = b}
+  }
+  
+  // a ComponentScriptReactor for clicked events on a button
+  case class ClickedScriptReactor[N<:N_atomic_action_eh[N]](b:AbstractButton) extends ComponentScriptReactor[N](b) {
+    val event: Event = ButtonClicked(b)
   }
   
 /* the following subscript code has manually been compiled into Scala; see below
  
  scripts
   clicked(b:Button) = 
-    val a = AnchorClickedReactor(b)
+    val csr = AnchorClickedReactor(b)
     @swing(there):  // the redirection to the swing thread is needed because of enabling and disabling the button
-    @b.reactions += a; 
-     b.enabled = true
-     there.onDeactivate(()=>{
-         b.reactions -= a
-         if (!b.reactions.isDefinedAt(ButtonClicked(b))) {button.enabled=false}
-     }: 
-     @a: {. .}
+    @a.subscribe(there); there.onDeactivate(()=>{a.unsubscribe}}: 
+    @a: {. .}
  
  Note: the manual compilation yielded for the first annotation the type
   
@@ -47,27 +66,19 @@ object Scripts {
  to make it easy enforceable that "there" and even "there.there" would be of the proper type
 */
   // local variables are not yet supported; FTTB emulate using instance variable
-  var a: AnchorClickedReactor[N_code_eh] = _
+  var csr: ClickedScriptReactor[N_code_eh] = _
   
   def clicked(caller: N_call, b:Button)  = {
+    csr = new ClickedScriptReactor(b) // also part of the emulation of local variable
     caller.calls(T_script("script",
 		             T_1_ary_code("@:", (here: N_annotation[N_annotation[N_code_eh]]) => {val there=here.there; swing(there)}, 
 		                T_1_ary_code("@:", (here: N_annotation[N_code_eh]) => {
 		                      val there=here.there
-		                      a = AnchorClickedReactor(there, b) 
-		                      there.codeExecuter = a.clicked
-		                      a.subscribe
-		                      b.enabled = true
-		                      there.onDeactivate(()=>{
-		                        a.unsubscribe
-		                        if (!b.reactions.isDefinedAt(ButtonClicked(b))) {
-		                          b.enabled = false
-		                        }
-		                      }
+		                      csr.subscribe(there); there.onDeactivate(()=>{csr.unsubscribe}
 		                      )
 		                  }, 
 		            	  T_0_ary_code("{..}", (here: N_code_eh) => {
-		            	    println("\nCLICKED!!!")
+		            	    println("\nCLICKED!!!") // Temporary!
 		            	  }))), 
                      "clicked", new FormalInputParameter("b")),
                   b
