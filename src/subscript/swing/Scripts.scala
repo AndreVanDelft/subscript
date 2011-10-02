@@ -18,7 +18,6 @@ object Scripts {
   abstract class ScriptReactor[N<:N_atomic_action_eh[N]](publisher:Publisher) extends Reactor {
     var executer: EventHandlingCodeFragmentExecuter[N] = _
     def execute: Unit = executer.execute
-    //val reaction0: PartialFunction[Event,Unit]
     
     private var myEnabled = false
     def enabled = myEnabled
@@ -30,8 +29,9 @@ object Scripts {
     def subscribe(n: N): Unit = {
       executer = new EventHandlingCodeFragmentExecuter(n, n.scriptExecuter)
       n.codeExecuter = executer
+      val wasAlreadyEnabled = enabled
       publisher.reactions += reaction;
-      enabled=true
+      if (!wasAlreadyEnabled) {enabled=true}
     }
     def unsubscribe: Unit = {
       publisher.reactions -= reaction
@@ -55,8 +55,8 @@ object Scripts {
   clicked(b:Button) = 
     val csr = AnchorClickedReactor(b)
     @swing(there):  // the redirection to the swing thread is needed because of enabling and disabling the button
-    @a.subscribe(there); there.onDeactivate(()=>{a.unsubscribe}}: 
-    @a: {. .}
+    @csr.subscribe(there); there.onDeactivate{()=>csr.unsubscribe}: 
+    {. .}
  
  Note: the manual compilation yielded for the first annotation the type
   
@@ -65,6 +65,7 @@ object Scripts {
  All the complicated generic type parameters on TemplateNodes and CallGraphNodes were needed
  to make it easy enforceable that "there" and even "there.there" would be of the proper type
 */
+  
   // local variables are not yet supported; FTTB emulate using instance variable
   var csr: ClickedScriptReactor[N_code_eh] = _
   
@@ -72,13 +73,9 @@ object Scripts {
     csr = new ClickedScriptReactor(b) // also part of the emulation of local variable
     caller.calls(T_script("script",
 		             T_1_ary_code("@:", (here: N_annotation[N_annotation[N_code_eh]]) => {val there=here.there; swing(there)}, 
-		                T_1_ary_code("@:", (here: N_annotation[N_code_eh]) => {
-		                      val there=here.there
-		                      csr.subscribe(there); there.onDeactivate(()=>{csr.unsubscribe}
-		                      )
-		                  }, 
+		                T_1_ary_code("@:", (here: N_annotation[N_code_eh])            => {val there=here.there; csr.subscribe(there); there.onDeactivate{()=>csr.unsubscribe}}, 
 		            	  T_0_ary_code("{..}", (here: N_code_eh) => {
-		            	    println("\nCLICKED!!!") // Temporary!
+		            	    println("\nCLICKED!!!") // Temporary tracing
 		            	  }))), 
                      "clicked", new FormalInputParameter("b")),
                   b
