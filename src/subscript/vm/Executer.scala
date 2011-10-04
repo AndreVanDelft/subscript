@@ -11,7 +11,6 @@ trait ScriptExecuter {
 /*
  * TBD:
  * 
- * local variables
  * parameters: output, forcing, checking
  * here-features: hasSuccess, fail, neutral, breakFromLoop, optionalBreakFromLoop
  * script "key"
@@ -161,14 +160,18 @@ class BasicExecuter extends ScriptExecuter {
   rootNode.scriptExecuter = this 
   connect(parentNode = rootNode, childNode = anchorNode)
   //insert(Activation(anchorNode)) 
-
   def activateFrom(parent: CallGraphParentNodeTrait[_<:TemplateNode], template: TemplateNode, pass: Int = 0): CallGraphTreeNode[_<:TemplateNode] = {
     val n = createNode(template)
     n.pass = pass
     connect(parentNode = parent, childNode = n)
     if (n.isInstanceOf[N_script]) {
       val ns = n.asInstanceOf[N_script]
-      ns.parameterValues ++= (ns.template.parameters.map(_.name) zip ns.parent.asInstanceOf[N_call].args)
+      val pc = ns.parent.asInstanceOf[N_call]
+      var i = 0
+      ns.template.formalParameters.foreach{f=>
+        ns.parameterLookup(f.name) = pc.actualParameters(i)
+        i += 1
+      }
     }
     insert(Activation(n))
     n
@@ -178,20 +181,25 @@ class BasicExecuter extends ScriptExecuter {
    val result =
     template match {
       case t @ T_0_ary     ("."                  ) => N_optional_break(t)
-      case t @ T_0_ary     (".."                 ) => N_optional_break_iteration(t)
-      case t @ T_0_ary     ("..."                ) => N_iteration     (t)
+      case t @ T_0_ary     (".."                 ) => N_optional_break_loop(t)
+      case t @ T_0_ary     ("..."                ) => N_loop          (t)
       case t @ T_0_ary     ("break"              ) => N_break         (t)
       case t @ T_0_ary     ("(-)"                ) => N_delta         (t)
       case t @ T_0_ary     ("(+)"                ) => N_epsilon       (t)
       case t @ T_0_ary     ("(+-)"               ) => N_nu            (t)
-      case t @ T_0_ary_code("call"      , _      ) => N_call          (t.asInstanceOf[T_0_ary_code[N_call]])
-      case t @ T_0_ary_code("{}"        , _      ) => N_code_normal   (t.asInstanceOf[T_0_ary_code[N_code_normal]])
-      case t @ T_0_ary_code("{??}"      , _      ) => N_code_unsure   (t.asInstanceOf[T_0_ary_code[N_code_unsure]])
-      case t @ T_0_ary_code("{!!}"      , _      ) => N_code_tiny     (t.asInstanceOf[T_0_ary_code[N_code_tiny]])
+      case t @ T_0_ary_code("call"      , _      ) => N_call          (t.asInstanceOf[T_0_ary_code[N_call         ]])
+      case t @ T_0_ary_code("private"   , _      ) => N_privatevar    (t.asInstanceOf[T_0_ary_code[N_privatevar   ]])
+      case t @ T_0_ary_code("var"       , _      ) => N_localvar      (t.asInstanceOf[T_0_ary_code[N_localvar     ]])
+      case t @ T_0_ary_code("val"       , _      ) => N_localvar      (t.asInstanceOf[T_0_ary_code[N_localvar     ]])
+      case t @ T_0_ary_code("var..."    , _      ) => N_localvar_loop (t.asInstanceOf[T_0_ary_code[N_localvar_loop]])
+      case t @ T_0_ary_code("val..."    , _      ) => N_localvar_loop (t.asInstanceOf[T_0_ary_code[N_localvar_loop]])
+      case t @ T_0_ary_code("{}"        , _      ) => N_code_normal   (t.asInstanceOf[T_0_ary_code[N_code_normal  ]])
+      case t @ T_0_ary_code("{??}"      , _      ) => N_code_unsure   (t.asInstanceOf[T_0_ary_code[N_code_unsure  ]])
+      case t @ T_0_ary_code("{!!}"      , _      ) => N_code_tiny     (t.asInstanceOf[T_0_ary_code[N_code_tiny    ]])
       case t @ T_0_ary_code("{**}"      , _      ) => N_code_threaded (t.asInstanceOf[T_0_ary_code[N_code_threaded]])
-      case t @ T_0_ary_code("{..}"      , _      ) => N_code_eh       (t.asInstanceOf[T_0_ary_code[N_code_eh]])
-      case t @ T_0_ary_code("{......}"  , _      ) => N_code_eh_loop  (t.asInstanceOf[T_0_ary_code[N_code_eh_loop]])
-      case t @ T_0_ary_test("while"     , _      ) => N_while         (t.asInstanceOf[T_0_ary_test[N_while]])
+      case t @ T_0_ary_code("{..}"      , _      ) => N_code_eh       (t.asInstanceOf[T_0_ary_code[N_code_eh      ]])
+      case t @ T_0_ary_code("{......}"  , _      ) => N_code_eh_loop  (t.asInstanceOf[T_0_ary_code[N_code_eh_loop ]])
+      case t @ T_0_ary_test("while"     , _      ) => N_while         (t.asInstanceOf[T_0_ary_test[N_while        ]])
       case t @ T_1_ary     ("*"         , _      ) => N_launch        (t)
       case t @ T_1_ary     ("**"        , _      ) => N_launch_anchor (t)
       case t @ T_1_ary     (kind: String, _      ) => N_1_ary_op      (t)
@@ -200,9 +208,7 @@ class BasicExecuter extends ScriptExecuter {
       case t @ T_2_ary_test("if_else"   , _, _, _) => N_if_else       (t.asInstanceOf[T_2_ary_test[N_if_else]])
       case t @ T_2_ary     ("?"         , _, _   ) => N_inline_if     (t)
       case t @ T_3_ary     ("?:"        , _, _, _) => N_inline_if_else(t)
-      case t @ T_n_ary(kind: String, children@ _*) => 
-                            if (T_n_ary.isMerge(kind)) N_n_ary_op_par (t, T_n_ary.isLeftMerge(kind))
-                            else                       N_n_ary_op     (t)
+      case t @ T_n_ary(kind: String, children@ _*) => N_n_ary_op      (t, T_n_ary.isLeftMerge(kind))
       case t @ T_script(kind: String, child0: TemplateNode, 
                     name: String, 
                     parameters@ _ *)               => N_script        (t.asInstanceOf[T_script    ])
@@ -233,13 +239,12 @@ class BasicExecuter extends ScriptExecuter {
   }
   def handleDeactivation(message: Deactivation): Unit = {
        message.node match {
-           case n@( N_n_ary_op      (_: T_n_ary        )
-                  | N_n_ary_op_par  (_: T_n_ary, _     )) => if(message.child!=null) {
-                                                               if (!message.child.hasSuccess) {
-                                                                 n.aChildHadFailure = true
-                                                               }
-                                                               insertContinuation(message); 
-                                                               return}
+           case n@N_n_ary_op (_: T_n_ary, _  )  => if(message.child!=null) {
+                                                     if (!message.child.hasSuccess) {
+                                                        n.aChildHadFailure = true
+                                                     }
+                                                     insertContinuation(message); 
+                                                     return}
            case _ => 
       }
       // TBD: node.onSuccess
@@ -254,7 +259,9 @@ class BasicExecuter extends ScriptExecuter {
       executeIfDefined(message.node.onActivateOrResume)
       message.node match {
            //case n@N_root            (t: T_1_ary     ) => activateFrom(n, t.child0)
-           case n@N_code_tiny       (t: T_0_ary_code[_])  => execute(()=>t.code(n)) // TBD
+           case n@N_code_tiny       (t: T_0_ary_code[_])  =>                                    execute(()=>t.code(n)); if (n.hasSuccess) doNeutral(n); insertDeactivation(n,null)
+           case n@N_localvar        (t: T_0_ary_code[_])  =>                                    execute(()=>t.code(n));                   doNeutral(n); insertDeactivation(n,null)
+           case n@N_localvar_loop   (t: T_0_ary_code[_])  => setIteration_n_ary_op_ancestor(n); execute(()=>t.code(n));                   doNeutral(n); insertDeactivation(n,null)
            
            case n@N_code_normal     (_: T_0_ary_code[_]) => insert(AAActivated(n,null)); insert(AAToBeExecuted(n))
            case n@N_code_unsure     (_: T_0_ary_code[_]) => insert(AAActivated(n,null)); insert(AAToBeExecuted(n))
@@ -265,12 +272,12 @@ class BasicExecuter extends ScriptExecuter {
               
            case n@N_break           (t: T_0_ary        ) => doNeutral(n); insert(Break(n, null, ActivationMode.Inactive)); insertDeactivation(n,null)
            case n@N_optional_break  (t: T_0_ary        ) => doNeutral(n); insert(Break(n, null, ActivationMode.Optional)); insertDeactivation(n,null)
-           case n@N_optional_break_iteration
+           case n@N_optional_break_loop
                                     (t: T_0_ary        ) => setIteration_n_ary_op_ancestor(n); doNeutral(n); insert(Break(n, null, ActivationMode.Optional)); insertDeactivation(n,null)
-           case n@N_iteration       (t: T_0_ary        ) => setIteration_n_ary_op_ancestor(n); doNeutral(n); insertDeactivation(n,null)
-           case n@N_delta           (t: T_0_ary        ) => insertDeactivation(n,null)
+           case n@N_loop            (t: T_0_ary        ) => setIteration_n_ary_op_ancestor(n); doNeutral(n); insertDeactivation(n,null)
+           case n@N_delta           (t: T_0_ary        ) =>                     insertDeactivation(n,null)
            case n@N_epsilon         (t: T_0_ary        ) => insert(Success(n)); insertDeactivation(n,null)
-           case n@N_nu              (t: T_0_ary        ) => doNeutral(n); insertDeactivation(n,null)
+           case n@N_nu              (t: T_0_ary        ) => doNeutral(n);       insertDeactivation(n,null)
            case n@N_while           (t: T_0_ary_test[_]) => setIteration_n_ary_op_ancestor(n); 
                                                             execute(()=>n.hasSuccess = t.code(n))
                                                             doNeutral(n)
@@ -288,8 +295,7 @@ class BasicExecuter extends ScriptExecuter {
                                                                      else  activateFrom(n, t.child1)
            case n@N_inline_if       (t: T_2_ary        ) => activateFrom(n, t.child0)
            case n@N_inline_if_else  (t: T_3_ary        ) => activateFrom(n, t.child0)
-           case n@N_n_ary_op        (t: T_n_ary        ) => val cn = activateFrom(n, t.children.first); insertContinuation(message, cn)
-           case n@N_n_ary_op_par    (t: T_n_ary, 
+           case n@N_n_ary_op        (t: T_n_ary, 
                                          isLeftMerge   ) => val cn = activateFrom(n, t.children.first); if (!isLeftMerge) insertContinuation(message, cn)
            case n@N_call            (t: T_0_ary_code[_]) => execute(()=>t.code(n)); activateFrom(n, n.t_callee)  // TBD: insert(CAActivated)+insert(CAActivatedTBD) depending on template
            case n@N_script          (t: T_script       ) => activateFrom(n, t.child0)
@@ -311,12 +317,12 @@ class BasicExecuter extends ScriptExecuter {
                                                                    insertContinuation1(message) 
                                                                    return
                                                                  }
-               case n@( N_n_ary_op      (_: T_n_ary        )
-                      | N_n_ary_op_par  (_: T_n_ary, _     )) => if(message.child!=null) {
+               case n@  N_n_ary_op      (_: T_n_ary, _      ) => if(message.child!=null) {
                                                                    insertContinuation(message) 
                                                                    return
                                                                  }
-               case n@  N_call          (_: T_0_ary_code[_])  => {} // TBD: parameter transfer and tests
+               case n@  N_call          (_: T_0_ary_code[_])  => if (!n.allActualParametersMatch) {return}
+                                                                 n.transferParameters
                case _ => {}
           }
           // TBD: node.onSuccess
@@ -329,8 +335,7 @@ class BasicExecuter extends ScriptExecuter {
                                                                    insertContinuation1(message)
                                                                    //don't return; just put the continuations in place
                                                                  }
-               case n@( N_n_ary_op      (_: T_n_ary        )
-                      | N_n_ary_op_par  (_: T_n_ary, _     )) => if(message.child!=null) {
+               case n@  N_n_ary_op      (_: T_n_ary, _     )  => if(message.child!=null) {
                                                                    insertContinuation(message)
                                                                    //don't return; just put the continuations in place
                                                                  }
@@ -346,8 +351,7 @@ class BasicExecuter extends ScriptExecuter {
                                                                    insertContinuation1(message)
                                                                    //don't return; just put the continuations in place
                                                                  }
-               case n@( N_n_ary_op      (_: T_n_ary        )
-                      | N_n_ary_op_par  (_: T_n_ary, _     )) => if(message.child!=null) {
+               case n@  N_n_ary_op      (_: T_n_ary, _     )  => if(message.child!=null) {
                                                                    insertContinuation(message)
                                                                    //don't return; just put the continuations in place
                                                                  }
@@ -365,8 +369,7 @@ class BasicExecuter extends ScriptExecuter {
                                                                    insertContinuation1(message)
                                                                    //don't return; just put the continuations in place
                                                                  }
-               case n@( N_n_ary_op      (_: T_n_ary        )
-                      | N_n_ary_op_par  (_: T_n_ary, _     )) => if(message.child!=null) {
+               case n@  N_n_ary_op      (_: T_n_ary, _      ) => if(message.child!=null) {
                                                                    insertContinuation(message)
                                                                    //don't return; just put the continuations in place
                                                                  }
@@ -381,8 +384,7 @@ class BasicExecuter extends ScriptExecuter {
                                                                    insertContinuation1(message)
                                                                    //don't return; just put the continuations in place
                                                                  }
-               case n@( N_n_ary_op      (_: T_n_ary        )
-                      | N_n_ary_op_par  (_: T_n_ary, _     )) => if(message.child!=null) {
+               case n@  N_n_ary_op      (_: T_n_ary, _     )  => if(message.child!=null) {
                                                                    insertContinuation(message)
                                                                    //don't return; just put the continuations in place
                                                                   }

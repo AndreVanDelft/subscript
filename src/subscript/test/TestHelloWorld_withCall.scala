@@ -15,11 +15,11 @@ object TestHelloWorld_withCall {
 // would be translated to 2*2 = 4 methods
   
 // script method, to be called from bridge-to-Scala method or from other scripts
-def main(caller: N_call, args: Array[String])  =
+def main(caller: N_call, args: ActualInputParameter[Array[String]])  =
   caller.calls(T_script("script",
 		             T_n_ary(";", 
-		            		T_0_ary_code("call", (here: N_call) => default(here, "hello")), 
-		            		T_0_ary_code("call", (here: N_call) => default(here, "world!"))
+		            		T_0_ary_code("call", (here: N_call) => default(here, ActualInputParameter("hello"))), 
+		            		T_0_ary_code("call", (here: N_call) => default(here, ActualInputParameter("world!")))
                             ), 
                      "main(Array[String])", new FormalInputParameter("args")),
                  args
@@ -30,14 +30,14 @@ def main(caller: N_call, args: Array[String])  =
 // only a "main" method with the proper parameter type has return type Unit, to serve as a program entry point 
 def main(args: Array[String]): Unit = {
   val executer = new BasicExecuter
-  main(executer.anchorNode, args)
+  main(executer.anchorNode, ActualInputParameter(args))
   executer.run	
 }
 
 // script method to be called from bridge-to-Scala method or from other scripts
-def default(caller: N_call, s: String)  =
+def default(caller: N_call, s: ActualInputParameter[String])  =
   caller.calls(T_script("script",
-		             T_0_ary_code("{}", (here:N_code_normal) => println(here.getParameterValue("s").asInstanceOf[String])),
+		             T_0_ary_code("{}", (here:N_code_normal) => println(here.getParameter("s").value.asInstanceOf[String])),
                      "default(String)", new FormalInputParameter("s")),
                   s
                )
@@ -46,7 +46,7 @@ def default(caller: N_call, s: String)  =
 // bridge method. Returns a ScriptExecuter 
 def default(s: String): ScriptExecuter = {
   val executer = new BasicExecuter
-  default(executer.anchorNode, s)
+  default(executer.anchorNode, ActualInputParameter(s))
   executer.run	
 }
 

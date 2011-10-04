@@ -54,7 +54,7 @@ object Scripts {
  scripts
   clicked(b:Button) = 
     val csr = AnchorClickedReactor(b)
-    @swing(there):  // the redirection to the swing thread is needed because of enabling and disabling the button
+    @swing(there):  // the redirection to the swing thread is needed because enabling and disabling the button must there be done
     @csr.subscribe(there); there.onDeactivate{()=>csr.unsubscribe}: 
     {. .}
  
@@ -66,19 +66,17 @@ object Scripts {
  to make it easy enforceable that "there" and even "there.there" would be of the proper type
 */
   
-  // local variables are not yet supported; FTTB emulate using instance variable
-  var csr: ClickedScriptReactor[N_code_eh] = _
-  
   def clicked(caller: N_call, b:Button)  = {
-    csr = new ClickedScriptReactor(b) // also part of the emulation of local variable
     caller.calls(T_script("script",
-		             T_1_ary_code("@:", (here: N_annotation[N_annotation[N_code_eh]]) => {val there=here.there; swing(there)}, 
-		                T_1_ary_code("@:", (here: N_annotation[N_code_eh])            => {val there=here.there; csr.subscribe(there); there.onDeactivate{()=>csr.unsubscribe}}, 
-		            	  T_0_ary_code("{..}", (here: N_code_eh) => {
-		            	    println("\nCLICKED!!!") // Temporary tracing
-		            	  }))), 
+	                T_n_ary(";", 
+	                 T_0_ary_code  ("val" , (here:                           N_localvar ) => {here.initLocalVariableValue_stepsUp("csr", 1, new ClickedScriptReactor[N_code_eh](b))}),
+		             T_1_ary_code  ("@:"  , (here: N_annotation[N_annotation[N_code_eh]]) => {val there=here.there; swing(there)}, 
+		              T_1_ary_code ("@:"  , (here:              N_annotation[N_code_eh] ) => {val there=here.there;here.getLocalVariableValue_stepsUp("csr", 2).asInstanceOf[ClickedScriptReactor[N_code_eh]].subscribe(there); 
+		                                                                                     there.onDeactivate{()=>here.getLocalVariableValue_stepsUp("csr", 2).asInstanceOf[ClickedScriptReactor[N_code_eh]].unsubscribe}}, 
+		               T_0_ary_code("{..}", (here:                           N_code_eh  ) => {println("\nCLICKED!!!")} // Temporary tracing
+		            )))), 
                      "clicked", new FormalInputParameter("b")),
-                  b
+                  ActualInputParameter("b", b)
                )
   }
                

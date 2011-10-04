@@ -7,7 +7,6 @@ object ActivationMode extends Enumeration {
   val Active, Optional, Inactive = Value
 }
 
-
 object OnActivate
 object OnActivateOrResume
 object OnDeactivate
@@ -21,7 +20,9 @@ trait CallGraphNodeTrait[+T<:TemplateNode] {
   def n_ary_op_else_ancestor: N_n_ary_op
   def lowestSingleCommonAncestor: CallGraphParentNodeTrait[_<:TemplateNode]
   def forEachParent(n: CallGraphParentNodeTrait[_<:TemplateNode] => Unit): Unit
-  def getParameterValue(formalName: String): Any
+  def getParameterLookup: Map[String,ActualParameter[_<:Any]] = null
+  def getParameter(formalName: String): ActualParameter[_<:Any] = getParameterLookup(formalName)
+
   val index = CallGraphNode.nextIndex()
   var stamp = 0
   var aaStartedCount = 0
@@ -101,10 +102,14 @@ trait CallGraphTreeNode   [+T<:TemplateNode] extends CallGraphNode[T] {
       task(parent)
     }
   }
-  def getParameterValue(formalName: String): Any = {
+  override def getParameterLookup: Map[String,ActualParameter[_<:Any]] = {
     if (parent==null) null
-    else parent.getParameterValue(formalName)
+    else parent.getParameterLookup
   }
+  def    initLocalVariableValue_stepsUp(name: String, stepsUp: Int, value: Any) = CallGraphNode.upInGraphToNAry(this,stepsUp).   initLocalVariableValue(name, pass, value)
+  def     setLocalVariableValue_stepsUp(name: String, stepsUp: Int, value: Any) = CallGraphNode.upInGraphToNAry(this,stepsUp).    setLocalVariableValue(name, pass, value)
+  def     getLocalVariableValue_stepsUp(name: String, stepsUp: Int)      : Any  = CallGraphNode.upInGraphToNAry(this,stepsUp).    getLocalVariableValue(name, pass)
+  def privateLocalVariable_stepsUp(name: String, stepsUp: Int,moreUp: Int) = CallGraphNode.upInGraphToNAry(this,stepsUp).privateLocalVariable(name,pass,moreUp)
 }
 // a node that may have multiple parents; used for rendez-vous style communication
 // should this not be an abstract class?
@@ -156,15 +161,18 @@ case class N_code_threaded (template: T_0_ary_code[N_code_threaded]) extends N_a
 case class N_code_unsure   (template: T_0_ary_code[N_code_unsure  ]) extends N_atomic_action   [N_code_unsure  ](template)
 case class N_code_eh       (template: T_0_ary_code[N_code_eh      ]) extends N_atomic_action_eh[N_code_eh      ](template)
 case class N_code_eh_loop  (template: T_0_ary_code[N_code_eh_loop ]) extends N_atomic_action_eh[N_code_eh_loop ](template)
+case class N_localvar      (template: T_0_ary_code[N_localvar     ]) extends N_atomic_action   [N_localvar     ](template)
+case class N_privatevar    (template: T_0_ary_code[N_privatevar   ]) extends N_atomic_action   [N_privatevar   ](template)
+case class N_localvar_loop (template: T_0_ary_code[N_localvar_loop]) extends N_atomic_action   [N_localvar_loop](template)
 case class N_while         (template: T_0_ary_test[N_while        ]) extends CallGraphLeafNode  [T_0_ary_test[N_while]] with CallGraphNodeWithCodeTrait[T_0_ary_test[N_while], Boolean]
 case class N_break         (template: T_0_ary     ) extends CallGraphLeafNode  [T_0_ary]
 case class N_optional_break(template: T_0_ary     ) extends CallGraphLeafNode  [T_0_ary]
-case class N_optional_break_iteration
+case class N_optional_break_loop
                            (template: T_0_ary     ) extends CallGraphLeafNode  [T_0_ary]
 case class N_delta         (template: T_0_ary     ) extends CallGraphLeafNode  [T_0_ary]
 case class N_epsilon       (template: T_0_ary     ) extends CallGraphLeafNode  [T_0_ary]
 case class N_nu            (template: T_0_ary     ) extends CallGraphLeafNode  [T_0_ary]
-case class N_iteration     (template: T_0_ary     ) extends CallGraphLeafNode  [T_0_ary]
+case class N_loop          (template: T_0_ary     ) extends CallGraphLeafNode  [T_0_ary]
 case class N_1_ary_op      (template: T_1_ary     ) extends CallGraphTreeParentNode[T_1_ary] {
   var continuation: Continuation1 = null
 }
@@ -179,30 +187,33 @@ case class N_annotation[N<:CallGraphNodeTrait[_]] (template: T_1_ary_code[N_anno
 case class N_launch_anchor (template: T_1_ary     ) extends CallGraphTreeParentNode[T_1_ary]
 case class N_inline_if     (template: T_2_ary     ) extends CallGraphTreeParentNode[T_2_ary]
 case class N_inline_if_else(template: T_3_ary     ) extends CallGraphTreeParentNode[T_3_ary]
-case class N_n_ary_op      (template: T_n_ary     ) extends CallGraphTreeNode_n_ary 
-case class N_n_ary_op_par  (template: T_n_ary, isLeftMerge: Boolean) extends CallGraphTreeNode_n_ary 
-//case class N_n_ary_op_seq  (template: T_n_ary     ) extends CallGraphTreeNode_n_ary {}
+case class N_n_ary_op      (template: T_n_ary, isLeftMerge: Boolean) extends CallGraphTreeNode_n_ary {
+  val mapNamePassToLocalVariable = new HashMap[(String,Int), LocalVariable]
+  def    initLocalVariableValue(name: String, fromPass: Int, value: Any)   = mapNamePassToLocalVariable += ((name,fromPass)->new LocalVariable(name,value))
+  def     setLocalVariableValue(name: String, fromPass: Int, value: Any)   = mapNamePassToLocalVariable.get((name,fromPass)) match {case None=>case Some(v) => v.value = value}
+  def     getLocalVariable     (name: String, fromPass: Int):LocalVariable = mapNamePassToLocalVariable.get((name,fromPass)) match {case None=>null case Some(v) => v}
+  def     getLocalVariableValue(name: String, fromPass: Int)      : Any    = getLocalVariable(name,fromPass).value
+  def privateLocalVariable(name: String, fromPass: Int,stepsUp:Int) = initLocalVariableValue(name, fromPass, getLocalVariableValue_stepsUp(name, stepsUp))
+}
 
 case class N_call          (template: T_0_ary_code[N_call]) extends CallGraphTreeParentNode[T_0_ary_code[N_call]] {
-  def calls(t: T_script, args: Any*) = {
-    this.t_callee = t
-    this.args = args.toList
-  }
   var t_callee: T_script = null
-  var args: List[Any] = null
+  var actualParameters: List[ActualParameter[_<:Any]] = null
+  def calls[A<:ActualParameter[_<:Any]](t: T_script, args: A*) = {
+    this.t_callee = t
+    this.actualParameters = args.toList
+  }
+  def allActualParametersMatch: Boolean = actualParameters.forall {_.matches}
+  def transferParameters      : Unit    = actualParameters.foreach{_.transfer}
 }
 
 case class N_script    (var template: T_script    ) extends CallGraphTreeParentNode[T_script] {
-  var parameterValues = new scala.collection.mutable.HashMap[String, Any]
-  override def getParameterValue(formalName: String): Any = {
-    parameterValues.get(formalName).get
-  }
+  var parameterLookup = new scala.collection.mutable.HashMap[String, ActualParameter[_<:Any]]
+  override def getParameterLookup = parameterLookup
 }
 case class N_communication(var template: T_communication) extends CallGraphNonTreeParentNode[T_communication] {
-  var parameterValues = new scala.collection.mutable.HashMap[String, Any]
-  override def getParameterValue(formalName: String): Any = {
-    parameterValues.get(formalName).get
-  }
+  var parameterLookup = new scala.collection.mutable.HashMap[String, ActualParameter[_<:Any]]
+  override def getParameterLookup = parameterLookup
 }
 
 
@@ -213,6 +224,18 @@ object CallGraphNode {
   var nCreated = 0
   def nextIndex() = {nCreated = nCreated+1; nCreated}
   def nextStamp() = {currentStamp = currentStamp+1; currentStamp}
+  
+  def upInGraph(n: CallGraphTreeNode[_<:TemplateNode], stepsUp: Int) : CallGraphTreeNode[_<:TemplateNode] = {
+    var a = n
+    for (i<-0 to stepsUp-1) {
+      a = a.parent.asInstanceOf[CallGraphTreeNode[_<:TemplateNode]]
+    }
+    return a
+  }
+  
+  def upInGraphToNAry(n: CallGraphTreeNode[_<:TemplateNode], stepsUp: Int) : N_n_ary_op = {
+    return upInGraph(n,stepsUp).asInstanceOf[N_n_ary_op]
+  }
   
   // find the lowest launch_anchor common ancestor of a nodes
   //

@@ -1,9 +1,5 @@
 package subscript.vm
 
-abstract class FormalParameter(n: String) {def name=n}
-class FormalInputParameter(n: String) extends FormalParameter(n)
-// TBD: output parameters...
-
 // Template Nodes are used to describe abstract syntax trees of the compiled scripts
 
 abstract class TemplateNode {
@@ -21,7 +17,7 @@ abstract class TemplateNodeWithCode[N<:CallGraphNodeTrait[TemplateNode], T] exte
 
 // all concrete template node case classes 
 
-case class T_script (kind: String, child0: TemplateNode, name: String, parameters: FormalParameter*) extends TemplateNode {
+case class T_script (kind: String, child0: TemplateNode, name: String, formalParameters: FormalParameter*) extends TemplateNode {
   override def toString = super.toString+" "+name
 }
 case class T_communication (kind: String, child0: TemplateNode, name: String, parameters: FormalParameter*) extends TemplateNode

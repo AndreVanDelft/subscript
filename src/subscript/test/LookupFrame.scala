@@ -61,32 +61,30 @@ object LookupFrame extends SimpleSubscriptApplication {
                )
   def searchCommand(caller: N_call)  =
     caller.calls(T_script("script",
-		             T_0_ary_code("call", (here: N_call) => default(here, searchButton)), 
+		             T_0_ary_code("call", (here: N_call) => default(here, ActualInputParameter(searchButton))), 
                      "searchCommand")
                  )
   def showSearchingText(caller: N_call)  =
     caller.calls(T_script("script",
-		             T_1_ary_code("@:", (here: N_annotation[N_code_normal]) => {val there=here.there; swing(there)}, 
-		            		T_0_ary_code("{}", (here: N_code_normal) => {
-		            		  outputTA.text = "Searching: "+searchTF.text})), 
+		             T_1_ary_code ("@:", (here: N_annotation[N_code_normal]) => {val there=here.there; swing(there)}, 
+		              T_0_ary_code("{}", (here:              N_code_normal ) => {outputTA.text = "Searching: "+searchTF.text})), 
                      "showSearchingText")
                  )
   def showSearchResults(caller: N_call)  =
     caller.calls(T_script("script",
-		             T_1_ary_code("@:", (here: N_annotation[N_code_normal]) => {val there=here.there; swing(there)}, 
-		            		T_0_ary_code("{}", (here: N_code_normal) => {outputTA.text = "Found: "+here.index+" items"})), 
+		             T_1_ary_code ("@:", (here: N_annotation[N_code_normal]) => {val there=here.there; swing(there)}, 
+		              T_0_ary_code("{}", (here:              N_code_normal ) => {outputTA.text = "Found: "+here.index+" items"})), 
                      "showSearchResults")
                  )
   def searchInDatabase(caller: N_call)  =
     caller.calls(T_script("script",
-		             T_0_ary_code("{**}", (here:N_code_threaded) => {
-		              Thread.sleep(1000)}),
+		             T_0_ary_code("{**}", (here:N_code_threaded) => {Thread.sleep(1000)}),
                      "searchInDatabase")
                )
  
-def default(caller: N_call, b:Button)  =
+def default(caller: N_call, b:ActualInputParameter[Button])  =
   caller.calls(T_script("script",
-		             T_0_ary_code("call", (here:N_call) => clicked(here, here.getParameterValue("b").asInstanceOf[Button])),
+		             T_0_ary_code("call", (here:N_call) => clicked(here, here.getParameter("b").value.asInstanceOf[Button])),
                      "default(Button)", new FormalInputParameter("b")),
                   b
                )
@@ -99,5 +97,5 @@ def searchCommand    : ScriptExecuter = {val executer=new BasicExecuter; searchC
 def searchInDatabase : ScriptExecuter = {val executer=new BasicExecuter; searchInDatabase (executer.anchorNode  ); executer.run}
 def showSearchingText: ScriptExecuter = {val executer=new BasicExecuter; showSearchingText(executer.anchorNode  ); executer.run}
 def showSearchResults: ScriptExecuter = {val executer=new BasicExecuter; showSearchResults(executer.anchorNode  ); executer.run}
-def default(b:Button): ScriptExecuter = {val executer=new BasicExecuter; default          (executer.anchorNode,b); executer.run}
+def default(b:Button): ScriptExecuter = {val executer=new BasicExecuter; default          (executer.anchorNode,ActualInputParameter(b)); executer.run}
 }

@@ -14,15 +14,15 @@ object TestHelloWorld {
 // would be translated to 2 methods
   
 // script method, to be called from bridge method or from other scripts
-def main(caller: N_call, args: Array[String])  =
+def main(caller: N_call, args: ActualInputParameter[Array[String]])  =
   caller.calls(T_script("script",
 		             T_n_ary(";", 
 		            		T_0_ary_code("{}", (here:CallGraphNodeTrait[TemplateNode]) => print  ("Hello ")), 
                             T_0_ary_code("{}", (here:CallGraphNodeTrait[TemplateNode]) => println("world!"))
                             ), 
                      "main", new FormalInputParameter("args")),
-                 args
-               )
+              args
+             )
 
 
 // bridge method. 
@@ -30,7 +30,7 @@ def main(caller: N_call, args: Array[String])  =
 // only a "main" method with the proper parameter type has return type Unit, to serve as a program entry point 
 def main(args: Array[String]): Unit = {
   val executer = new BasicExecuter
-  main(executer.anchorNode, args)
+  main(executer.anchorNode, ActualInputParameter(args))
   executer.run	
 }
 }
