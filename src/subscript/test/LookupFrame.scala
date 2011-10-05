@@ -9,7 +9,7 @@ import subscript.vm._;
 //
 // Note: the main part of this source file has been manually compiled from Subscript code into plain Scala
 
-object LookupFrame extends SimpleSubscriptApplication {
+object LookupFrame1 extends SimpleSubscriptApplication {
   
   val outputTA     = new TextArea    {editable=false}
   val searchButton = new Button("Go") {enabled=false}
@@ -84,7 +84,7 @@ object LookupFrame extends SimpleSubscriptApplication {
  
 def default(caller: N_call, b:ActualInputParameter[Button])  =
   caller.calls(T_script("script",
-		             T_0_ary_code("call", (here:N_call) => clicked(here, here.getParameter("b").value.asInstanceOf[Button])),
+		             T_0_ary_code("call", (here:N_call) => clicked(here, ActualInputParameter(here.getParameter("b").value.asInstanceOf[Button]))),
                      "default(Button)", new FormalInputParameter("b")),
                   b
                )
