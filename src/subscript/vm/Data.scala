@@ -1,5 +1,20 @@
 package subscript.vm
 
+/*
+Overview of formal and actual parameter use
+
+|| Formal declaration   ||        Formal type              ||  Actual call          || Value of _p ||
+||` p: P               `||`       FormalInputParameter[P] `||` expr                `||`  ActualValueParameter     (   expr) `||
+||` p: P?              `||`      FormalOutputParameter[P] `||` varExpr?            `||` ActualOutputParameter     (varExpr, {=>varExpr=_) `||
+||` p: P??             `||` FormalConstrainedParameter[P] `||` expr                `||`  ActualValueParameter     (   expr, {=>   expr=_) `||
+||`                    `||`                               `||` varExpr?            `||` ActualOutputParameter     (varExpr, {=>varExpr=_) `||
+||`                    `||`                               `||` varExpr if(c)?      `||` ActualConstrainedParameter(   expr, {=>   expr=_}, {_=>c}) `||
+||`                    `||`                               `||` formalParam??       `||`    ActualAdaptingParameter(_formalParam) `||
+||`                    `||`                               `||` formalParam if(c)?? `||`    ActualAdaptingParameter(_formalParam, {=>c}) `||
+
+ */
+
+
 trait FormalParameter[T<:Any] {
   def name: String; 
   def value: T
@@ -57,17 +72,18 @@ case class ActualConstrainedParameter[T<:Any](originalValue:T, transferFunction:
   def isConstrained = true
 }
 // adapting parameters, as in script a(i:Int??) = b(i??)
-case class ActualAdaptingParameter[T<:Any](adaptee: FormalConstrainedParameter[T]) 
+case class ActualAdaptingParameter[T<:Any](adaptee: FormalConstrainedParameter[T], constraint: T=>Boolean=null) 
   extends ActualParameter        [T] 
   with ParameterTransferrerTrait [T]
   with FormalConstrainedParameter[T] {
   val originalValue  = adaptee.value // val, not def !!
   def transferFunction: T=>Unit = {adaptee.value = _}
-  def matches(aValue: T) = adaptee.matches(aValue)
+  def matches(aValue: T) = (constraint==null||constraint.apply(aValue))&&adaptee.matches(aValue)
   def isInput       = adaptee.isInput  
   def isOutput      = adaptee.isOutput
   def isForcing     = adaptee.isForcing
   def isConstrained = adaptee.isConstrained
 }
+//case class LocalVariable[T<:Any](name: String, var value: T)  cannot get this compiled, yet
 case class LocalVariable(name: String, var value: Any)
 

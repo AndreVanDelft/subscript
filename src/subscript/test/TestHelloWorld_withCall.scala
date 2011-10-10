@@ -16,14 +16,14 @@ object TestHelloWorld_withCall {
 // would be translated to 2*2 = 4 methods
   
 // script method, to be called from bridge-to-Scala method or from other scripts
-def main(caller: N_call, args: FormalInputParameter[Array[String]])  =
+def main(caller: N_call, _args: FormalInputParameter[Array[String]])  =
   caller.calls(T_script("script",
 		             T_n_ary(";", 
-		            		T_0_ary_code("call", (__here: N_call) => {implicit val here=__here; default(here, "hello" )}), 
-		            		T_0_ary_code("call", (__here: N_call) => {implicit val here=__here; default(here, "world!")})
+		            		T_0_ary_code("call", (_here: N_call) => {implicit val here=_here; default(here, "hello" )}), 
+		            		T_0_ary_code("call", (_here: N_call) => {implicit val here=_here; default(here, "world!")})
                             ), 
                      "main(Array[String])", "args"),
-                 args
+                 _args
                )
 
 
@@ -36,11 +36,11 @@ def main(args: Array[String]): Unit = {
 }
 
 // script method to be called from bridge-to-Scala method or from other scripts
-def default(caller: N_call, s: FormalInputParameter[String])  =
+def default(caller: N_call, _s: FormalInputParameter[String])  =
   caller.calls(T_script("script",
-		             T_0_ary_code("{}", (__here:N_code_normal) => {implicit val here=__here; println(s.value)}),
+		             T_0_ary_code("{}", (_here:N_code_normal) => {implicit val here=_here; println(_s.value)}),
                      "default(String)", "s"),
-                  s
+                  _s
                )
 
 

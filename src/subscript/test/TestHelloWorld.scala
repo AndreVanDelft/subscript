@@ -15,14 +15,14 @@ object TestHelloWorld {
 // would be translated to 2 methods
   
 // script method, to be called from bridge method or from other scripts
-def main(caller: N_call, args: FormalInputParameter[Array[String]])  =
+def main(caller: N_call, _args: FormalInputParameter[Array[String]])  =
   caller.calls(T_script("script",
 		             T_n_ary(";", 
 		            		T_0_ary_code("{}", (_here:CallGraphNodeTrait[TemplateNode]) => {implicit val here = _here; print  ("Hello ")}), 
                             T_0_ary_code("{}", (_here:CallGraphNodeTrait[TemplateNode]) => {implicit val here = _here; println("world!")})
                             ), 
                      "main", "args"),
-              args
+              _args
              )
 
 // bridge method. 

@@ -5,11 +5,13 @@ import subscript.swing._
 import subscript.swing.Scripts._
 import subscript.vm._;
 
-// Subscript sample application: a text entry field with a search button, that simulates the onvocation of a background search
+// Subscript sample application: a text entry field with a search button, that simulates the invocation of a background search
 //
 // Note: the main part of this source file has been manually compiled from Subscript code into plain Scala
 
-object LookupFrame extends SimpleSubscriptApplication {
+object LookupFrame extends LookupFrame
+
+class LookupFrame extends SimpleSubscriptApplication {
   
   val outputTA     = new TextArea        {editable      = false}
   val searchButton = new Button("Go")    {enabled       = false}
@@ -41,7 +43,7 @@ object LookupFrame extends SimpleSubscriptApplication {
   _(b: Button)      = clicked(b)
 */
 
-  def live(caller: N_call)  =
+  override def live(caller: N_call)  =
     caller.calls(T_script("script",
 		             T_n_ary(";", 
 		            		T_0_ary("..."), 
@@ -82,16 +84,15 @@ object LookupFrame extends SimpleSubscriptApplication {
                      "searchInDatabase")
                )
  
-def default(caller: N_call, b:FormalInputParameter[Button])  =
+def default(caller: N_call, _b:FormalInputParameter[Button])  =
   caller.calls(T_script("script",
-		             T_0_ary_code("call", (here:N_call) => clicked(here, b.value)),
+		             T_0_ary_code("call", (here:N_call) => clicked(here, _b.value)),
                      "default(Button)", "b"),
-                  b
+                  _b
                )
                
 // bridge methods; only the first one is actually used   
-override
-def live             : ScriptExecuter = {val executer=new BasicExecuter; live             (executer.anchorNode  ); executer.run}
+override def live    : ScriptExecuter = {val executer=new BasicExecuter; live             (executer.anchorNode  ); executer.run}
 def searchSequence   : ScriptExecuter = {val executer=new BasicExecuter; searchSequence   (executer.anchorNode  ); executer.run}
 def searchCommand    : ScriptExecuter = {val executer=new BasicExecuter; searchCommand    (executer.anchorNode  ); executer.run}
 def searchInDatabase : ScriptExecuter = {val executer=new BasicExecuter; searchInDatabase (executer.anchorNode  ); executer.run}
