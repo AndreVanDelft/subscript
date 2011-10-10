@@ -21,7 +21,7 @@ trait CallGraphNodeTrait[+T<:TemplateNode] {
   def lowestSingleCommonAncestor: CallGraphParentNodeTrait[_<:TemplateNode]
   def forEachParent(n: CallGraphParentNodeTrait[_<:TemplateNode] => Unit): Unit
   def getParameterLookup: Map[String,ActualParameter[_<:Any]] = null
-  def getParameter(formalName: String): ActualParameter[_<:Any] = getParameterLookup(formalName)
+  def getParameter[P](formalName: String): ActualParameter[_<:Any] = getParameterLookup(formalName)
 
   val index = CallGraphNode.nextIndex()
   var stamp = 0
@@ -199,9 +199,9 @@ case class N_n_ary_op      (template: T_n_ary, isLeftMerge: Boolean) extends Cal
 case class N_call          (template: T_0_ary_code[N_call]) extends CallGraphTreeParentNode[T_0_ary_code[N_call]] {
   var t_callee: T_script = null
   var actualParameters: List[ActualParameter[_<:Any]] = null
-  def calls[A<:ActualParameter[_<:Any]](t: T_script, args: A*) = {
+  def calls[A<:FormalParameter[_<:Any]](t: T_script, args: A*) = {
     this.t_callee = t
-    this.actualParameters = args.toList
+    this.actualParameters = args.toList.map(_.asInstanceOf[ActualParameter[_]])
   }
   def allActualParametersMatch: Boolean = actualParameters.forall {_.matches}
   def transferParameters      : Unit    = actualParameters.foreach{_.transfer}

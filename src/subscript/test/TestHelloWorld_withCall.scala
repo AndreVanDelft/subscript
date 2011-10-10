@@ -1,6 +1,7 @@
 package subscript.test
 
-import subscript.vm._;
+import subscript.vm._
+import subscript.Predef._
 
 // Subscript sample application: "Hello world!", printed using a sequence of calls to a default script that prints its string parameter
 //
@@ -15,13 +16,13 @@ object TestHelloWorld_withCall {
 // would be translated to 2*2 = 4 methods
   
 // script method, to be called from bridge-to-Scala method or from other scripts
-def main(caller: N_call, args: ActualInputParameter[Array[String]])  =
+def main(caller: N_call, args: FormalInputParameter[Array[String]])  =
   caller.calls(T_script("script",
 		             T_n_ary(";", 
-		            		T_0_ary_code("call", (here: N_call) => default(here, ActualInputParameter("hello"))), 
-		            		T_0_ary_code("call", (here: N_call) => default(here, ActualInputParameter("world!")))
+		            		T_0_ary_code("call", (__here: N_call) => {implicit val here=__here; default(here, "hello" )}), 
+		            		T_0_ary_code("call", (__here: N_call) => {implicit val here=__here; default(here, "world!")})
                             ), 
-                     "main(Array[String])", new FormalInputParameter("args")),
+                     "main(Array[String])", "args"),
                  args
                )
 
@@ -30,15 +31,15 @@ def main(caller: N_call, args: ActualInputParameter[Array[String]])  =
 // only a "main" method with the proper parameter type has return type Unit, to serve as a program entry point 
 def main(args: Array[String]): Unit = {
   val executer = new BasicExecuter
-  main(executer.anchorNode, ActualInputParameter(args))
+  main(executer.anchorNode, args)
   executer.run	
 }
 
 // script method to be called from bridge-to-Scala method or from other scripts
-def default(caller: N_call, s: ActualInputParameter[String])  =
+def default(caller: N_call, s: FormalInputParameter[String])  =
   caller.calls(T_script("script",
-		             T_0_ary_code("{}", (here:N_code_normal) => println(here.getParameter("s").value.asInstanceOf[String])),
-                     "default(String)", new FormalInputParameter("s")),
+		             T_0_ary_code("{}", (__here:N_code_normal) => {implicit val here=__here; println(s.value)}),
+                     "default(String)", "s"),
                   s
                )
 
@@ -46,7 +47,7 @@ def default(caller: N_call, s: ActualInputParameter[String])  =
 // bridge method. Returns a ScriptExecuter 
 def default(s: String): ScriptExecuter = {
   val executer = new BasicExecuter
-  default(executer.anchorNode, ActualInputParameter(s))
+  default(executer.anchorNode, s)
   executer.run	
 }
 

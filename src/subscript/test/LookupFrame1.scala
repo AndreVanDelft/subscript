@@ -10,16 +10,17 @@ import subscript.vm._;
 //
 // Note: the main part of this source file has been manually compiled from Subscript code into plain Scala
 
-object LookupFrame extends SimpleSubscriptApplication {
+object LookupFrame1 extends SimpleSubscriptApplication {
   
-  val outputTA     = new TextArea    {editable=false}
-  val searchButton = new Button("Go") {enabled=false}
-  val searchLabel  = new Label("Search") {preferredSize=new Dimension(45,26)}
-  val searchTF     = new TextField       {preferredSize=new Dimension(100, 26)}
-  
+  val outputTA     = new TextArea        {editable      = false}
+  val searchButton = new Button("Go")    {enabled       = false}
+  val searchLabel  = new Label("Search") {preferredSize = new Dimension( 45, 26)}
+  val searchTF     = new TextField       {preferredSize = new Dimension(100, 26)}
+  listenTo(searchTF.keys)
+
   def top = new MainFrame {
     title    = "LookupFrame - Subscript"
-    location = new Point    (400,400)
+    location = new Point    (100,100)
     preferredSize     = new Dimension(300,300)
     contents = new BorderPanel {
       add(new FlowPanel(searchLabel, searchTF, searchButton), BorderPanel.Position.North) 
@@ -35,7 +36,7 @@ object LookupFrame extends SimpleSubscriptApplication {
   searchSequence    = searchCommand    showSearchingText 
                       searchInDatabase showSearchResults
 
-  searchCommand     = searchButton + searchTF,KeyEvent.VK_ENTER 
+  searchCommand     = searchButton + KeyEvent.VK_ENTER 
   showSearchingText = @swing: {outputTA.text = "Searching: "+searchTF.text}
   showSearchResults = @swing: {outputTA.text = "Found: 3 items"}
   searchInDatabase  = {* Thread.sleep 1000 *} // simulate a time consuming action
@@ -64,20 +65,20 @@ object LookupFrame extends SimpleSubscriptApplication {
   def searchCommand(caller: N_call)  =
     caller.calls(T_script("script",
 		             T_n_ary("+", 
-                      T_0_ary_code("call", (here: N_call) => default(here, ActualInputParameter(searchButton))), 
-                      T_0_ary_code("call", (here: N_call) => default(here, ActualInputParameter(searchTF), ActualInputParameter(Key.Enter)))
+                      T_0_ary_code("call", (here: N_call) => default(here, searchButton)), 
+                      T_0_ary_code("call", (here: N_call) => default(here, Key.Enter))
                       ), 
                      "searchCommand")
                  )
   def showSearchingText(caller: N_call)  =
     caller.calls(T_script("script",
-		             T_1_ary_code ("@:", (here: N_annotation[N_code_normal]) => {val there=here.there; swing(there)}, 
+		             T_1_ary_code ("@:", (here: N_annotation[N_code_normal]) => {implicit val there=here.there; swing}, 
 		              T_0_ary_code("{}", (here:              N_code_normal ) => {outputTA.text = "Searching: "+searchTF.text})), 
                      "showSearchingText")
                  )
   def showSearchResults(caller: N_call)  =
     caller.calls(T_script("script",
-		             T_1_ary_code ("@:", (here: N_annotation[N_code_normal]) => {val there=here.there; swing(there)}, 
+		             T_1_ary_code ("@:", (here: N_annotation[N_code_normal]) => {implicit val there=here.there; swing}, 
 		              T_0_ary_code("{}", (here:              N_code_normal ) => {outputTA.text = "Found: "+here.index+" items"})), 
                      "showSearchResults")
                  )
@@ -87,18 +88,17 @@ object LookupFrame extends SimpleSubscriptApplication {
                      "searchInDatabase")
                )
  
-def default(caller: N_call, b:ActualInputParameter[Button])  =
-  caller.calls(T_script("script",
-		             T_0_ary_code("call", (here:N_call) => clicked(here, ActualInputParameter(here.getParameter("b").value.asInstanceOf[Button]))),
-                     "default(Button)", new FormalInputParameter("b")),
+  def default(caller: N_call, b:FormalInputParameter[Button])  =
+    caller.calls(T_script("script",
+		             T_0_ary_code("call", (here:N_call) => clicked(here, b.value)),
+                     "default(Button)", "b"),
                   b
                )
-def default(caller: N_call, comp:ActualInputParameter[Component], keyCode:ActualParameter[Key.Value])  =
-  caller.calls(T_script("script",
-		             T_0_ary_code("call", (here:N_call) => vkey(here, ActualInputParameter(here.getParameter("comp").value.asInstanceOf[Component]), 
-		                                                           ActualAdaptingParameter(keyCode.value, v=>keyCode.value=v,keyCode))),
-                     "default(Component,Int)", new FormalInputParameter("comp"), new FormalConstrainedParameter("keyCode")),
-                  comp, keyCode
+  def default(caller: N_call, keyCode:FormalConstrainedParameter[Key.Value])  =
+    caller.calls(T_script("script",
+		             T_0_ary_code("call", (here:N_call) => vkey(here, top, ActualAdaptingParameter(keyCode))),
+                     "default(Key.Value)", "keyCode"),
+                  keyCode
                )
                
 // bridge methods; only the first one is actually used   
@@ -109,5 +109,6 @@ def searchCommand    : ScriptExecuter = {val executer=new BasicExecuter; searchC
 def searchInDatabase : ScriptExecuter = {val executer=new BasicExecuter; searchInDatabase (executer.anchorNode  ); executer.run}
 def showSearchingText: ScriptExecuter = {val executer=new BasicExecuter; showSearchingText(executer.anchorNode  ); executer.run}
 def showSearchResults: ScriptExecuter = {val executer=new BasicExecuter; showSearchResults(executer.anchorNode  ); executer.run}
-def default(b:Button): ScriptExecuter = {val executer=new BasicExecuter; default          (executer.anchorNode,ActualInputParameter(b)); executer.run}
+def default(b:Button): ScriptExecuter = {val executer=new BasicExecuter; default          (executer.anchorNode,b); executer.run}
+def default(keyCode:Key.Value): ScriptExecuter = {val executer=new BasicExecuter; default(executer.anchorNode, keyCode); executer.run}
 }

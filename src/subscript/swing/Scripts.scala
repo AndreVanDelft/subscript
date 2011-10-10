@@ -2,6 +2,7 @@ package subscript.swing
 import scala.swing._
 import scala.swing.event._
 import subscript.vm._;
+import subscript.Predef._
 
 abstract class SimpleSubscriptApplication extends SimpleSwingApplication{
   override def startup(args: Array[String]) {
@@ -12,19 +13,22 @@ abstract class SimpleSubscriptApplication extends SimpleSwingApplication{
 }
 object Scripts {
   
-  def swing[N<:CallGraphNodeTrait[_]](n:N) = {n.adaptExecuter(new SwingCodeExecuterAdapter[CodeExecuter])}             
+  def swing[N<:CallGraphNodeTrait[_]](implicit n:N) = {n.adaptExecuter(new SwingCodeExecuterAdapter[CodeExecuter])}             
 
   // an extension on scala.swing.Reactor that supports event handling scripts in Subscript
-  abstract class ScriptReactor[N<:N_atomic_action_eh[N]](publisher:Publisher) extends Reactor {
+  abstract class ScriptReactor[N<:N_atomic_action_eh[N]] extends Reactor {
+    def publisher:Publisher
     var executer: EventHandlingCodeFragmentExecuter[N] = _
-    def execute: Unit = executer.execute
-    val publisher1 = publisher
+    def execute = executeMatching(true)
+    def executeMatching(isMatching: Boolean): Unit = executer.executeMatching(isMatching)
+    val publisher1 = publisher // needed in subclass since publisher does not seem to be accessible
     private var myEnabled = false
     def enabled = myEnabled
     def enabled_=(b:Boolean) = {myEnabled=b}
     
     val event: Event
-    val reaction: PartialFunction[Event,Unit] = {case event => execute}
+    def reaction: PartialFunction[Event,Unit] = myReaction
+    private val myReaction: PartialFunction[Event,Unit] = {case event => execute}
     
     def subscribe(n: N): Unit = {
       executer = new EventHandlingCodeFragmentExecuter(n, n.scriptExecuter)
@@ -40,20 +44,44 @@ object Scripts {
   }
   
   // a ScriptReactor that has a Component as a Publisher. Automatically enables and disables the component
-  abstract class ComponentScriptReactor[N<:N_atomic_action_eh[N]](publisher:Publisher with Component) extends ScriptReactor[N](publisher) {
-    override def enabled_=(b:Boolean) = {super.enabled_=(b); publisher.enabled = b}
+  abstract class ComponentScriptReactor[N<:N_atomic_action_eh[N]](publisher:Publisher with Component) extends ScriptReactor[N] {
+    override def enabled_=(b:Boolean) = {
+      super.enabled_=(b); 
+      publisher.enabled = b
+    }
   }
   
   // a ComponentScriptReactor for clicked events on a button
   case class ClickedScriptReactor[N<:N_atomic_action_eh[N]](b:AbstractButton) extends ComponentScriptReactor[N](b) {
+    def publisher = b
     val event: Event = ButtonClicked(b)
   }
   
   // a ScriptReactor for key press events
-  case class KeyPressScriptReactor[N<:N_atomic_action_eh[N]](comp: Component) extends ScriptReactor[N](comp) {
+  case class KeyPressScriptReactor[N<:N_atomic_action_eh[N]](publisher:Publisher, keyCode: FormalConstrainedParameter[Char]) extends ScriptReactor[N] {
     // this does not compile: val event: Event = KeyPressed(comp, _, _, _, _)
     val event = null
-    override val reaction: PartialFunction[Event,Unit] = {case KeyPressed(comp, _, _, _) => execute}
+    override def reaction = myReaction
+    private val myReaction: PartialFunction[Event,Unit] = {
+      case KeyPressed(comp, keyPressedValue, keyModifiers, keyLocationValue) => 
+        executeMatching(keyPressedValue==keyCode)
+    }
+    override def unsubscribe: Unit = {
+      publisher1.reactions -= reaction
+      //if (!publisher1.reactions.isDefinedAt(KeyPressed(comp, _, _, _))) {enabled=false}
+    }
+  }
+  
+  // a ScriptReactor for virtual key press events
+  case class VKeyPressScriptReactor[N<:N_atomic_action_eh[N]](publisher:Publisher, keyValue: FormalConstrainedParameter[Key.Value]) extends ScriptReactor[N] {
+    // this does not compile: val event: Event = KeyPressed(comp, _, _, _, _)
+    val event = null
+    override def reaction = myReaction
+    private val myReaction: PartialFunction[Event,Unit] = {
+      case KeyPressed(aComp, keyPressedValue, keyModifiers, keyLocationValue) => 
+        executeMatching(keyPressedValue==keyValue)
+      case anything => println(anything)
+    }
     override def unsubscribe: Unit = {
       publisher1.reactions -= reaction
       //if (!publisher1.reactions.isDefinedAt(KeyPressed(comp, _, _, _))) {enabled=false}
@@ -65,7 +93,7 @@ object Scripts {
  scripts
   clicked(b:Button) = 
     val csr = ClickedScriptReactor(b)
-    @swing(there):  // the redirection to the swing thread is needed because enabling and disabling the button must there be done
+    @swing:  // the redirection to the swing thread is needed because enabling and disabling the button must there be done
     @csr.subscribe(there); there.onDeactivate{()=>csr.unsubscribe}: {. .}
     
   key(comp: Component, c: Char??) =
@@ -80,49 +108,50 @@ object Scripts {
  to make it easy enforceable that "there" and even "there.there" would be of the proper type
 */
   
-  def clicked(caller: N_call, b:ActualParameter[Button])  = {
+  def clicked(caller: N_call, b:FormalInputParameter[Button])  = {
     caller.calls(T_script("script",
 	                T_n_ary(";", 
-	                 T_0_ary_code  ("val" , (here:                           N_localvar ) => {here.initLocalVariableValue_stepsUp("csr", 1, new ClickedScriptReactor[N_code_eh](b.value))}),
-		             T_1_ary_code  ("@:"  , (here: N_annotation[N_annotation[N_code_eh]]) => {val there=here.there; swing(there)}, 
-		              T_1_ary_code ("@:"  , (here:              N_annotation[N_code_eh] ) => {val there=here.there;here.getLocalVariableValue_stepsUp("csr", 2).asInstanceOf[ClickedScriptReactor[N_code_eh]].subscribe(there); 
-		                                                                                     there.onDeactivate{()=>here.getLocalVariableValue_stepsUp("csr", 2).asInstanceOf[ClickedScriptReactor[N_code_eh]].unsubscribe}}, 
-		               T_0_ary_code("{..}", (here:                           N_code_eh  ) => {println("\nCLICKED!!!")} // Temporary tracing
+	                 T_0_ary_code  ("val" , (__here:                         N_localvar ) => {implicit val here = __here; here.initLocalVariableValue_stepsUp("csr", 1, new ClickedScriptReactor[N_code_eh](b.value))}),
+		             T_1_ary_code  ("@:"  , (here: N_annotation[N_annotation[N_code_eh]]) => {implicit val there=here.there; swing}, 
+		              T_1_ary_code ("@:"  , (here:              N_annotation[N_code_eh] ) => {implicit val there=here.there;here.getLocalVariableValue_stepsUp("csr", 2).asInstanceOf[ClickedScriptReactor[N_code_eh]].subscribe(there); 
+		                                                                                             there.onDeactivate{()=>here.getLocalVariableValue_stepsUp("csr", 2).asInstanceOf[ClickedScriptReactor[N_code_eh]].unsubscribe}}, 
+		               T_0_ary_code("{..}", (__here:                         N_code_eh  ) => {implicit val here = __here; println("\nCLICKED!!!")} // Temporary tracing
 		            )))), 
-                     "clicked", new FormalInputParameter("b")),
+                     "clicked", "b"),
                   b
                )
   }
                
-  def key(caller: N_call, comp: ActualParameter[Component], keyCode: ActualParameter[Char])  = {
+  def key(caller: N_call, publisher: FormalInputParameter[Publisher], keyCode: FormalConstrainedParameter[Char])  = {
     caller.calls(T_script("script",
 	                T_n_ary(";", 
-	                 T_0_ary_code ("val" , (here:                           N_localvar ) => {here.initLocalVariableValue_stepsUp("ksr", 1, new KeyPressScriptReactor[N_code_eh](comp.value))}),
-                     T_1_ary_code ("@:"  , (here:              N_annotation[N_code_eh] ) => {val there=here.there;here.getLocalVariableValue_stepsUp("ksr", 1).asInstanceOf[KeyPressScriptReactor[N_code_eh]].subscribe(there); 
-		                                                                                     there.onDeactivate{()=>here.getLocalVariableValue_stepsUp("ksr", 1).asInstanceOf[KeyPressScriptReactor[N_code_eh]].unsubscribe}}, 
-		              T_0_ary_code("{..}", (here:                           N_code_eh  ) => {println("\nKey!!!")} // Temporary tracing
+	                 T_0_ary_code ("val" , (__here:                         N_localvar ) => {implicit val here = __here;  here.initLocalVariableValue_stepsUp("ksr", 1, new KeyPressScriptReactor[N_code_eh](publisher.value, keyCode))}),
+                     T_1_ary_code ("@:"  , (here:              N_annotation[N_code_eh] ) => {implicit val there=here.there;here.getLocalVariableValue_stepsUp("ksr", 1).asInstanceOf[KeyPressScriptReactor[N_code_eh]].subscribe(there); 
+		                                                                                            there.onDeactivate{()=>here.getLocalVariableValue_stepsUp("ksr", 1).asInstanceOf[KeyPressScriptReactor[N_code_eh]].unsubscribe}}, 
+		              T_0_ary_code("{..}", (__here:                         N_code_eh  ) => {implicit val here = __here; val keyKode_ = here.getParameter[String]("keyCode"); println("\nKey!!!")} // Temporary tracing
 		            ))), 
-                     "clicked", new FormalInputParameter("b")),
-                  comp, keyCode
+                     "key", "keyCode"),
+                  publisher, keyCode
                )
   }
                
- def vkey(caller: N_call, comp: ActualParameter[Component], keyCode: ActualParameter[Key.Value])  = {
+ def vkey(caller: N_call, publisher: FormalInputParameter[Publisher], keyCode: FormalConstrainedParameter[Key.Value])  = {
     caller.calls(T_script("script",
 	                T_n_ary(";", 
-	                 T_0_ary_code ("val" , (here:                           N_localvar ) => {here.initLocalVariableValue_stepsUp("ksr", 1, new KeyPressScriptReactor[N_code_eh](comp.value))}),
-                     T_1_ary_code ("@:"  , (here:              N_annotation[N_code_eh] ) => {val there=here.there;here.getLocalVariableValue_stepsUp("ksr", 1).asInstanceOf[KeyPressScriptReactor[N_code_eh]].subscribe(there); 
-		                                                                                     there.onDeactivate{()=>here.getLocalVariableValue_stepsUp("ksr", 1).asInstanceOf[KeyPressScriptReactor[N_code_eh]].unsubscribe}}, 
-		              T_0_ary_code("{..}", (here:                           N_code_eh  ) => {println("\nKey!!!")} // Temporary tracing
+	                 T_0_ary_code ("val" , (__here:                         N_localvar ) => {implicit val here = __here;  here.initLocalVariableValue_stepsUp("ksr", 1, new VKeyPressScriptReactor[N_code_eh](publisher.value, keyCode))}),
+                     T_1_ary_code ("@:"  , (here:              N_annotation[N_code_eh] ) => {implicit val there=here.there;here.getLocalVariableValue_stepsUp("ksr", 1).asInstanceOf[VKeyPressScriptReactor[N_code_eh]].subscribe(there); 
+		                                                                                            there.onDeactivate{()=>here.getLocalVariableValue_stepsUp("ksr", 1).asInstanceOf[VKeyPressScriptReactor[N_code_eh]].unsubscribe}}, 
+		              T_0_ary_code("{..}", (__here:                         N_code_eh  ) => {implicit val here = __here;  val keyKode_ = here.getParameter[String]("keyCode"); println("\nKey!!!")} // Temporary tracing
 		            ))), 
-                     "clicked", new FormalInputParameter("b")),
-                  comp, keyCode
+                     "vkey", "keyCode"),
+                  publisher, keyCode
                )
   }
                
   // bridge methods
-  def clicked(b:Button): ScriptExecuter = {val executer=new BasicExecuter; clicked (executer.anchorNode,ActualInputParameter(b)); executer.run}
-  def key(comp: Component, keyCode: Char): ScriptExecuter = {val executer=new BasicExecuter; key (executer.anchorNode,ActualInputParameter(comp), ActualForcingParameter(keyCode)); executer.run}
+  def clicked(   b:Button                        ): ScriptExecuter = {val executer=new BasicExecuter; clicked(executer.anchorNode, b); executer.run}
+  def     key(comp: Component, keyCode: Char     ): ScriptExecuter = {val executer=new BasicExecuter;     key(executer.anchorNode, comp, keyCode); executer.run}
+  def    vkey(comp: Component, keyCode: Key.Value): ScriptExecuter = {val executer=new BasicExecuter;    vkey(executer.anchorNode, comp, keyCode); executer.run}
              
 
 }

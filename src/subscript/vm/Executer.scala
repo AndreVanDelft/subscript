@@ -11,7 +11,8 @@ trait ScriptExecuter {
 /*
  * TBD:
  * 
- * parameters: output, forcing, checking
+ * compiled scripts; links to nary_op + script
+ * parameters: output, forcing, checking, actual<<>>formal
  * here-features: hasSuccess, fail, neutral, breakFromLoop, optionalBreakFromLoop
  * script "key"
  * optional exit
@@ -27,7 +28,6 @@ trait ScriptExecuter {
  * networks and pipes
  * exception handling 
  */
-
 
 class BasicExecuter extends ScriptExecuter {
 
@@ -168,8 +168,10 @@ class BasicExecuter extends ScriptExecuter {
       val ns = n.asInstanceOf[N_script]
       val pc = ns.parent.asInstanceOf[N_call]
       var i = 0
-      ns.template.formalParameters.foreach{f=>
-        ns.parameterLookup(f.name) = pc.actualParameters(i)
+      ns.template.formalParameterNames.foreach{n=>
+        val p = pc.actualParameters(i)
+        p.name = n
+        ns.parameterLookup(n) = p
         i += 1
       }
     }
@@ -794,9 +796,13 @@ class SwingCodeExecuterAdapter[CE<:CodeExecuter] extends CodeExecuterAdapter[CE]
   }
 }
 class EventHandlingCodeFragmentExecuter[N<:N_atomic_action_eh[N]](n: N, scriptExecuter: ScriptExecuter) extends AACodeFragmentExecuter(n, scriptExecuter)  {
-  def execute: Unit = {  // not to be called by scriptExecuter, but by application code
-    n.hasSuccess = true
-    n.template.code(n)
+  def execute: Unit = executeMatching(true) // dummy method needed because of a flaw in the class hierarchy
+  def executeMatching(isMatching: Boolean): Unit = {  // not to be called by scriptExecuter, but by application code
+    n.hasSuccess = isMatching
+    if (n.hasSuccess) 
+    {
+      n.template.code(n) // may affect n.hasSuccess
+    }
     if (n.hasSuccess) 
     {
       executionFinished // will probably imply a call back to afterExecute from the ScriptExecuter thread
