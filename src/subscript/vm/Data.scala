@@ -18,7 +18,7 @@ Overview of formal and actual parameter use
 trait FormalParameter[T<:Any] {
   def name: String; 
   def value: T
-  def matches(aValue: T): Boolean
+  def matches(aValue: T, doIsForcing: Boolean = isForcing): Boolean
   def isInput      : Boolean
   def isOutput     : Boolean
   def isForcing    : Boolean
@@ -26,13 +26,17 @@ trait FormalParameter[T<:Any] {
 }
 trait       FormalInputParameter[T<:Any] extends FormalParameter[T]
 trait      FormalOutputParameter[T<:Any] extends FormalParameter[T]
-trait FormalConstrainedParameter[T<:Any] extends FormalParameter[T] {var value: T}
+trait FormalConstrainedParameter[T<:Any] extends FormalParameter[T] {var value: T; def setAsFormalConstrainedParameter}
 
 trait ActualParameterTrait[T<:Any] extends FormalParameter[T] {
   def originalValue: T
   def value: T
   def transfer {}  
   def matches      : Boolean = matches(value)
+  def isInput      : Boolean  
+  def isOutput     : Boolean  
+  def isForcing    : Boolean
+  def isConstrained: Boolean
 }
 abstract class ActualParameter[T<:Any] extends ActualParameterTrait[T] {
   var name: String = null
@@ -45,7 +49,8 @@ trait ParameterTransferrerTrait[T<:Any] extends ActualParameterTrait[T] {
 case class   ActualValueParameter[T<:Any](originalValue:T) extends ActualParameter[T] 
   with FormalInputParameter      [T]
   with FormalConstrainedParameter[T] {
-  def matches(aValue: T) = if (isForcing) aValue==originalValue else true 
+  def setAsFormalConstrainedParameter = isForcing=true
+  def matches(aValue: T, doIsForcing: Boolean = isForcing) = if (doIsForcing) aValue==originalValue else true 
   def isInput       = !isForcing  
   def isOutput      = false  
   var isForcing     = false // var, not def!!!
@@ -55,7 +60,8 @@ case class  ActualOutputParameter[T<:Any](originalValue:T, transferFunction: T=>
   with ParameterTransferrerTrait [T]
   with FormalInputParameter      [T] 
   with FormalConstrainedParameter[T] {
-  def matches(aValue: T) = true  
+  def setAsFormalConstrainedParameter {}
+  def matches(aValue: T, doIsForcing: Boolean = isForcing) = true  
   def isInput       = false  
   def isOutput      = true  
   def isForcing     = false
@@ -65,7 +71,8 @@ case class  ActualOutputParameter[T<:Any](originalValue:T, transferFunction: T=>
 case class ActualConstrainedParameter[T<:Any](originalValue:T, transferFunction: T=>Unit, constraint: T=>Boolean) extends ActualParameter[T] 
   with ParameterTransferrerTrait [T]
   with FormalConstrainedParameter[T] {
-  def matches(aValue: T) = constraint.apply(aValue)  
+  def matches(aValue: T, doIsForcing: Boolean = isForcing) = constraint.apply(aValue)  
+  def setAsFormalConstrainedParameter {}
   def isInput       = false  
   def isOutput      = false  
   def isForcing     = false
@@ -76,13 +83,17 @@ case class ActualAdaptingParameter[T<:Any](adaptee: FormalConstrainedParameter[T
   extends ActualParameter        [T] 
   with ParameterTransferrerTrait [T]
   with FormalConstrainedParameter[T] {
+  val rootAdaptee: ActualParameter[T] = adaptee match {case a:ActualAdaptingParameter[_]=>a.rootAdaptee case _ => adaptee.asInstanceOf[ActualParameter[T]]}
+  def setAsFormalConstrainedParameter = isForcing=rootAdaptee.isInput
   val originalValue  = adaptee.value // val, not def !!
+  value = originalValue
   def transferFunction: T=>Unit = {adaptee.value = _}
-  def matches(aValue: T) = (constraint==null||constraint.apply(aValue))&&adaptee.matches(aValue)
-  def isInput       = adaptee.isInput  
-  def isOutput      = adaptee.isOutput
-  def isForcing     = adaptee.isForcing
-  def isConstrained = adaptee.isConstrained
+  def matches(aValue: T, doIsForcing: Boolean = isForcing) = (constraint==null||constraint.apply(aValue))&&
+                            adaptee.matches(aValue, doIsForcing)
+  def isInput       = adaptee.isInput && !isForcing
+  def isOutput      = adaptee.isOutput&&constraint==null
+  var isForcing     = adaptee.isForcing
+  def isConstrained = adaptee.isConstrained || adaptee.isOutput && constraint!=null
 }
 //case class LocalVariable[T<:Any](name: String, var value: T)  cannot get this compiled, yet
 case class LocalVariable(name: String, var value: Any)

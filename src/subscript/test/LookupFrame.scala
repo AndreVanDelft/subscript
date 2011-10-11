@@ -9,18 +9,18 @@ import subscript.vm._;
 //
 // Note: the main part of this source file has been manually compiled from Subscript code into plain Scala
 
-object LookupFrame extends LookupFrame
+object LookupFrame extends LookupFrameApplication
 
-class LookupFrame extends SimpleSubscriptApplication {
+class LookupFrameApplication extends SimpleSubscriptApplication {
   
   val outputTA     = new TextArea        {editable      = false}
   val searchButton = new Button("Go")    {enabled       = false}
   val searchLabel  = new Label("Search") {preferredSize = new Dimension(45,26)}
   val searchTF     = new TextField       {preferredSize = new Dimension(100, 26)}
   
-  def top = new MainFrame {
+  val top = new MainFrame {
     title    = "LookupFrame - Subscript"
-    location = new Point    (400,400)
+    location = new Point    (100,100)
     preferredSize     = new Dimension(300,300)
     contents = new BorderPanel {
       add(new FlowPanel(searchLabel, searchTF, searchButton), BorderPanel.Position.North) 

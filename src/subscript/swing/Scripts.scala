@@ -65,7 +65,13 @@ object Scripts {
     override def reaction = myReaction
     private val myReaction: PartialFunction[Event,Unit] = {
       case KeyPressed(comp, keyPressedValue, keyModifiers, keyLocationValue) => 
-        executeMatching(keyPressedValue==keyCode)
+        if (keyPressedValue.id < 256) {
+          val c = keyPressedValue.id.asInstanceOf[Char]
+	      if (keyCode.matches(c)) {
+	        keyCode.value = c
+	        executeMatching(true)
+	      }
+        }
     }
     override def unsubscribe: Unit = {
       publisher1.reactions -= reaction
@@ -79,9 +85,11 @@ object Scripts {
     val event = null
     override def reaction = myReaction
     private val myReaction: PartialFunction[Event,Unit] = {
-      case KeyPressed(aComp, keyPressedValue, keyModifiers, keyLocationValue) => 
-        executeMatching(keyPressedValue==keyValue)
-      case anything => println(anything)
+      case KeyPressed(comp, keyPressedValue, keyModifiers, keyLocationValue) => 
+        if (keyValue.matches(keyPressedValue)) {
+          keyValue.value = keyPressedValue
+          executeMatching(true)
+        }
     }
     override def unsubscribe: Unit = {
       publisher1.reactions -= reaction
@@ -97,8 +105,12 @@ object Scripts {
     @swing:  // the redirection to the swing thread is needed because enabling and disabling the button must there be done
     @csr.subscribe(there); there.onDeactivate{()=>csr.unsubscribe}: {. .}
     
-  key(comp: Component, c: Char??) =
-    val ksr = KeyPressScriptReactor(b)
+  key(comp: Component, keyCode: Char??) =
+    val ksr = KeyPressScriptReactor(keyCode)
+    @csr.subscribe(there); there.onDeactivate{()=>csr.unsubscribe}: {. .}
+ 
+  vkey(comp: Component, keyValue: Key.Value??) =
+    val ksr = KeyPressScriptReactor(keyValue)
     @csr.subscribe(there); there.onDeactivate{()=>csr.unsubscribe}: {. .}
  
  Note: the manual compilation yielded for the first annotation the type
@@ -124,6 +136,7 @@ object Scripts {
   }
                
   def key(caller: N_call, _publisher: FormalInputParameter[Publisher], _keyCode: FormalConstrainedParameter[Char])  = {
+    _keyCode.setAsFormalConstrainedParameter
     caller.calls(T_script("script",
 	                T_n_ary(";", 
 	                 T_0_ary_code ("val" , (_here:                           N_localvar ) => {implicit val here=_here;     here.initLocalVariableValue_stepsUp("ksr", 1, new KeyPressScriptReactor[N_code_eh](_publisher.value, _keyCode))}),
@@ -131,21 +144,22 @@ object Scripts {
 		                                                                                             there.onDeactivate{()=>here.getLocalVariableValue_stepsUp("ksr", 1).asInstanceOf[KeyPressScriptReactor[N_code_eh]].unsubscribe}}, 
 		              T_0_ary_code("{..}", (_here:                           N_code_eh  ) => {implicit val here=_here; println("\nKey"+_keyCode.value)} // Temporary tracing
 		            ))), 
-                     "key", "keyCode"),
+                     "key", "publisher", "keyCode"),
                   _publisher, _keyCode
                )
   }
                
- def vkey(caller: N_call, _publisher: FormalInputParameter[Publisher], _keyCode: FormalConstrainedParameter[Key.Value])  = {
+ def vkey(caller: N_call, _publisher: FormalInputParameter[Publisher], _keyValue: FormalConstrainedParameter[Key.Value])  = {
+    _keyValue.setAsFormalConstrainedParameter
     caller.calls(T_script("script",
 	                T_n_ary(";", 
-	                 T_0_ary_code ("val" , (_here:                           N_localvar ) => {implicit val here=_here;     here.initLocalVariableValue_stepsUp("ksr", 1, new VKeyPressScriptReactor[N_code_eh](_publisher.value, _keyCode))}),
+	                 T_0_ary_code ("val" , (_here:                           N_localvar ) => {implicit val here=_here;     here.initLocalVariableValue_stepsUp("ksr", 1, new VKeyPressScriptReactor[N_code_eh](_publisher.value, _keyValue))}),
                      T_1_ary_code ("@:"  , ( here:              N_annotation[N_code_eh] ) => {implicit val there=here.there;here.getLocalVariableValue_stepsUp("ksr", 1).asInstanceOf[VKeyPressScriptReactor[N_code_eh]].subscribe(there); 
 		                                                                                             there.onDeactivate{()=>here.getLocalVariableValue_stepsUp("ksr", 1).asInstanceOf[VKeyPressScriptReactor[N_code_eh]].unsubscribe}}, 
-		              T_0_ary_code("{..}", (_here:                           N_code_eh  ) => {implicit val here=_here; println("\nVKey"+_keyCode.value)} // Temporary tracing
-		            ))), 
-                     "vkey", "keyCode"),
-                  _publisher, _keyCode
+		              T_0_ary_code("{..}", (_here:                           N_code_eh  ) => {implicit val here=_here; println("\nVKey"+_keyValue.value)} // Temporary tracing
+		            ))),
+                     "vkey", "publisher", "keyValue"),
+                  _publisher, _keyValue
                )
   }
                

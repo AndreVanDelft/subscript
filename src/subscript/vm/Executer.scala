@@ -43,6 +43,15 @@ class BasicExecuter extends ScriptExecuter {
     if (maxSteps>0 && nSteps > maxSteps) {println("Exiting after "+nSteps+"steps"); System.exit(0)}
     nSteps += 1
   }
+  def traceTree: Unit = traceTree(rootNode, 0)
+  def traceTree(n: CallGraphNodeTrait[_], depth: Int): Unit = {
+    for (i<-1 to 3*depth) print(" ")
+    println(n)
+    n match {
+      case p:CallGraphParentNodeTrait[_] => p.children.foreach{traceTree(_, depth+1)}
+      case _ =>
+    }
+  }
   
   // send out a success when in an And-like context
   def doNeutral(n: CallGraphNode[_<:TemplateNode]) =
@@ -60,10 +69,14 @@ class BasicExecuter extends ScriptExecuter {
     childNode.parent = parentNode
     childNode.scriptExecuter = parentNode.scriptExecuter
     parentNode.children.append(childNode)
-    if (childNode.isInstanceOf[CallGraphTreeNode_n_ary]) {
-      val p = childNode.asInstanceOf[CallGraphTreeNode_n_ary]
+    if (parentNode.isInstanceOf[CallGraphTreeNode_n_ary]) {
+      val p = parentNode.asInstanceOf[CallGraphTreeNode_n_ary]
       p.lastActivatedChild = childNode
     }
+    //if (childNode.isInstanceOf[CallGraphTreeNode_n_ary]) {
+    //  val p = childNode.asInstanceOf[CallGraphTreeNode_n_ary]
+    //  p.lastActivatedChild = childNode
+    //}
   }
   // disconnect a child node from its parent
   def disconnect(childNode: CallGraphNodeTrait[_<:TemplateNode]) {
@@ -249,7 +262,7 @@ class BasicExecuter extends ScriptExecuter {
                                                      return}
            case _ => 
       }
-      // TBD: node.onSuccess
+      // TBD: node.onDeactivation
       message.node.forEachParent(p => insertDeactivation(p,message.node))
       executeIfDefined(message.node.onDeactivate)
       executeIfDefined(message.node.onDeactivateOrSuspend)
@@ -509,7 +522,9 @@ class BasicExecuter extends ScriptExecuter {
                       => val a = message.aaActivated; val c = message.caActivated; val b = message.break
                          activateNextOrEnded = b==null || a!=null || c!=null
                          if (activateNextOrEnded) {
-                           childNode = message.childNode
+                           childNode = n.lastActivatedChild         
+                           //childNode = message.childNode         
+
                          }
                   
       case kind if (T_n_ary.isLeftMerge(kind)) => 
@@ -549,7 +564,6 @@ class BasicExecuter extends ScriptExecuter {
 	var nextActivationPass = 0
 	if (activateNextOrEnded) {
 	  // old: childNode = if (T_n_ary.isLeftMerge(n.template.kind)) n.lastActivatedChild else message.childNode ; now done before
-	           
 	  nextActivationTemplateIndex = childNode.template.indexAsChild+1
 	  var nextActivationPass = childNode.pass 
 	  
@@ -566,7 +580,10 @@ class BasicExecuter extends ScriptExecuter {
 	  }
 	  else {
 	    activateNext = true
-	  }        
+	  }  
+	  if (activationEnded) {
+	    n.activationMode = ActivationMode.Inactive
+	  }
     }
     
     // decide on exclusions and suspensions; deciding on exclusions must be done before activating next operands, of course
@@ -668,6 +685,7 @@ class BasicExecuter extends ScriptExecuter {
         handle(m)
       }
       else if (!rootNode.children.isEmpty) {
+        traceTree
          synchronized {wait()} // for an event to happen 
          // note: there may also be deadlock because of unmatching communications
          // so there should preferably be a check for the existence of waiting eh actions
