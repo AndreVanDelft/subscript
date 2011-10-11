@@ -96,5 +96,5 @@ case class ActualAdaptingParameter[T<:Any](adaptee: FormalConstrainedParameter[T
   def isConstrained = adaptee.isConstrained || adaptee.isOutput && constraint!=null
 }
 //case class LocalVariable[T<:Any](name: String, var value: T)  cannot get this compiled, yet
-case class LocalVariable(name: String, var value: Any)
+case class LocalVariable[T<:Any](name: String, var value: T)
 

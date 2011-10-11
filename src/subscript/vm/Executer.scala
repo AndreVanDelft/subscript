@@ -12,9 +12,7 @@ trait ScriptExecuter {
  * TBD:
  * 
  * compiled scripts; links to nary_op + script
- * parameters: output, forcing, checking, actual<<>>formal
  * here-features: hasSuccess, fail, neutral, breakFromLoop, optionalBreakFromLoop
- * script "key"
  * optional exit
  * forced deactivate: / || &&
  * 
@@ -30,7 +28,7 @@ trait ScriptExecuter {
  */
 
 class BasicExecuter extends ScriptExecuter {
-
+  
   // some tracing stuff
   var nSteps = 0
   var maxSteps = 0 // 0 means unlimited
@@ -43,14 +41,20 @@ class BasicExecuter extends ScriptExecuter {
     if (maxSteps>0 && nSteps > maxSteps) {println("Exiting after "+nSteps+"steps"); System.exit(0)}
     nSteps += 1
   }
-  def traceTree: Unit = traceTree(rootNode, 0)
-  def traceTree(n: CallGraphNodeTrait[_], depth: Int): Unit = {
-    for (i<-1 to 3*depth) print(" ")
-    println(n)
-    n match {
-      case p:CallGraphParentNodeTrait[_] => p.children.foreach{traceTree(_, depth+1)}
-      case _ =>
-    }
+  def traceTree: Unit = {
+    var j = 0;
+	  def traceTree(n: CallGraphNodeTrait[_], depth: Int): Unit = {
+	    for (i<-1 to 30) {
+	      print(if(i==depth)"*"else if(j%5==0)"-"else" ")
+	    }
+	    j+=1
+	    println(n)
+	    n match {
+	      case p:CallGraphParentNodeTrait[_] => p.children.foreach{traceTree(_, depth+1)}
+	      case _ =>
+	    }
+	  }
+    traceTree(rootNode, 0)
   }
   
   // send out a success when in an And-like context
@@ -184,7 +188,7 @@ class BasicExecuter extends ScriptExecuter {
       ns.template.formalParameterNames.foreach{n=>
         val p = pc.actualParameters(i)
         p.name = n
-        ns.parameterLookup(n) = p
+        //ns.parameterLookup(n) = p
         i += 1
       }
     }
@@ -311,7 +315,7 @@ class BasicExecuter extends ScriptExecuter {
            case n@N_inline_if       (t: T_2_ary        ) => activateFrom(n, t.child0)
            case n@N_inline_if_else  (t: T_3_ary        ) => activateFrom(n, t.child0)
            case n@N_n_ary_op        (t: T_n_ary, 
-                                         isLeftMerge   ) => val cn = activateFrom(n, t.children.first); if (!isLeftMerge) insertContinuation(message, cn)
+                                         isLeftMerge   ) => val cn = activateFrom(n, t.children.head); if (!isLeftMerge) insertContinuation(message, cn)
            case n@N_call            (t: T_0_ary_code[_]) => execute(()=>t.code(n)); activateFrom(n, n.t_callee)  // TBD: insert(CAActivated)+insert(CAActivatedTBD) depending on template
            case n@N_script          (t: T_script       ) => activateFrom(n, t.child0)
       }      
@@ -607,7 +611,7 @@ class BasicExecuter extends ScriptExecuter {
                           }
     }
     if (T_n_ary.isSuspending(n.template) && !message.aaStarteds.isEmpty) {
-      val s = message.aaStarteds.first.node
+      val s = message.aaStarteds.head.node
       if (s.aaStartedCount==1) {
         n.template.kind match {
           case "#" | "%#%"  => nodesToBeSuspended = n.children - s 

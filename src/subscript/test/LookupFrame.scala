@@ -80,7 +80,7 @@ class LookupFrameApplication extends SimpleSubscriptApplication {
                  )
   def searchInDatabase(caller: N_call)  =
     caller.calls(T_script("script",
-		             T_0_ary_code("{**}", (here:N_code_threaded) => {Thread.sleep(1000)}),
+		             T_0_ary_code("{**}", (here:N_code_threaded) => {for(i<-0 to 9) {outputTA.text+=i;Thread.sleep(300)}}),
                      "searchInDatabase")
                )
  

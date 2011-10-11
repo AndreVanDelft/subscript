@@ -14,6 +14,8 @@ object LookupFrame1 extends LookupFrame1Application
 class LookupFrame1Application extends LookupFrameApplication {
   
   top.listenTo (searchTF.keys)
+  val f = top.peer.getRootPane().getParent().asInstanceOf[javax.swing.JFrame]
+  f.setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE)
 
   /* the following subscript code has manually been compiled into Scala; see below
  override scripts
