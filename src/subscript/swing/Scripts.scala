@@ -7,7 +7,7 @@ import subscript.Predef._
 abstract class SimpleSubscriptApplication extends SimpleSwingApplication{
   override def startup(args: Array[String]) {
     super.startup(args)
-    new Thread{override def run=live}.start()
+    new Thread{override def run={live;quit}}.start()
   }
   def live(caller: N_call): Unit
   def live: ScriptExecuter
@@ -129,7 +129,7 @@ object Scripts {
 		              T_1_ary_code ("@:"  , ( here:              N_annotation[N_code_eh] ) => {implicit val there=here.there;
 		                                                                                                    here.withLocal("csr", 0, (_csr: LocalVariable[ClickedScriptReactor[N_code_eh]]) =>
 		                                                                                                                             {_csr.value.subscribe(there); there.onDeactivate{()=>_csr.value.unsubscribe}})}, 
-		               T_0_ary_code("{..}", (_here:                           N_code_eh  ) => {implicit val here =_here; println("\nCLICKED!!!")} // Temporary tracing
+		               T_0_ary_code("{..}", (_here:                           N_code_eh  ) => {}//{implicit val here =_here; println("\nCLICKED!!!")} // Temporary tracing
 		            )))), 
                      "clicked", "b"),
                   _b
@@ -144,7 +144,7 @@ object Scripts {
                      T_1_ary_code ("@:"  , ( here:              N_annotation[N_code_eh] ) => {implicit val there=here.there;
 		                                                                                                    here.withLocal("ksr", 0, (_ksr: LocalVariable[ClickedScriptReactor[N_code_eh]]) =>
 		                                                                                                                             {_ksr.value.subscribe(there); there.onDeactivate{()=>_ksr.value.unsubscribe}})},
-		              T_0_ary_code("{..}", (_here:                           N_code_eh  ) => {implicit val here=_here; println("\nKey"+_keyCode.value)} // Temporary tracing
+		              T_0_ary_code("{..}", (_here:                           N_code_eh  ) => {}//{implicit val here=_here; println("\nKey"+_keyCode.value)} // Temporary tracing
 		            ))), 
                      "key", "publisher", "keyCode"),
                   _publisher, _keyCode
@@ -159,7 +159,7 @@ object Scripts {
                      T_1_ary_code ("@:"  , ( here:              N_annotation[N_code_eh] ) => {implicit val there=here.there;
 		                                                                                                    here.withLocal("ksr", 0, (_ksr: LocalVariable[ClickedScriptReactor[N_code_eh]]) =>
 		                                                                                                                             {_ksr.value.subscribe(there); there.onDeactivate{()=>_ksr.value.unsubscribe}})},
-		              T_0_ary_code("{..}", (_here:                           N_code_eh  ) => {implicit val here=_here; println("\nVKey"+_keyValue.value)} // Temporary tracing
+		              T_0_ary_code("{..}", (_here:                           N_code_eh  ) => {}//{implicit val here=_here; println("\nVKey"+_keyValue.value)} // Temporary tracing
 		            ))),
                      "vkey", "publisher", "keyValue"),
                   _publisher, _keyValue

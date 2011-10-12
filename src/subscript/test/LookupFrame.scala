@@ -39,7 +39,7 @@ class LookupFrameApplication extends SimpleSubscriptApplication {
   searchCommand     = searchButton
   showSearchingText = @swing: {outputTA.text = "Searching: "+searchTF.text}
   showSearchResults = @swing: {outputTA.text = "Found: 3 items"}
-  searchInDatabase  = {* Thread.sleep 1000 *} // simulate a time consuming action
+  searchInDatabase  = {* Thread.sleep(2000) *} // simulate a time consuming action
   _(b: Button)      = clicked(b)
 */
 
@@ -63,7 +63,7 @@ class LookupFrameApplication extends SimpleSubscriptApplication {
                )
   def searchCommand(caller: N_call)  =
     caller.calls(T_script("script",
-		             T_0_ary_code("call", (here: N_call) => default(here, searchButton)), 
+		             T_0_ary_code("call", (here: N_call) => _default(here, searchButton)), 
                      "searchCommand")
                  )
   def showSearchingText(caller: N_call)  =
@@ -80,23 +80,23 @@ class LookupFrameApplication extends SimpleSubscriptApplication {
                  )
   def searchInDatabase(caller: N_call)  =
     caller.calls(T_script("script",
-		             T_0_ary_code("{**}", (here:N_code_threaded) => {for(i<-0 to 9) {outputTA.text+=i;Thread.sleep(300)}}),
+		             T_0_ary_code("{**}", (here:N_code_threaded) => {Thread.sleep(2000)}),
                      "searchInDatabase")
                )
  
-def default(caller: N_call, _b:FormalInputParameter[Button])  =
+def _default(caller: N_call, _b:FormalInputParameter[Button])  =
   caller.calls(T_script("script",
 		             T_0_ary_code("call", (here:N_call) => clicked(here, _b.value)),
-                     "default(Button)", "b"),
+                     "_default(Button)", "b"),
                   _b
                )
                
 // bridge methods; only the first one is actually used   
-override def live    : ScriptExecuter = {val executer=new BasicExecuter; live             (executer.anchorNode  ); executer.run}
-def searchSequence   : ScriptExecuter = {val executer=new BasicExecuter; searchSequence   (executer.anchorNode  ); executer.run}
-def searchCommand    : ScriptExecuter = {val executer=new BasicExecuter; searchCommand    (executer.anchorNode  ); executer.run}
-def searchInDatabase : ScriptExecuter = {val executer=new BasicExecuter; searchInDatabase (executer.anchorNode  ); executer.run}
-def showSearchingText: ScriptExecuter = {val executer=new BasicExecuter; showSearchingText(executer.anchorNode  ); executer.run}
-def showSearchResults: ScriptExecuter = {val executer=new BasicExecuter; showSearchResults(executer.anchorNode  ); executer.run}
-def default(b:Button): ScriptExecuter = {val executer=new BasicExecuter; default          (executer.anchorNode,b); executer.run}
+override def live     : ScriptExecuter = {val executer=new BasicExecuter; live             (executer.anchorNode  ); executer.run}
+def searchSequence    : ScriptExecuter = {val executer=new BasicExecuter; searchSequence   (executer.anchorNode  ); executer.run}
+def searchCommand     : ScriptExecuter = {val executer=new BasicExecuter; searchCommand    (executer.anchorNode  ); executer.run}
+def searchInDatabase  : ScriptExecuter = {val executer=new BasicExecuter; searchInDatabase (executer.anchorNode  ); executer.run}
+def showSearchingText : ScriptExecuter = {val executer=new BasicExecuter; showSearchingText(executer.anchorNode  ); executer.run}
+def showSearchResults : ScriptExecuter = {val executer=new BasicExecuter; showSearchResults(executer.anchorNode  ); executer.run}
+def _default(b:Button): ScriptExecuter = {val executer=new BasicExecuter; _default         (executer.anchorNode,b); executer.run}
 }

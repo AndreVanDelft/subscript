@@ -60,21 +60,19 @@ object T_n_ary {
   def getLogicalKind(t: T_n_ary): LogicalKind.LogicalKindType = getLogicalKind(t.kind)
   def getLogicalKind(kind: String): LogicalKind.LogicalKindType = {
     kind match {
-      case ";" | "|;" | "||;" |  "|;|" 
-         | "&&" | "&" | "&&·" | "&·"
+      case ";" | "|;" | "||;" | "|;|" 
+         | "&&" | "&" | "&&:" | "&:"
          | "=="  | "<<=="  | "<=="  | "==>>"  | "==>"  | "<==>"  | "<<==>"  | "<==>>"  | "<<==>>"
-         | "==·" | "<<==·" | "<==·" | "==>>·" | "==>·" | "<==>·" | "<<==>·" | "<==>>·" | "<<==>>·"
-         | "#" | "/#" 
-         | "‖"  |  "╜" |  "·" => LogicalKind.And
+         | "==:" | "<<==:" | "<==:" | "==>>:" | "==>:" | "<==>:" | "<<==>:" | "<==>>:" | "<<==>>:"
+         | "#" | "/#"          => LogicalKind.And
                              
       case "||"  | "|"  
-         | "||·" | "|·" 
+         | "||:" | "|:" 
          | "|+"  | "|/" 
          | "||+" | "||/" 
          | "|+|" | "|/|" 
          | "+"   | "/" | "%" 
-         | "%#"  | "%#%" 
-         | "‖"   | "╜"         => LogicalKind.Or                         
+         | "%#"  | "%#%"       => LogicalKind.Or                         
       
       case "/#/"               => LogicalKind.None
       
@@ -84,7 +82,7 @@ object T_n_ary {
   def getExclusiveKind(t: T_n_ary): ExclusiveKind.ExclusiveKindType = getExclusiveKind(t.kind)
   def getExclusiveKind(kind: String): ExclusiveKind.ExclusiveKindType = {
     kind match {
-      case ";" | "·" | "+"  => ExclusiveKind.All                             
+      case ";" | "." | "+"  => ExclusiveKind.All                             
       case "/"              => ExclusiveKind.LeftOnly                             
       case "|;|" | "|+|"    => ExclusiveKind.Disambiguating_all
       case "|/|"            => ExclusiveKind.Disambiguating_leftOnly
@@ -94,12 +92,11 @@ object T_n_ary {
   def isMerge(t: T_n_ary): Boolean = isMerge(t.kind)
   def isMerge(kind: String): Boolean = {
     kind match {
-      case "&&" | "&" | "&&·" | "&·"
+      case "&&" | "&" | "&&:" | "&:"
          | "=="  | "<<=="  | "<=="  | "==>>"  | "==>"  | "<==>"  | "<<==>"  | "<==>>"  | "<<==>>"
-         | "==·" | "<<==·" | "<==·" | "==>>·" | "==>·" | "<==>·" | "<<==>·" | "<==>>·" | "<<==>>·"
+         | "==:" | "<<==:" | "<==:" | "==>>:" | "==>:" | "<==>:" | "<<==>:" | "<==>>:" | "<<==>>:"
          | "||"  | "|"  
-         | "||·" | "|·" 
-         | "‖"   | "╜"   => true                         
+         | "||:" | "|:"   => true                         
       
       case _ => false
     }
@@ -107,10 +104,9 @@ object T_n_ary {
   def isLeftMerge(t: T_n_ary): Boolean = isLeftMerge(t.kind)
   def isLeftMerge(kind: String): Boolean = {
     kind match {
-      case "&&·" | "&·"
-         | "==·" | "<==·" | "==>·" | "<==>·" | "<<==>>·"
-         | "<==[]==·" | "==[]==>·" | "<==[]==>·" | "<<==[]==>>·"
-         | "||·" | "|·" => true
+      case "&&:" | "&:"
+         | "==:" | "<<==:" | "<==:" | "==>>:" | "==>:" | "<==>:" | "<<==>:" | "<==>>:" | "<<==>>:"
+         | "||:" | "|:" => true
       case _            => false
     }
   }

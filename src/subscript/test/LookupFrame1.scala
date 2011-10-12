@@ -27,21 +27,21 @@ class LookupFrame1Application extends LookupFrameApplication {
   override def searchCommand(caller: N_call)  =
     caller.calls(T_script("script",
 		             T_n_ary("+", 
-                      T_0_ary_code("call", (here: N_call) => default(here, searchButton))
+                      T_0_ary_code("call", (here: N_call) => _default(here, searchButton))
                       , 
-                      T_0_ary_code("call", (here: N_call) => default(here, Key.Enter))
+                      T_0_ary_code("call", (here: N_call) => _default(here, Key.Enter))
                       ), 
                      "searchCommand")
                  )
  
-  def default(caller: N_call, _keyValue:FormalConstrainedParameter[Key.Value])  =
+  def _default(caller: N_call, _keyValue:FormalConstrainedParameter[Key.Value])  =
     caller.calls(T_script("script",
 		             T_0_ary_code("call", (here:N_call) => vkey(here, top, ActualAdaptingParameter(_keyValue))),
-                     "default(Key.Value)", "keyValue"),
+                     "_default(Key.Value)", "keyValue"),
                   _keyValue
                )
                
 // bridge methods; only the first one is actually used   
-override def searchCommand              : ScriptExecuter = {val executer=new BasicExecuter; searchCommand(executer.anchorNode          ); executer.run}
-         def default(keyValue:Key.Value): ScriptExecuter = {val executer=new BasicExecuter; default      (executer.anchorNode, keyValue); executer.run}
+override def searchCommand        : ScriptExecuter = {val executer=new BasicExecuter; searchCommand(executer.anchorNode   ); executer.run}
+         def _default(k:Key.Value): ScriptExecuter = {val executer=new BasicExecuter; _default     (executer.anchorNode, k); executer.run}
 }
