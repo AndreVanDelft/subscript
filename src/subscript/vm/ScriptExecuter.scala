@@ -184,13 +184,6 @@ class BasicExecuter extends ScriptExecuter {
     if (n.isInstanceOf[N_script]) {
       val ns = n.asInstanceOf[N_script]
       val pc = ns.parent.asInstanceOf[N_call]
-      var i = 0
-      ns.template.formalParameterNames.foreach{n=>
-        val p = pc.actualParameters(i)
-        p.name = n
-        //ns.parameterLookup(n) = p
-        i += 1
-      }
     }
     insert(Activation(n))
     n
@@ -228,9 +221,8 @@ class BasicExecuter extends ScriptExecuter {
       case t @ T_2_ary     ("?"         , _, _   ) => N_inline_if     (t)
       case t @ T_3_ary     ("?:"        , _, _, _) => N_inline_if_else(t)
       case t @ T_n_ary(kind: String, children@ _*) => N_n_ary_op      (t, T_n_ary.isLeftMerge(kind))
-      case t @ T_script(kind: String, child0: TemplateNode, 
-                    name: String, 
-                    parameters@ _ *)               => N_script        (t.asInstanceOf[T_script    ])
+      case t @ T_script(kind: String, name: Symbol, 
+                        child0: TemplateNode     ) => N_script        (t.asInstanceOf[T_script    ])
       case _ => null 
     }
     if (result.isInstanceOf[N_atomic_action[_]]) {

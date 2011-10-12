@@ -5,6 +5,7 @@ import subscript.Predef._
 import subscript.swing._
 import subscript.swing.Scripts._
 import subscript.vm._;
+import subscript.vm.DSL._
 
 // Subscript sample application: a text entry field with a search button, that simulates the invocation of a background search
 //
@@ -24,24 +25,20 @@ class LookupFrame1Application extends LookupFrameApplication {
   _(keyValue:Key.Value??) = vkey(keyValue??)
 */
 
-  override def searchCommand(caller: N_call)  =
-    caller.calls(T_script("script",
-		             T_n_ary("+", 
-                      T_0_ary_code("call", (here: N_call) => _default(here, searchButton))
-                      , 
-                      T_0_ary_code("call", (here: N_call) => _default(here, Key.Enter))
-                      ), 
-                     "searchCommand")
+  override def _searchCommand(caller: N_call)  =
+  _script(caller, 'searchCommand,
+		             T_n_ary("+",
+                      T_0_ary_code("call", (here: N_call) => __default(here, searchButton)), 
+                      T_0_ary_code("call", (here: N_call) => __default(here, Key.Enter))
+                     )
                  )
  
-  def _default(caller: N_call, _keyValue:FormalConstrainedParameter[Key.Value])  =
-    caller.calls(T_script("script",
-		             T_0_ary_code("call", (here:N_call) => vkey(here, top, ActualAdaptingParameter(_keyValue))),
-                     "_default(Key.Value)", "keyValue"),
-                  _keyValue
+  def __default(caller: N_call, _keyValue:FormalConstrainedParameter[Key.Value])  =
+  _script(caller, '_, param(_keyValue,'keyValue),
+		             T_0_ary_code("call", (here:N_call) => _vkey(here, top, ActualAdaptingParameter(_keyValue)))
                )
                
 // bridge methods; only the first one is actually used   
-override def searchCommand        : ScriptExecuter = {val executer=new BasicExecuter; searchCommand(executer.anchorNode   ); executer.run}
-         def _default(k:Key.Value): ScriptExecuter = {val executer=new BasicExecuter; _default     (executer.anchorNode, k); executer.run}
+override def searchCommand        : ScriptExecuter = {val executer=new BasicExecuter; _searchCommand(executer.anchorNode   ); executer.run}
+         def _default(k:Key.Value): ScriptExecuter = {val executer=new BasicExecuter; __default     (executer.anchorNode, k); executer.run}
 }

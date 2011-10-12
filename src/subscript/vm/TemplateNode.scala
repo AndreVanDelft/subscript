@@ -17,11 +17,9 @@ abstract class TemplateNodeWithCode[N<:CallGraphNodeTrait[TemplateNode], T] exte
 
 // all concrete template node case classes 
 
-case class T_script (kind: String, child0: TemplateNode, name: String, formalParameterNames: String*) extends TemplateNode {
+case class T_script (kind: String, name: Symbol, child0: TemplateNode) extends TemplateNode {
   override def toString = super.toString+" "+name
 }
-case class T_communication (kind: String, child0: TemplateNode, name: String, parameterNames: String*) extends TemplateNode
-
 case class T_0_ary (kind: String)                                                                           extends TemplateNode
 case class T_1_ary (kind: String, child0: TemplateNode)                                                     extends TemplateNode
 case class T_2_ary (kind: String, child0: TemplateNode, var child1: TemplateNode)                           extends TemplateNode {child1.indexAsChild = 1}

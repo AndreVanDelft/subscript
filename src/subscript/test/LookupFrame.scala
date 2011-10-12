@@ -4,6 +4,7 @@ import subscript.Predef._
 import subscript.swing._
 import subscript.swing.Scripts._
 import subscript.vm._;
+import subscript.vm.DSL._
 
 // Subscript sample application: a text entry field with a search button, that simulates the invocation of a background search
 //
@@ -43,60 +44,50 @@ class LookupFrameApplication extends SimpleSubscriptApplication {
   _(b: Button)      = clicked(b)
 */
 
-  override def live(caller: N_call)  =
-    caller.calls(T_script("script",
+  override def _live(caller: N_call)  =
+  _script(caller, 'live,
 		             T_n_ary(";", 
 		            		T_0_ary("..."), 
-		            		T_0_ary_code("call", (here: N_call) => searchSequence(here))
-                            ), 
-                     "live")
-               )
-  def searchSequence(caller: N_call)  =
-    caller.calls(T_script("script",
+		            		T_0_ary_code("call", (here: N_call) => _searchSequence(here))
+               ))
+  def _searchSequence(caller: N_call)  =
+  _script(caller, 'searchSequence,
 		             T_n_ary(";", 
-		            		T_0_ary_code("call", (here: N_call) => searchCommand    (here)), 
-		            		T_0_ary_code("call", (here: N_call) => showSearchingText(here)), 
-		            		T_0_ary_code("call", (here: N_call) => searchInDatabase (here)), 
-		            		T_0_ary_code("call", (here: N_call) => showSearchResults(here))
-                            ), 
-                     "searchSequence")
+		            		T_0_ary_code("call", (here: N_call) => _searchCommand    (here)), 
+		            		T_0_ary_code("call", (here: N_call) => _showSearchingText(here)), 
+		            		T_0_ary_code("call", (here: N_call) => _searchInDatabase (here)), 
+		            		T_0_ary_code("call", (here: N_call) => _showSearchResults(here))
+                     )
                )
-  def searchCommand(caller: N_call)  =
-    caller.calls(T_script("script",
-		             T_0_ary_code("call", (here: N_call) => _default(here, searchButton)), 
-                     "searchCommand")
-                 )
-  def showSearchingText(caller: N_call)  =
-    caller.calls(T_script("script",
+  def _searchCommand(caller: N_call)  =
+  _script(caller, 'searchCommand,
+		             T_0_ary_code("call", (here: N_call) => __default(here, searchButton)))
+		             
+  def _showSearchingText(caller: N_call)  =
+  _script(caller, 'showSearchingText,
 		             T_1_ary_code ("@:", (here: N_annotation[N_code_normal]) => {implicit val there=here.there; swing}, 
-		              T_0_ary_code("{}", (here:              N_code_normal ) => {outputTA.text = "Searching: "+searchTF.text})), 
-                     "showSearchingText")
+		              T_0_ary_code("{}", (here:              N_code_normal ) => {outputTA.text = "Searching: "+searchTF.text}))
                  )
-  def showSearchResults(caller: N_call)  =
-    caller.calls(T_script("script",
+  def _showSearchResults(caller: N_call)  =
+  _script(caller, 'showSearchResults,
 		             T_1_ary_code ("@:", (here: N_annotation[N_code_normal]) => {implicit val there=here.there; swing}, 
-		              T_0_ary_code("{}", (here:              N_code_normal ) => {outputTA.text = "Found: "+here.index+" items"})), 
-                     "showSearchResults")
+		              T_0_ary_code("{}", (here:              N_code_normal ) => {outputTA.text = "Found: "+here.index+" items"}))
                  )
-  def searchInDatabase(caller: N_call)  =
-    caller.calls(T_script("script",
-		             T_0_ary_code("{**}", (here:N_code_threaded) => {Thread.sleep(2000)}),
-                     "searchInDatabase")
-               )
+  def _searchInDatabase(caller: N_call)  =
+  _script(caller, 'searchInDatabase,
+		             T_0_ary_code("{**}", (here:N_code_threaded) => {Thread.sleep(2000)}))
  
-def _default(caller: N_call, _b:FormalInputParameter[Button])  =
-  caller.calls(T_script("script",
-		             T_0_ary_code("call", (here:N_call) => clicked(here, _b.value)),
-                     "_default(Button)", "b"),
-                  _b
+  def __default(caller: N_call, _b:FormalInputParameter[Button])  =
+  _script(caller, '_, param(_b,'b),
+		             T_0_ary_code("call", (here:N_call) => _clicked(here, _b.value))
                )
                
 // bridge methods; only the first one is actually used   
-override def live     : ScriptExecuter = {val executer=new BasicExecuter; live             (executer.anchorNode  ); executer.run}
-def searchSequence    : ScriptExecuter = {val executer=new BasicExecuter; searchSequence   (executer.anchorNode  ); executer.run}
-def searchCommand     : ScriptExecuter = {val executer=new BasicExecuter; searchCommand    (executer.anchorNode  ); executer.run}
-def searchInDatabase  : ScriptExecuter = {val executer=new BasicExecuter; searchInDatabase (executer.anchorNode  ); executer.run}
-def showSearchingText : ScriptExecuter = {val executer=new BasicExecuter; showSearchingText(executer.anchorNode  ); executer.run}
-def showSearchResults : ScriptExecuter = {val executer=new BasicExecuter; showSearchResults(executer.anchorNode  ); executer.run}
-def _default(b:Button): ScriptExecuter = {val executer=new BasicExecuter; _default         (executer.anchorNode,b); executer.run}
+override def live     : ScriptExecuter = {val executer=new BasicExecuter; _live             (executer.anchorNode  ); executer.run}
+def searchSequence    : ScriptExecuter = {val executer=new BasicExecuter; _searchSequence   (executer.anchorNode  ); executer.run}
+def searchCommand     : ScriptExecuter = {val executer=new BasicExecuter; _searchCommand    (executer.anchorNode  ); executer.run}
+def searchInDatabase  : ScriptExecuter = {val executer=new BasicExecuter; _searchInDatabase (executer.anchorNode  ); executer.run}
+def showSearchingText : ScriptExecuter = {val executer=new BasicExecuter; _showSearchingText(executer.anchorNode  ); executer.run}
+def showSearchResults : ScriptExecuter = {val executer=new BasicExecuter; _showSearchResults(executer.anchorNode  ); executer.run}
+def _default(b:Button): ScriptExecuter = {val executer=new BasicExecuter; __default         (executer.anchorNode,b); executer.run}
 }

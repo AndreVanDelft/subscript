@@ -16,7 +16,6 @@ Overview of formal and actual parameter use
 
 
 trait FormalParameter[T<:Any] {
-  def name: String; 
   def value: T
   def matches(aValue: T, doIsForcing: Boolean = isForcing): Boolean
   def isInput      : Boolean
@@ -24,11 +23,12 @@ trait FormalParameter[T<:Any] {
   def isForcing    : Boolean
   def isConstrained: Boolean
 }
-trait       FormalInputParameter[T<:Any] extends FormalParameter[T]
-trait      FormalOutputParameter[T<:Any] extends FormalParameter[T]
-trait FormalConstrainedParameter[T<:Any] extends FormalParameter[T] {var value: T; def setAsFormalConstrainedParameter}
+trait   FormalParameter_withName[T<:Any] extends FormalParameter[T] {var name: Symbol = null; def nameThis(n:Symbol) = {name=n; this}}
+trait       FormalInputParameter[T<:Any] extends FormalParameter[T] {def bindToFormalInputParameter}
+trait      FormalOutputParameter[T<:Any] extends FormalParameter[T] {def bindToFormalOutputParameter}
+trait FormalConstrainedParameter[T<:Any] extends FormalParameter[T] {def bindToFormalConstrainedParameter; var value: T}
 
-trait ActualParameterTrait[T<:Any] extends FormalParameter[T] {
+trait ActualParameterTrait[T<:Any] extends FormalParameter_withName[T] {
   def originalValue: T
   def value: T
   def transfer {}  
@@ -39,7 +39,6 @@ trait ActualParameterTrait[T<:Any] extends FormalParameter[T] {
   def isConstrained: Boolean
 }
 abstract class ActualParameter[T<:Any] extends ActualParameterTrait[T] {
-  var name: String = null
   var value=originalValue
 }
 trait ParameterTransferrerTrait[T<:Any] extends ActualParameterTrait[T] {
@@ -49,7 +48,8 @@ trait ParameterTransferrerTrait[T<:Any] extends ActualParameterTrait[T] {
 case class   ActualValueParameter[T<:Any](originalValue:T) extends ActualParameter[T] 
   with FormalInputParameter      [T]
   with FormalConstrainedParameter[T] {
-  def setAsFormalConstrainedParameter = isForcing=true
+  def bindToFormalInputParameter {}
+  def bindToFormalConstrainedParameter = isForcing=true
   def matches(aValue: T, doIsForcing: Boolean = isForcing) = if (doIsForcing) aValue==originalValue else true 
   def isInput       = !isForcing  
   def isOutput      = false  
@@ -58,9 +58,10 @@ case class   ActualValueParameter[T<:Any](originalValue:T) extends ActualParamet
 }
 case class  ActualOutputParameter[T<:Any](originalValue:T, transferFunction: T=>Unit) extends ActualParameter[T] 
   with ParameterTransferrerTrait [T]
-  with FormalInputParameter      [T] 
+  with FormalOutputParameter     [T] 
   with FormalConstrainedParameter[T] {
-  def setAsFormalConstrainedParameter {}
+  def bindToFormalOutputParameter      {}
+  def bindToFormalConstrainedParameter {}
   def matches(aValue: T, doIsForcing: Boolean = isForcing) = true  
   def isInput       = false  
   def isOutput      = true  
@@ -72,7 +73,7 @@ case class ActualConstrainedParameter[T<:Any](originalValue:T, transferFunction:
   with ParameterTransferrerTrait [T]
   with FormalConstrainedParameter[T] {
   def matches(aValue: T, doIsForcing: Boolean = isForcing) = constraint.apply(aValue)  
-  def setAsFormalConstrainedParameter {}
+  def bindToFormalConstrainedParameter {}
   def isInput       = false  
   def isOutput      = false  
   def isForcing     = false
@@ -84,7 +85,7 @@ case class ActualAdaptingParameter[T<:Any](adaptee: FormalConstrainedParameter[T
   with ParameterTransferrerTrait [T]
   with FormalConstrainedParameter[T] {
   val rootAdaptee: ActualParameter[T] = adaptee match {case a:ActualAdaptingParameter[_]=>a.rootAdaptee case _ => adaptee.asInstanceOf[ActualParameter[T]]}
-  def setAsFormalConstrainedParameter = isForcing=rootAdaptee.isInput
+  def bindToFormalConstrainedParameter {isForcing=rootAdaptee.isForcing}
   val originalValue  = adaptee.value // val, not def !!
   value = originalValue
   def transferFunction: T=>Unit = {adaptee.value = _}
@@ -95,6 +96,5 @@ case class ActualAdaptingParameter[T<:Any](adaptee: FormalConstrainedParameter[T
   var isForcing     = adaptee.isForcing
   def isConstrained = adaptee.isConstrained || adaptee.isOutput && constraint!=null
 }
-//case class LocalVariable[T<:Any](name: String, var value: T)  cannot get this compiled, yet
-case class LocalVariable[T<:Any](name: String, var value: T)
+case class LocalVariable[T<:Any](name: Symbol, var value: T)
 

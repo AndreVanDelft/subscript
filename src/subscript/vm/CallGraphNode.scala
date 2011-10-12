@@ -20,8 +20,8 @@ trait CallGraphNodeTrait[+T<:TemplateNode] {
   def n_ary_op_else_ancestor: N_n_ary_op
   def lowestSingleCommonAncestor: CallGraphParentNodeTrait[_<:TemplateNode]
   def forEachParent(n: CallGraphParentNodeTrait[_<:TemplateNode] => Unit): Unit
-//  def getParameterLookup: Map[String,ActualParameter[_<:Any]] = null
-//  def getParameter[P](formalName: String): ActualParameter[_<:Any] = getParameterLookup(formalName)
+//  def getParameterLookup: Map[Symbol,ActualParameter[_<:Any]] = null
+//  def getParameter[P](formalName: Symbol): ActualParameter[_<:Any] = getParameterLookup(formalName)
 
   val index = CallGraphNode.nextIndex()
   var stamp = 0
@@ -102,15 +102,15 @@ trait CallGraphTreeNode   [+T<:TemplateNode] extends CallGraphNode[T] {
       task(parent)
     }
   }
-//  override def getParameterLookup: Map[String,ActualParameter[_<:Any]] = {
+//  override def getParameterLookup: Map[Symbol,ActualParameter[_<:Any]] = {
 //    if (parent==null) null
 //    else parent.getParameterLookup
 //  }
-  def    initLocalVariable[T<:Any](name: String, value: T)                       = CallGraphNode.upInGraphToNAry(this, 0     ).   initLocalVariable_pass(name, pass, value)
-  def     getLocalVariable[T<:Any](name: String, stepsUp: Int): LocalVariable[T] = CallGraphNode.upInGraphToNAry(this,stepsUp).    getLocalVariable_pass(name, pass)
-  def privateLocalVariable        (name: String, stepsUp: Int)                   = CallGraphNode.upInGraphToNAry(this, 0     ).privateLocalVariable_pass(name, pass,stepsUp)
+  def    initLocalVariable[T<:Any](name: Symbol, value: T)                       = CallGraphNode.upInGraphToNAry(this, 0     ).   initLocalVariable_pass(name, pass, value)
+  def     getLocalVariable[T<:Any](name: Symbol, stepsUp: Int): LocalVariable[T] = CallGraphNode.upInGraphToNAry(this,stepsUp).    getLocalVariable_pass(name, pass)
+  def privateLocalVariable        (name: Symbol, stepsUp: Int)                   = CallGraphNode.upInGraphToNAry(this, 0     ).privateLocalVariable_pass(name, pass,stepsUp)
 
-  def withLocal[T<:Any](name: String, stepsUp: Int = 0, task: LocalVariable[T] => Unit) = {
+  def withLocal[T<:Any](name: Symbol, stepsUp: Int = 0, task: LocalVariable[T] => Unit) = {
     task.apply(getLocalVariable[T](name, stepsUp))
   }
 }
@@ -191,32 +191,29 @@ case class N_launch_anchor (template: T_1_ary     ) extends CallGraphTreeParentN
 case class N_inline_if     (template: T_2_ary     ) extends CallGraphTreeParentNode[T_2_ary]
 case class N_inline_if_else(template: T_3_ary     ) extends CallGraphTreeParentNode[T_3_ary]
 case class N_n_ary_op      (template: T_n_ary, isLeftMerge: Boolean) extends CallGraphTreeNode_n_ary {
-  val mapNamePassToLocalVariable = new HashMap[(String,Int), LocalVariable[_]]
-  def    initLocalVariable_pass[T<:Any](name: String, fromPass: Int, value: T)        = mapNamePassToLocalVariable += ((name,fromPass)->new LocalVariable(name,value))
-  def     getLocalVariable_pass[T<:Any](name: String, fromPass: Int):LocalVariable[T] = mapNamePassToLocalVariable.get((name,fromPass)) match {case None=>null case Some(v:T) => v}
-  def privateLocalVariable_pass        (name: String, fromPass: Int,stepsUp:Int)      =          initLocalVariable_pass(name,fromPass, getLocalVariable(name, stepsUp).value)
+  val mapNamePassToLocalVariable = new HashMap[(Symbol,Int), LocalVariable[_]]
+  def    initLocalVariable_pass[T<:Any](name: Symbol, fromPass: Int, value: T)        = mapNamePassToLocalVariable += ((name,fromPass)->new LocalVariable(name,value))
+  def     getLocalVariable_pass[T<:Any](name: Symbol, fromPass: Int):LocalVariable[T] = mapNamePassToLocalVariable.get((name,fromPass)) match {case None=>null case Some(v:T) => v}
+  def privateLocalVariable_pass        (name: Symbol, fromPass: Int,stepsUp:Int)      =          initLocalVariable_pass(name,fromPass, getLocalVariable(name, stepsUp).value)
 }
 
 case class N_call          (template: T_0_ary_code[N_call]) extends CallGraphTreeParentNode[T_0_ary_code[N_call]] {
   var t_callee: T_script = null
-  var actualParameters: List[ActualParameter[_<:Any]] = Nil
-  def calls[A<:FormalParameter[_<:Any]](t: T_script, args: A*) = {
+  var actualParameters: scala.collection.immutable.Seq[ActualParameter[_<:Any]] = Nil
+  def calls(t: T_script, args: scala.collection.immutable.Seq[FormalParameter_withName[_]]) = {
     this.t_callee = t
-    //this.actualParameters = args.toList.map(_.asInstanceOf[ActualParameter[_]])
-    args.foreach{
-      this.actualParameters::= _.asInstanceOf[ActualParameter[_]]
-    }
+    this.actualParameters = args.map(_.asInstanceOf[ActualParameter[_]])
   }
   def allActualParametersMatch: Boolean = actualParameters.forall {_.matches}
   def transferParameters      : Unit    = actualParameters.foreach{_.transfer}
 }
 
 case class N_script    (var template: T_script    ) extends CallGraphTreeParentNode[T_script] {
-//  var parameterLookup = new scala.collection.mutable.HashMap[String, ActualParameter[_<:Any]]
+//  var parameterLookup = new scala.collection.mutable.HashMap[Symbol, ActualParameter[_<:Any]]
 //  override def getParameterLookup = parameterLookup
 }
-case class N_communication(var template: T_communication) extends CallGraphNonTreeParentNode[T_communication] {
-//  var parameterLookup = new scala.collection.mutable.HashMap[String, ActualParameter[_<:Any]]
+case class N_communication(var template: T_script) extends CallGraphNonTreeParentNode[T_script] {
+//  var parameterLookup = new scala.collection.mutable.HashMap[Symbol, ActualParameter[_<:Any]]
 //  override def getParameterLookup = parameterLookup
 }
 
