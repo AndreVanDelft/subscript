@@ -79,17 +79,15 @@ class LookupFrame2Application extends SimpleSubscriptApplication {
 		                    _seq(_showSearchingText, _searchInDatabase, _showSearchResults),
                             _cancelSearch 
                          )))
-  def _showSearchingText =
-  _script('showSearchingText,
+  def _showSearchingText = _script('showSearchingText,
 		             T_1_ary_code ("@:", (here: N_annotation[N_code_normal]) => {implicit val there=here.there; swing}, 
 		              {outputTA.text = "Searching: "+searchTF.text})
                  )
-  def _showSearchResults =
-  _script('showSearchResults,
+  def _showSearchResults = _script('showSearchResults,
 		             T_1_ary_code ("@:", (here: N_annotation[N_code_normal]) => {implicit val there=here.there; swing}, 
 		              {(here: N_code_normal) => outputTA.text = "Found: "+here.index+" items"}))
-  def _showCanceledText =
-  _script('showCanceledText,
+		              
+  def _showCanceledText = _script('showCanceledText,
 		             T_1_ary_code ("@:", (here: N_annotation[N_code_normal]) => {implicit val there=here.there; swing}, 
 		              {outputTA.text = "Searching Canceled"})
                  )
