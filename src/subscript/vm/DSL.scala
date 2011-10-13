@@ -7,11 +7,11 @@ object DSL {
 
   def execute(_script: N_call => Unit) = {val executer = new BasicExecuter; _script(executer.anchorNode); executer.run}
   
-  implicit def codeFragment_to_T_0_ary_code(codeFragment: => Unit): T_0_ary_code[N_code_normal] =
-    T_0_ary_code("{}", (_here:N_code_normal) => codeFragment)
+  implicit def codeFragment_to_T_0_ary_code(codeFragment: => Unit): T_0_ary_code[N_code_normal] = T_0_ary_code("{}", (_here:N_code_normal) => codeFragment)
+  implicit def codeFragment_here_to_T_0_ary_code(codeFragment: (N_code_normal => Unit)): T_0_ary_code[N_code_normal] = T_0_ary_code("{}", codeFragment)
     
-  implicit def codeFragment_here_to_T_0_ary_code(codeFragment: (N_code_normal => Unit)): T_0_ary_code[N_code_normal] =
-    T_0_ary_code("{}", codeFragment)
+           def _threaded(codeFragment: => Unit): T_0_ary_code[N_code_threaded] = T_0_ary_code("{**}", (_here:N_code_threaded) => codeFragment)
+  implicit def codeFragment_here_to_T_0_ary_code_threaded(codeFragment: (N_code_threaded => Unit)): T_0_ary_code[N_code_threaded] = T_0_ary_code("{**}", codeFragment)
     
   implicit def scriptCall_to_T_0_ary_code(_scriptCall: N_call=>Unit) =  T_0_ary_code("call", (_here: N_call) => {_scriptCall.apply(_here)})
 

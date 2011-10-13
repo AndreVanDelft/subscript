@@ -55,8 +55,7 @@ class LookupFrameApplication extends SimpleSubscriptApplication {
 		             T_1_ary_code ("@:", (here: N_annotation[N_code_normal]) => {implicit val there=here.there; swing}, 
 		              {(here: N_code_normal) => outputTA.text = "Found: "+here.index+" items"}))
 		              
-  def _searchInDatabase = _script('searchInDatabase,
-		             T_0_ary_code("{**}", (here:N_code_threaded) => {Thread.sleep(2000)}))
+  def _searchInDatabase = _script('searchInDatabase, _threaded{Thread.sleep(2000)})
  
   def __default(_b:FormalInputParameter[Button]) = _script('_, _param(_b,'b), _clicked(_b.value))
                

@@ -93,8 +93,7 @@ class LookupFrame2Application extends SimpleSubscriptApplication {
 		             T_1_ary_code ("@:", (here: N_annotation[N_code_normal]) => {implicit val there=here.there; swing}, 
 		              {outputTA.text = "Searching Canceled"})
                  )
-  def _searchInDatabase = _script('searchInDatabase,
-		             T_0_ary_code("{**}", (here:N_code_threaded) => {for(i<-0 to 9) {outputTA.text+=i;Thread.sleep(300)}}))
+  def _searchInDatabase = _script('searchInDatabase, _threaded{for(i<-0 to 9) {outputTA.text+=i;Thread.sleep(300)}})
  
   def __default(_b:FormalInputParameter[Button])  = _script('_, _param(_b,'b),_clicked(_b.value))
   def __default(_keyValue:FormalConstrainedParameter[Key.Value]) = _script('_, _param(_keyValue,'keyValue), _vkey(top, ActualAdaptingParameter(_keyValue)))
