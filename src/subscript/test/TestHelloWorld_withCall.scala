@@ -1,7 +1,7 @@
 package subscript.test
 
-import subscript.vm._
-import subscript.vm.DSL._
+import subscript._
+import subscript.DSL._
 import subscript.Predef._
 
 // Subscript sample application: "Hello world!", printed using a sequence of calls to a default script that prints its string parameter
@@ -22,6 +22,6 @@ def __default(_s: FormalInputParameter[String])        = _script('_   , _param(_
 
 // bridge methods. Most return a ScriptExecuter; 
 // only a "main" method with the proper parameter type has return type Unit, to serve as a program entry point 
-def main(args: Array[String]): Unit = execute(_main(args))
-def _default(s: String)             = execute(__default(s))
+def main(args: Array[String]): Unit = _execute(_main(args))
+def _default(s: String)             = _execute(__default(s))
 }

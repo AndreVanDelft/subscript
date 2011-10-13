@@ -4,8 +4,10 @@ import scala.swing.event._
 import subscript.Predef._
 import subscript.swing._
 import subscript.swing.Scripts._
-import subscript.vm._;
-import subscript.vm.DSL._
+import subscript._
+import subscript.DSL._
+import subscript.Predef._
+import subscript.vm._
 
 // Subscript sample application: a text entry field with a search button, that simulates the invocation of a background search
 //
@@ -30,6 +32,6 @@ class LookupFrame1Application extends LookupFrameApplication {
   def __default(_keyValue:FormalConstrainedParameter[Key.Value]) = _script('_, _param(_keyValue,'keyValue), _vkey(top, ActualAdaptingParameter(_keyValue)))
                
 // bridge methods; only the first one is actually used   
-override def searchCommand         = execute(_searchCommand)
-         def _default(k:Key.Value) = execute(__default  (k))
+override def searchCommand         = _execute(_searchCommand)
+         def _default(k:Key.Value) = _execute(__default  (k))
 }

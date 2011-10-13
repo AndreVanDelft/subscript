@@ -1,6 +1,7 @@
 package subscript.vm
 
 import scala.collection.mutable._
+import subscript._
 
 object ActivationMode extends Enumeration {
   type ActivationModeType = Value

@@ -1,9 +1,10 @@
 package subscript.swing
 import scala.swing._
 import scala.swing.event._
-import subscript.vm._;
-import subscript.vm.DSL._
+import subscript._
+import subscript.DSL._
 import subscript.Predef._
+import subscript.vm._
 
 abstract class SimpleSubscriptApplication extends SimpleSwingApplication{
   override def startup(args: Array[String]) {
@@ -15,7 +16,7 @@ abstract class SimpleSubscriptApplication extends SimpleSwingApplication{
 }
 object Scripts {
   
-  def swing[N<:CallGraphNodeTrait[_]](implicit n:N) = {n.adaptExecuter(new SwingCodeExecuterAdapter[CodeExecuter])}             
+  def gui[N<:CallGraphNodeTrait[_]](implicit n:N) = {n.adaptExecuter(new SwingCodeExecuterAdapter[CodeExecuter])}             
 
   // an extension on scala.swing.Reactor that supports event handling scripts in Subscript
   abstract class ScriptReactor[N<:N_atomic_action_eh[N]] extends Reactor {
@@ -124,9 +125,9 @@ object Scripts {
   
   def _clicked(_b:FormalInputParameter[Button])  = {
    _script('clicked, _param(_b,'b),
-        T_n_ary(";", 
+    _seq( 
          T_0_ary_code  ("val" , (_here:                           N_localvar ) => {implicit val here =_here; here.initLocalVariable('csr, new ClickedScriptReactor[N_code_eh](_b.value))}),
-         T_1_ary_code  ("@:"  , ( here: N_annotation[N_annotation[N_code_eh]]) => {implicit val there=here.there; swing}, 
+         T_1_ary_code  ("@:"  , ( here: N_annotation[N_annotation[N_code_eh]]) => {implicit val there=here.there; gui}, 
           T_1_ary_code ("@:"  , ( here:              N_annotation[N_code_eh] ) => {implicit val there=here.there;
                                                                                                 here.withLocal('csr, 0, (_csr: LocalVariable[ClickedScriptReactor[N_code_eh]]) =>
                                                                                                                         {_csr.value.subscribe(there); there.onDeactivate{()=>_csr.value.unsubscribe}})}, 
@@ -136,7 +137,7 @@ object Scripts {
                
   def _key(_publisher: FormalInputParameter[Publisher], _keyCode: FormalConstrainedParameter[Char])  = {
    _script('key, _param(_publisher,'publisher), _param(_keyCode,'keyCode),
-        T_n_ary(";", 
+    _seq( 
          T_0_ary_code ("val" , (_here:                           N_localvar ) => {implicit val  here=_here; here.initLocalVariable('ksr, new KeyPressScriptReactor[N_code_eh](_publisher.value, _keyCode))}),
          T_1_ary_code ("@:"  , ( here:              N_annotation[N_code_eh] ) => {implicit val there=here.there;
                                                                                                 here.withLocal('ksr, 0, (_ksr: LocalVariable[ClickedScriptReactor[N_code_eh]]) =>
@@ -147,7 +148,7 @@ object Scripts {
                
  def _vkey(_publisher: FormalInputParameter[Publisher], _keyValue: FormalConstrainedParameter[Key.Value])  = {
   _script('key, _param(_publisher,'publisher), _param(_keyValue,'keyValue),
-    T_n_ary(";", 
+    _seq( 
      T_0_ary_code ("val" , (_here:                           N_localvar ) => {implicit val  here=_here; here.initLocalVariable('ksr, new VKeyPressScriptReactor[N_code_eh](_publisher.value, _keyValue))}),
      T_1_ary_code ("@:"  , ( here:              N_annotation[N_code_eh] ) => {implicit val there=here.there;
                                                                                             here.withLocal('ksr, 0, (_ksr: LocalVariable[ClickedScriptReactor[N_code_eh]]) =>
@@ -157,8 +158,8 @@ object Scripts {
   }
                
   // bridge methods
-  def clicked(   b:Button                        ) = execute(_clicked(b))
-  def     key(comp: Component, keyCode: Char     ) = execute(_key(comp, keyCode))
-  def    vkey(comp: Component, keyCode: Key.Value) = execute(_vkey(comp, keyCode))
+  def clicked(   b:Button                        ) = _execute(_clicked(b))
+  def     key(comp: Component, keyCode: Char     ) = _execute(_key(comp, keyCode))
+  def    vkey(comp: Component, keyCode: Key.Value) = _execute(_vkey(comp, keyCode))
 
 }

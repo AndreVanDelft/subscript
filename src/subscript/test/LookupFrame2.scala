@@ -2,10 +2,13 @@ package subscript.test
 import scala.swing._
 import scala.swing.event._
 import subscript.Predef._
-import subscript.swing._
+import subscript.swing.SimpleSubscriptApplication
 import subscript.swing.Scripts._
-import subscript.vm._;
-import subscript.vm.DSL._
+import subscript._
+import subscript.DSL._
+import subscript.Predef._
+
+import subscript.vm._
 
 // Subscript sample application: a text entry field with a search button, that simulates the invocation of a background search
 //
@@ -46,15 +49,15 @@ class LookupFrame2Application extends SimpleSubscriptApplication {
 	cancelCommand     = cancelButton + Key.Escape 
 	exitCommand       =   exitButton + windowClosing
 	
-	exit              =   exitCommand @swing: while (!confirmExit)
-	cancelSearch      = cancelCommand @swing: showCanceledText
+	exit              =   exitCommand @gui: while (!confirmExit)
+	cancelSearch      = cancelCommand @gui: showCanceledText
 	
 	live              = ...searchSequence || exit
 	searchSequence    = searchCommand; showSearchingText searchInDatabase showSearchResults / cancelSearch
 	
-	showSearchingText = @swing: {outputTA.text = "Searching: "+searchTF.text}
-	showCanceledText  = @swing: {outputTA.text = "Searching Canceled"}
-	showSearchResults = @swing: {outputTA.text = ...}
+	showSearchingText = @gui: {outputTA.text = "Searching: "+searchTF.text}
+	showCanceledText  = @gui: {outputTA.text = "Searching Canceled"}
+	showSearchResults = @gui: {outputTA.text = ...}
 	searchInDatabase  = {* Thread.sleep(3000)*}||...{*Thread.sleep(250); searchTF.text+=pass*}
 
   _(keyValue:Key.Value??) = vkey(keyValue??)
@@ -65,12 +68,12 @@ class LookupFrame2Application extends SimpleSubscriptApplication {
   def _cancelCommand = _script('cancelCommand, _alt(__default(cancelButton), __default(Key.Escape)))
   def   _exitCommand = _script('exitCommand, __default(exitButton)) // windowClosing
   def   _exit        =  _script('exit, _seq(_exitCommand, 
-		                    T_1_ary_code ("@:",    (here: N_annotation[N_while]) => {implicit val there=here.there; swing}, 
+		                    T_1_ary_code ("@:",    (here: N_annotation[N_while]) => {implicit val there=here.there; gui}, 
 		                     _while{!confirmExit})
                             ))
  
   def _cancelSearch = _script('cancelSearch, _seq(_cancelCommand, 
-		                    T_1_ary_code ("@:",   (here: N_annotation[N_call]) => {implicit val there=here.there; swing}, 
+		                    T_1_ary_code ("@:",   (here: N_annotation[N_call]) => {implicit val there=here.there; gui}, 
                              _showCanceledText)
                             )
                      )
@@ -80,15 +83,15 @@ class LookupFrame2Application extends SimpleSubscriptApplication {
                             _cancelSearch 
                          )))
   def _showSearchingText = _script('showSearchingText,
-		             T_1_ary_code ("@:", (here: N_annotation[N_code_normal]) => {implicit val there=here.there; swing}, 
+		             T_1_ary_code ("@:", (here: N_annotation[N_code_normal]) => {implicit val there=here.there; gui}, 
 		              {outputTA.text = "Searching: "+searchTF.text})
                  )
   def _showSearchResults = _script('showSearchResults,
-		             T_1_ary_code ("@:", (here: N_annotation[N_code_normal]) => {implicit val there=here.there; swing}, 
+		             T_1_ary_code ("@:", (here: N_annotation[N_code_normal]) => {implicit val there=here.there; gui}, 
 		              {(here: N_code_normal) => outputTA.text = "Found: "+here.index+" items"}))
 		              
   def _showCanceledText = _script('showCanceledText,
-		             T_1_ary_code ("@:", (here: N_annotation[N_code_normal]) => {implicit val there=here.there; swing}, 
+		             T_1_ary_code ("@:", (here: N_annotation[N_code_normal]) => {implicit val there=here.there; gui}, 
 		              {outputTA.text = "Searching Canceled"})
                  )
   def _searchInDatabase = _script('searchInDatabase, _threaded{for(i<-0 to 9) {outputTA.text+=i;Thread.sleep(300)}})
@@ -97,16 +100,16 @@ class LookupFrame2Application extends SimpleSubscriptApplication {
   def __default(_keyValue:FormalConstrainedParameter[Key.Value]) = _script('_, _param(_keyValue,'keyValue), _vkey(top, ActualAdaptingParameter(_keyValue)))
                
 // bridge methods; only the first one is actually used   
-override def live      = execute(_live)
-def searchSequence     = execute(_searchSequence   )
-def searchCommand      = execute(_searchCommand    )
-def cancelCommand      = execute(_cancelCommand    )
-def   exitCommand      = execute(_exitCommand      )
-def cancelSearch       = execute(_cancelSearch     )
-def searchInDatabase   = execute(_searchInDatabase )
-def showSearchingText  = execute(_showSearchingText)
-def showSearchResults  = execute(_showSearchResults)
-def showCanceledText   = execute(_showCanceledText )
-def _default(b:Button) = execute(__default      (b))
-def _default(k:Key.Value) = execute(__default   (k))
+override def live      = _execute(_live)
+def searchSequence     = _execute(_searchSequence   )
+def searchCommand      = _execute(_searchCommand    )
+def cancelCommand      = _execute(_cancelCommand    )
+def   exitCommand      = _execute(_exitCommand      )
+def cancelSearch       = _execute(_cancelSearch     )
+def searchInDatabase   = _execute(_searchInDatabase )
+def showSearchingText  = _execute(_showSearchingText)
+def showSearchResults  = _execute(_showSearchResults)
+def showCanceledText   = _execute(_showCanceledText )
+def _default(b:Button) = _execute(__default      (b))
+def _default(k:Key.Value) = _execute(__default   (k))
 }

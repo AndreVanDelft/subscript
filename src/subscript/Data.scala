@@ -1,4 +1,4 @@
-package subscript.vm
+package subscript
 
 /*
 Overview of formal and actual parameter use
@@ -13,7 +13,6 @@ Overview of formal and actual parameter use
 ||`                    `||`                               `||` formalParam if(c)?? `||`    ActualAdaptingParameter(_formalParam, {=>c}) `||
 
  */
-
 
 trait FormalParameter[T<:Any] {
   def value: T

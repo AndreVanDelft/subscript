@@ -1,11 +1,13 @@
-package subscript.vm
+package subscript
+
+import subscript.vm._
 
 object DSL {
   def _param[T<:Any](p:       FormalInputParameter[T], n:Symbol) = {p.bindToFormalInputParameter      ; p.asInstanceOf[FormalParameter_withName[T]].nameThis(n)}
   def _param[T<:Any](p:      FormalOutputParameter[T], n:Symbol) = {p.bindToFormalOutputParameter     ; p.asInstanceOf[FormalParameter_withName[T]].nameThis(n)}
   def _param[T<:Any](p: FormalConstrainedParameter[T], n:Symbol) = {p.bindToFormalConstrainedParameter; p.asInstanceOf[FormalParameter_withName[T]].nameThis(n)}
 
-  def execute(_script: N_call => Unit) = {val executer = new BasicExecuter; _script(executer.anchorNode); executer.run}
+  def _execute(_script: N_call => Unit) = {val executer = new BasicExecuter; _script(executer.anchorNode); executer.run}
   
   implicit def codeFragment_to_T_0_ary_code(codeFragment: => Unit): T_0_ary_code[N_code_normal] = T_0_ary_code("{}", (_here:N_code_normal) => codeFragment)
   implicit def codeFragment_here_to_T_0_ary_code(codeFragment: (N_code_normal => Unit)): T_0_ary_code[N_code_normal] = T_0_ary_code("{}", codeFragment)
@@ -18,14 +20,21 @@ object DSL {
   implicit def annotation_to_T_1_ary_code[N<:CallGraphNodeTrait[T],T<:TemplateNode](_annotation: N_annotation[N] => Unit, _child: T) =
     T_1_ary_code("@:", _annotation, _child)
 
+  def _op1(opSymbol: String)(child   : TemplateNode ) = T_1_ary(opSymbol, child)
+  def _op (opSymbol: String)(children: TemplateNode*) = T_n_ary(opSymbol, children:_*)
   
-  def _seq     (children: TemplateNode*) = T_n_ary(";" , children:_*)
-  def _alt     (children: TemplateNode*) = T_n_ary("+" , children:_*)
-  def _par     (children: TemplateNode*) = T_n_ary("&" , children:_*)
-  def _par_or  (children: TemplateNode*) = T_n_ary("|" , children:_*)
-  def _par_and2(children: TemplateNode*) = T_n_ary("&&", children:_*)
-  def _par_or2 (children: TemplateNode*) = T_n_ary("||", children:_*)
-  def _disrupt (children: TemplateNode*) = T_n_ary("/" , children:_*)
+  def _seq           = _op (";")_
+  def _alt           = _op ("+")_
+  def _par           = _op ("&")_
+  def _par_or        = _op ("|")_
+  def _par_and2      = _op ("&&")_
+  def _par_or2       = _op ("||")_
+  def _disrupt       = _op ("/")_
+  def _not           = _op1("!")_
+  def _not_react     = _op1("-")_
+  def _react         = _op1("~")_
+  def _launch        = _op1("*")_
+  def _launch_anchor = _op1("**")_
 
   def _empty                             = T_0_ary("(+)")
   def _deadlock                          = T_0_ary("(-)")

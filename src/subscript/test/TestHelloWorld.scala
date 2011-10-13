@@ -1,7 +1,7 @@
 package subscript.test
 
-import subscript.vm._
-import subscript.vm.DSL._
+import subscript._
+import subscript.DSL._
 import subscript.Predef._
 
 // Subscript sample application: "Hello world!", printed using a sequence of 2 code fragments
@@ -20,5 +20,5 @@ object TestHelloWorld {
 
   def _main(_args: FormalInputParameter[Array[String]]) = _script('main, _param(_args,'args), _seq({print("Hello ")}, {println("world!")}))
 
-  def  main( args: Array[String]): Unit = execute(_main(args))
+  def  main( args: Array[String]): Unit = _execute(_main(args))
 }
