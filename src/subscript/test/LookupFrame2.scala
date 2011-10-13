@@ -42,8 +42,8 @@ class LookupFrame2Application extends SimpleSubscriptApplication {
   
   /* the following subscript code has manually been compiled into Scala; see below
  scripts
-	searchCommand     = searchButton + KeyEvent.VK_ENTER
-	cancelCommand     = cancelButton + KeyEvent.VK_ESCAPE 
+	searchCommand     = searchButton + Key.Enter
+	cancelCommand     = cancelButton + Key.Escape 
 	exitCommand       =   exitButton + windowClosing
 	
 	exit              =   exitCommand @swing: while (!confirmExit)
@@ -60,105 +60,56 @@ class LookupFrame2Application extends SimpleSubscriptApplication {
   _(keyValue:Key.Value??) = vkey(keyValue??)
 */
 
-  def _live(caller: N_call)  =
-  _script(caller, 'live,
-		             T_n_ary("||", 
-		              T_n_ary(";", 
-		            		T_0_ary("..."), 
-		            		T_0_ary_code("call", (here: N_call) => _searchSequence(here))
-                            ),
-                     T_0_ary_code       ("call", (here: N_call) => _exit(here)))
-                     )
- 
-  def _searchCommand(caller: N_call)  =
-    _script(caller, 'searchCommand,
-		             T_n_ary("+", 
-                      T_0_ary_code("call", (here: N_call) => __default(here, searchButton)), 
-                      T_0_ary_code("call", (here: N_call) => __default(here, Key.Enter))
-                      )
-                     )
-  def _cancelCommand(caller: N_call)  =
-    _script(caller, 'cancelCommand,
-		             T_n_ary("+", 
-                      T_0_ary_code("call", (here: N_call) => __default(here, cancelButton)), 
-                      T_0_ary_code("call", (here: N_call) => __default(here, Key.Escape))
-                      )
-                     )
-  def _exitCommand(caller: N_call)  =
-    _script(caller, 'exitCommand,
-		             //T_n_ary("+", 
-                      T_0_ary_code("call", (here: N_call) => __default(here, exitButton))
-                     // T_0_ary_code("call", (here: N_call) => windowClosing(here)
-                     // ), 
-                     )
-  def _exit(caller: N_call)  =
-    _script(caller, 'exit,
-		             T_n_ary(";", 
-		            		T_0_ary_code ("call",  (here: N_call               ) => _exitCommand(here)), 
+  override def _live = _script('live, _par_or2(_seq(_loop, _searchSequence), _exit))
+  def _searchCommand = _script('searchCommand, _alt(__default(searchButton), __default(Key.Enter)))
+  def _cancelCommand = _script('cancelCommand, _alt(__default(cancelButton), __default(Key.Escape)))
+  def   _exitCommand = _script('exitCommand, __default(exitButton)) // windowClosing
+  def   _exit        =  _script('exit, _seq(_exitCommand, 
 		                    T_1_ary_code ("@:",    (here: N_annotation[N_while]) => {implicit val there=here.there; swing}, 
-		                     T_0_ary_test("while", (here:              N_while ) => confirmExit))
-                            )
-                     )
+		                     _while{!confirmExit})
+                            ))
  
-  def _cancelSearch(caller: N_call)  =
-    _script(caller, 'cancelSearch,
-		             T_n_ary(";", 
-		            		T_0_ary_code ("call", (here: N_call)               => _cancelCommand    (here)), 
+  def _cancelSearch = _script('cancelSearch, _seq(_cancelCommand, 
 		                    T_1_ary_code ("@:",   (here: N_annotation[N_call]) => {implicit val there=here.there; swing}, 
-                             T_0_ary_code("call", (here:              N_call ) => _showCanceledText(here)))
+                             _showCanceledText)
                             )
                      )
-  def _searchSequence(caller: N_call)  =
-    _script(caller, 'searchSequence,
-		             T_n_ary(";", 
-	            		T_0_ary_code("call", (here: N_call) => _searchCommand    (here)), 
-     	                T_n_ary("/", 
-		                  T_n_ary(";", 
-		            		T_0_ary_code("call", (here: N_call) => _showSearchingText(here)), 
-		            		T_0_ary_code("call", (here: N_call) => _searchInDatabase (here)), 
-		            		T_0_ary_code("call", (here: N_call) => _showSearchResults(here))),
-                          T_0_ary_code(  "call", (here: N_call) => _cancelSearch     (here))) 
-                     ))
-  def _showSearchingText(caller: N_call)  =
-  _script(caller, 'showSearchingText,
+  def _searchSequence = _script('searchSequence, _seq(_searchCommand, 
+     	                  _disrupt( 
+		                    _seq(_showSearchingText, _searchInDatabase, _showSearchResults),
+                            _cancelSearch 
+                         )))
+  def _showSearchingText =
+  _script('showSearchingText,
 		             T_1_ary_code ("@:", (here: N_annotation[N_code_normal]) => {implicit val there=here.there; swing}, 
-		              T_0_ary_code("{}", (here:              N_code_normal ) => {outputTA.text = "Searching: "+searchTF.text}))
+		              {outputTA.text = "Searching: "+searchTF.text})
                  )
-  def _showSearchResults(caller: N_call)  =
-  _script(caller, 'showSearchResults,
+  def _showSearchResults =
+  _script('showSearchResults,
 		             T_1_ary_code ("@:", (here: N_annotation[N_code_normal]) => {implicit val there=here.there; swing}, 
-		              T_0_ary_code("{}", (here:              N_code_normal ) => {outputTA.text = "Found: "+here.index+" items"}))
-                 )
-  def _showCanceledText(caller: N_call)  =
-  _script(caller, 'showCanceledText,
+		              {(here: N_code_normal) => outputTA.text = "Found: "+here.index+" items"}))
+  def _showCanceledText =
+  _script('showCanceledText,
 		             T_1_ary_code ("@:", (here: N_annotation[N_code_normal]) => {implicit val there=here.there; swing}, 
-		              T_0_ary_code("{}", (here:              N_code_normal ) => {outputTA.text = "Searching Canceled"}))
+		              {outputTA.text = "Searching Canceled"})
                  )
-  def _searchInDatabase(caller: N_call)  =
-  _script(caller, 'searchInDatabase,
+  def _searchInDatabase = _script('searchInDatabase,
 		             T_0_ary_code("{**}", (here:N_code_threaded) => {for(i<-0 to 9) {outputTA.text+=i;Thread.sleep(300)}}))
  
-  def __default(caller: N_call, _b:FormalInputParameter[Button])  =
-  _script(caller, '_, param(_b,'b),
-		             T_0_ary_code("call", (here:N_call) => _clicked(here, _b.value))
-               )
-  def __default(caller: N_call, _keyValue:FormalConstrainedParameter[Key.Value])  =
-  _script(caller, '_, param(_keyValue,'keyValue),
-		             T_0_ary_code("call", (here:N_call) => _vkey(here, top, ActualAdaptingParameter(_keyValue)))
-               )
+  def __default(_b:FormalInputParameter[Button])  = _script('_, _param(_b,'b),_clicked(_b.value))
+  def __default(_keyValue:FormalConstrainedParameter[Key.Value]) = _script('_, _param(_keyValue,'keyValue), _vkey(top, ActualAdaptingParameter(_keyValue)))
                
 // bridge methods; only the first one is actually used   
-// bridge methods; only the first one is actually used   
-def live                 : ScriptExecuter = {val executer=new BasicExecuter; _live             (executer.anchorNode  ); executer.run}
-def searchSequence       : ScriptExecuter = {val executer=new BasicExecuter; _searchSequence   (executer.anchorNode  ); executer.run}
-def searchCommand        : ScriptExecuter = {val executer=new BasicExecuter; _searchCommand    (executer.anchorNode  ); executer.run}
-def cancelCommand        : ScriptExecuter = {val executer=new BasicExecuter; _cancelCommand    (executer.anchorNode  ); executer.run}
-def   exitCommand        : ScriptExecuter = {val executer=new BasicExecuter;   _exitCommand    (executer.anchorNode  ); executer.run}
-def searchInDatabase     : ScriptExecuter = {val executer=new BasicExecuter; _searchInDatabase (executer.anchorNode  ); executer.run}
-def cancelSearch         : ScriptExecuter = {val executer=new BasicExecuter; _cancelSearch     (executer.anchorNode  ); executer.run}
-def showSearchingText    : ScriptExecuter = {val executer=new BasicExecuter; _showSearchingText(executer.anchorNode  ); executer.run}
-def showCanceledText     : ScriptExecuter = {val executer=new BasicExecuter; _showCanceledText (executer.anchorNode  ); executer.run}
-def showSearchResults    : ScriptExecuter = {val executer=new BasicExecuter; _showSearchResults(executer.anchorNode  ); executer.run}
-def _default(b:Button)   : ScriptExecuter = {val executer=new BasicExecuter; __default         (executer.anchorNode,b); executer.run}
-def _default(k:Key.Value): ScriptExecuter = {val executer=new BasicExecuter; __default         (executer.anchorNode,k); executer.run}
+override def live      = execute(_live)
+def searchSequence     = execute(_searchSequence   )
+def searchCommand      = execute(_searchCommand    )
+def cancelCommand      = execute(_cancelCommand    )
+def   exitCommand      = execute(_exitCommand      )
+def cancelSearch       = execute(_cancelSearch     )
+def searchInDatabase   = execute(_searchInDatabase )
+def showSearchingText  = execute(_showSearchingText)
+def showSearchResults  = execute(_showSearchResults)
+def showCanceledText   = execute(_showCanceledText )
+def _default(b:Button) = execute(__default      (b))
+def _default(k:Key.Value) = execute(__default   (k))
 }

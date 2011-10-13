@@ -20,25 +20,16 @@ class LookupFrame1Application extends LookupFrameApplication {
 
   /* the following subscript code has manually been compiled into Scala; see below
  override scripts
-  searchCommand     = searchButton + KeyEvent.VK_ENTER 
+  searchCommand     = searchButton + Key.Enter 
  scripts
   _(keyValue:Key.Value??) = vkey(keyValue??)
 */
 
-  override def _searchCommand(caller: N_call)  =
-  _script(caller, 'searchCommand,
-		             T_n_ary("+",
-                      T_0_ary_code("call", (here: N_call) => __default(here, searchButton)), 
-                      T_0_ary_code("call", (here: N_call) => __default(here, Key.Enter))
-                     )
-                 )
+  override def _searchCommand = _script('searchCommand, _alt(__default(searchButton)), __default(Key.Enter))
  
-  def __default(caller: N_call, _keyValue:FormalConstrainedParameter[Key.Value])  =
-  _script(caller, '_, param(_keyValue,'keyValue),
-		             T_0_ary_code("call", (here:N_call) => _vkey(here, top, ActualAdaptingParameter(_keyValue)))
-               )
+  def __default(_keyValue:FormalConstrainedParameter[Key.Value]) = _script('_, _param(_keyValue,'keyValue), _vkey(top, ActualAdaptingParameter(_keyValue)))
                
 // bridge methods; only the first one is actually used   
-override def searchCommand        : ScriptExecuter = {val executer=new BasicExecuter; _searchCommand(executer.anchorNode   ); executer.run}
-         def _default(k:Key.Value): ScriptExecuter = {val executer=new BasicExecuter; __default     (executer.anchorNode, k); executer.run}
+override def searchCommand         = execute(_searchCommand)
+         def _default(k:Key.Value) = execute(__default  (k))
 }

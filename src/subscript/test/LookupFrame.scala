@@ -44,50 +44,28 @@ class LookupFrameApplication extends SimpleSubscriptApplication {
   _(b: Button)      = clicked(b)
 */
 
-  override def _live(caller: N_call)  =
-  _script(caller, 'live,
-		             T_n_ary(";", 
-		            		T_0_ary("..."), 
-		            		T_0_ary_code("call", (here: N_call) => _searchSequence(here))
-               ))
-  def _searchSequence(caller: N_call)  =
-  _script(caller, 'searchSequence,
-		             T_n_ary(";", 
-		            		T_0_ary_code("call", (here: N_call) => _searchCommand    (here)), 
-		            		T_0_ary_code("call", (here: N_call) => _showSearchingText(here)), 
-		            		T_0_ary_code("call", (here: N_call) => _searchInDatabase (here)), 
-		            		T_0_ary_code("call", (here: N_call) => _showSearchResults(here))
-                     )
-               )
-  def _searchCommand(caller: N_call)  =
-  _script(caller, 'searchCommand,
-		             T_0_ary_code("call", (here: N_call) => __default(here, searchButton)))
-		             
-  def _showSearchingText(caller: N_call)  =
-  _script(caller, 'showSearchingText,
+  override def _live     = _script('live          , _seq(_loop, _searchSequence))
+  def _searchSequence    = _script('searchSequence, _seq(_searchCommand, _showSearchingText, _searchInDatabase, _showSearchResults))
+  def _searchCommand     = _script('searchCommand , __default(searchButton))
+  def _showSearchingText = _script('showSearchingText,
 		             T_1_ary_code ("@:", (here: N_annotation[N_code_normal]) => {implicit val there=here.there; swing}, 
-		              T_0_ary_code("{}", (here:              N_code_normal ) => {outputTA.text = "Searching: "+searchTF.text}))
+		              {outputTA.text = "Searching: "+searchTF.text})
                  )
-  def _showSearchResults(caller: N_call)  =
-  _script(caller, 'showSearchResults,
+  def _showSearchResults = _script('showSearchResults,
 		             T_1_ary_code ("@:", (here: N_annotation[N_code_normal]) => {implicit val there=here.there; swing}, 
-		              T_0_ary_code("{}", (here:              N_code_normal ) => {outputTA.text = "Found: "+here.index+" items"}))
-                 )
-  def _searchInDatabase(caller: N_call)  =
-  _script(caller, 'searchInDatabase,
+		              {(here: N_code_normal) => outputTA.text = "Found: "+here.index+" items"}))
+		              
+  def _searchInDatabase = _script('searchInDatabase,
 		             T_0_ary_code("{**}", (here:N_code_threaded) => {Thread.sleep(2000)}))
  
-  def __default(caller: N_call, _b:FormalInputParameter[Button])  =
-  _script(caller, '_, param(_b,'b),
-		             T_0_ary_code("call", (here:N_call) => _clicked(here, _b.value))
-               )
+  def __default(_b:FormalInputParameter[Button]) = _script('_, _param(_b,'b), _clicked(_b.value))
                
 // bridge methods; only the first one is actually used   
-override def live     : ScriptExecuter = {val executer=new BasicExecuter; _live             (executer.anchorNode  ); executer.run}
-def searchSequence    : ScriptExecuter = {val executer=new BasicExecuter; _searchSequence   (executer.anchorNode  ); executer.run}
-def searchCommand     : ScriptExecuter = {val executer=new BasicExecuter; _searchCommand    (executer.anchorNode  ); executer.run}
-def searchInDatabase  : ScriptExecuter = {val executer=new BasicExecuter; _searchInDatabase (executer.anchorNode  ); executer.run}
-def showSearchingText : ScriptExecuter = {val executer=new BasicExecuter; _showSearchingText(executer.anchorNode  ); executer.run}
-def showSearchResults : ScriptExecuter = {val executer=new BasicExecuter; _showSearchResults(executer.anchorNode  ); executer.run}
-def _default(b:Button): ScriptExecuter = {val executer=new BasicExecuter; __default         (executer.anchorNode,b); executer.run}
+override def live      = execute(_live             )
+def searchSequence     = execute(_searchSequence   )
+def searchCommand      = execute(_searchCommand    )
+def searchInDatabase   = execute(_searchInDatabase )
+def showSearchingText  = execute(_showSearchingText)
+def showSearchResults  = execute(_showSearchResults)
+def _default(b:Button) = execute(__default      (b))
 }

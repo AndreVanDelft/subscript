@@ -10,8 +10,8 @@ abstract class SimpleSubscriptApplication extends SimpleSwingApplication{
     super.startup(args)
     new Thread{override def run={live;quit}}.start()
   }
-  def _live(caller: N_call): Unit
-  def live: ScriptExecuter
+  def _live: N_call => Unit
+  def  live: ScriptExecuter
 }
 object Scripts {
   
@@ -122,8 +122,8 @@ object Scripts {
  to make it easy enforceable that "there" and even "there.there" would be of the proper type
 */
   
-  def _clicked(caller: N_call, _b:FormalInputParameter[Button])  = {
-   _script(caller, 'clicked, param(_b,'b),
+  def _clicked(_b:FormalInputParameter[Button])  = {
+   _script('clicked, _param(_b,'b),
         T_n_ary(";", 
          T_0_ary_code  ("val" , (_here:                           N_localvar ) => {implicit val here =_here; here.initLocalVariable('csr, new ClickedScriptReactor[N_code_eh](_b.value))}),
          T_1_ary_code  ("@:"  , ( here: N_annotation[N_annotation[N_code_eh]]) => {implicit val there=here.there; swing}, 
@@ -134,8 +134,8 @@ object Scripts {
     ))))) 
   }
                
-  def _key(caller: N_call, _publisher: FormalInputParameter[Publisher], _keyCode: FormalConstrainedParameter[Char])  = {
-   _script(caller, 'key, param(_publisher,'publisher), param(_keyCode,'keyCode),
+  def _key(_publisher: FormalInputParameter[Publisher], _keyCode: FormalConstrainedParameter[Char])  = {
+   _script('key, _param(_publisher,'publisher), _param(_keyCode,'keyCode),
         T_n_ary(";", 
          T_0_ary_code ("val" , (_here:                           N_localvar ) => {implicit val  here=_here; here.initLocalVariable('ksr, new KeyPressScriptReactor[N_code_eh](_publisher.value, _keyCode))}),
          T_1_ary_code ("@:"  , ( here:              N_annotation[N_code_eh] ) => {implicit val there=here.there;
@@ -145,8 +145,8 @@ object Scripts {
     ))))
   }
                
- def _vkey(caller: N_call, _publisher: FormalInputParameter[Publisher], _keyValue: FormalConstrainedParameter[Key.Value])  = {
-  _script(caller, 'key, param(_publisher,'publisher), param(_keyValue,'keyValue),
+ def _vkey(_publisher: FormalInputParameter[Publisher], _keyValue: FormalConstrainedParameter[Key.Value])  = {
+  _script('key, _param(_publisher,'publisher), _param(_keyValue,'keyValue),
     T_n_ary(";", 
      T_0_ary_code ("val" , (_here:                           N_localvar ) => {implicit val  here=_here; here.initLocalVariable('ksr, new VKeyPressScriptReactor[N_code_eh](_publisher.value, _keyValue))}),
      T_1_ary_code ("@:"  , ( here:              N_annotation[N_code_eh] ) => {implicit val there=here.there;
@@ -157,8 +157,8 @@ object Scripts {
   }
                
   // bridge methods
-  def clicked(   b:Button                        ): ScriptExecuter = {val executer=new BasicExecuter; _clicked(executer.anchorNode, b); executer.run}
-  def     key(comp: Component, keyCode: Char     ): ScriptExecuter = {val executer=new BasicExecuter;     _key(executer.anchorNode, comp, keyCode); executer.run}
-  def    vkey(comp: Component, keyCode: Key.Value): ScriptExecuter = {val executer=new BasicExecuter;    _vkey(executer.anchorNode, comp, keyCode); executer.run}
+  def clicked(   b:Button                        ) = execute(_clicked(b))
+  def     key(comp: Component, keyCode: Char     ) = execute(_key(comp, keyCode))
+  def    vkey(comp: Component, keyCode: Key.Value) = execute(_vkey(comp, keyCode))
 
 }

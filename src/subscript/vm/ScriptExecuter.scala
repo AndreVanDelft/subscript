@@ -292,7 +292,7 @@ class BasicExecuter extends ScriptExecuter {
            case n@N_while           (t: T_0_ary_test[_]) => setIteration_n_ary_op_ancestor(n); 
                                                             execute(()=>n.hasSuccess = t.code(n))
                                                             doNeutral(n)
-                                                            if (n.hasSuccess) {
+                                                            if (!n.hasSuccess) {
                                                                insert(Break(n, null, ActivationMode.Inactive))
                                                             }
                                                             insertDeactivation(n,null)
