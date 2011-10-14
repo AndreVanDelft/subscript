@@ -31,8 +31,6 @@ object DSL {
   
   implicit def scriptCall_to_T_0_ary_code(_scriptCall: N_call=>Unit) =  T_0_ary_code("call", (_here: N_call) => {_scriptCall.apply(_here)})
 
-  //implicit def annotation_to_T_1_ary_code[N<:CallGraphNodeTrait[T],T<:TemplateNode](_annotation: N_annotation[N] => Unit, _child: T) =
-  //  T_1_ary_code("@:", _annotation, _child)
   def _at[N<:CallGraphNodeTrait[T],T<:TemplateNode](_cf:N=>Unit)  
   = (_child: T) => T_1_ary_code("@:", (here:N_annotation[N]) => _cf(here.there), _child)
  

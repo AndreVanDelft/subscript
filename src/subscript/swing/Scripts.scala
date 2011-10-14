@@ -103,16 +103,16 @@ object Scripts {
 /* the following subscript code has manually been compiled into Scala; see below
  
  scripts
-  clicked(b:Button) = 
+  implicit clicked(b:Button) = 
     val csr = ClickedScriptReactor(b)
     @gui:  // the redirection to the swing thread is needed because enabling and disabling the button must there be done
     @csr.subscribe(there); there.onDeactivate{()=>csr.unsubscribe}: {. .}
     
-  key(comp: Component, keyCode: Char??) =
+  implicit key(comp: Component, keyCode: Char??) =
     val ksr = KeyPressScriptReactor(keyCode)
     @csr.subscribe(there); there.onDeactivate{()=>csr.unsubscribe}: {. .}
  
-  vkey(comp: Component, keyValue: Key.Value??) =
+  implicit vkey(comp: Component, keyValue: Key.Value??) =
     val ksr = KeyPressScriptReactor(keyValue)
     @csr.subscribe(there); there.onDeactivate{()=>csr.unsubscribe}: {. .}
  
@@ -124,7 +124,7 @@ object Scripts {
  to make it easy enforceable that "there" and even "there.there" would be of the proper type
 */
   
-  def _clicked(_b:FormalInputParameter[Button])  = {
+  implicit def _clicked(_b:FormalInputParameter[Button])  = {
    _script('clicked, _param(_b,'b)) {
     _seq( 
          _val('csr, new ClickedScriptReactor[N_code_eh](_b.value)),
@@ -136,7 +136,7 @@ object Scripts {
    } 
   }
                
-  def _key(_publisher: FormalInputParameter[Publisher], _keyCode: FormalConstrainedParameter[Char])  = {
+  implicit def _key(_publisher: FormalInputParameter[Publisher], _keyCode: FormalConstrainedParameter[Char])  = {
    _script('key, _param(_publisher,'publisher), _param(_keyCode,'keyCode)) {
     _seq( 
          _val('ksr, new KeyPressScriptReactor[N_code_eh](_publisher.value, _keyCode)),
@@ -147,7 +147,7 @@ object Scripts {
    }
   }
                
- def _vkey(_publisher: FormalInputParameter[Publisher], _keyValue: FormalConstrainedParameter[Key.Value])  = {
+ implicit def _vkey(_publisher: FormalInputParameter[Publisher], _keyValue: FormalConstrainedParameter[Key.Value])  = {
   _script('key, _param(_publisher,'publisher), _param(_keyValue,'keyValue)) {
     _seq( 
      _val('ksr, new VKeyPressScriptReactor[N_code_eh](_publisher.value, _keyValue)),
@@ -158,9 +158,5 @@ object Scripts {
    }
   }
                
-  // bridge methods
-  def clicked(   b:Button                        ) = _execute(_clicked(b))
-  def     key(comp: Component, keyCode: Char     ) = _execute(_key(comp, keyCode))
-  def    vkey(comp: Component, keyCode: Key.Value) = _execute(_vkey(comp, keyCode))
-
+  // no bridge methods for implicit scripts
 }

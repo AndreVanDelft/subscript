@@ -21,15 +21,11 @@ class LookupFrame1Application extends LookupFrameApplication {
   f.setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE)
 
   /* the following subscript code has manually been compiled into Scala; see below
- override scripts
-  searchCommand     = searchButton + Key.Enter 
- scripts
-  implicit(keyValue:Key.Value??) = vkey(keyValue??)
+  scripts
+   override searchCommand = searchButton + Key.Enter 
 */
 
-  override def _searchCommand = _script('searchCommand) {_alt(_implicit(searchButton), _implicit(Key.Enter))}
- 
-  def _implicit(_keyValue:FormalConstrainedParameter[Key.Value]) = _script('_, _param(_keyValue,'keyValue)) {_vkey(top, _keyValue??)}
+  override def _searchCommand = _script('searchCommand) {_alt(_clicked(searchButton), _vkey(top, Key.Enter))}
                
   // bridge methods 
   override def searchCommand  = _execute(_searchCommand)
