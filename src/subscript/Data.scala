@@ -25,7 +25,10 @@ trait FormalParameter[T<:Any] {
 trait   FormalParameter_withName[T<:Any] extends FormalParameter[T] {var name: Symbol = null; def nameThis(n:Symbol) = {name=n; this}}
 trait       FormalInputParameter[T<:Any] extends FormalParameter[T] {def bindToFormalInputParameter}
 trait      FormalOutputParameter[T<:Any] extends FormalParameter[T] {def bindToFormalOutputParameter}
-trait FormalConstrainedParameter[T<:Any] extends FormalParameter[T] {def bindToFormalConstrainedParameter; var value: T}
+trait FormalConstrainedParameter[T<:Any] extends FormalParameter[T] {def bindToFormalConstrainedParameter; 
+  var value: T
+  def ?? = ActualAdaptingParameter(this)
+}
 
 trait ActualParameterTrait[T<:Any] extends FormalParameter_withName[T] {
   def originalValue: T

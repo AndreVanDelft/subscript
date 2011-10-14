@@ -21,49 +21,43 @@ class LookupFrameApplication extends SimpleSubscriptApplication {
   val searchLabel  = new Label("Search") {preferredSize = new Dimension(45,26)}
   val searchTF     = new TextField       {preferredSize = new Dimension(100, 26)}
   
-  val top = new MainFrame {
-    title    = "LookupFrame - Subscript"
-    location = new Point    (100,100)
-    preferredSize     = new Dimension(300,300)
-    contents = new BorderPanel {
+  val top          = new MainFrame {
+    title          = "LookupFrame - Subscript"
+    location       = new Point    (100,100)
+    preferredSize  = new Dimension(300,300)
+    contents       = new BorderPanel {
       add(new FlowPanel(searchLabel, searchTF, searchButton), BorderPanel.Position.North) 
       add(outputTA, BorderPanel.Position.Center) 
     }
-    //setDefaultCloseOperation(WindowConstants.NONE)
-    //defaultCloseOperation = JFrame.EXIT_ON_CLOSE    TBD how to do this in Scala.swing?
   }
+  
 /* the following subscript code has manually been compiled into Scala; see below
  override scripts
   live              = ...; searchSequence
  scripts
-  searchSequence    = searchCommand    showSearchingText 
-                      searchInDatabase showSearchResults
-
+  searchSequence    = searchCommand    showSearchingText  searchInDatabase showSearchResults
   searchCommand     = searchButton
   showSearchingText = @gui: {outputTA.text = "Searching: "+searchTF.text}
-  showSearchResults = @gui: {outputTA.text = "Found: 3 items"}
+  showSearchResults = @gui: {outputTA.text = "Found: "+here.index+" items"}
   searchInDatabase  = {* Thread.sleep(2000) *} // simulate a time consuming action
+
   implicit(b: Button) = clicked(b)
 */
 
-  override def _live     = _script('live          ) {_seq(_loop, _searchSequence)}
-  def _searchSequence    = _script('searchSequence) {_seq(_searchCommand, _showSearchingText, _searchInDatabase, _showSearchResults)}
-  def _searchCommand     = _script('searchCommand ) {_implicit(searchButton)}
-  def _showSearchingText = _script('showSearchingText) {
-		             T_1_ary_code ("@:", (here: N_annotation[N_code_normal]) => {implicit val there=here.there; gui}, 
-		              {outputTA.text = "Searching: "+searchTF.text})
-                         }
-  def _showSearchResults = _script('showSearchResults) {T_1_ary_code ("@:", (here: N_annotation[N_code_normal]) => {implicit val there=here.there; gui}, 
-		                                                   {(here: N_code_normal) => outputTA.text = "Found: "+here.index+" items"})}
-		              
-  def _searchInDatabase = _script('searchInDatabase) {_threaded{Thread.sleep(2000)}}
+  override def _live     = _script('live             ) {_seq(_loop, _searchSequence)}
+  def _searchSequence    = _script('searchSequence   ) {_seq(_searchCommand, _showSearchingText, _searchInDatabase, _showSearchResults)}
+  def _searchCommand     = _script('searchCommand    ) {_implicit(searchButton)}
+  def _showSearchingText = _script('showSearchingText) {_at{gui} (_normal {                         outputTA.text = "Searching: "+searchTF.text})}
+  def _showSearchResults = _script('showSearchResults) {_at{gui} (_normal1{(here: N_code_normal) => outputTA.text = "Found: "+here.index+" items"})}
+  def _searchInDatabase  = _script('searchInDatabase ) {_threaded{Thread.sleep(2000)}}
+  
   def _implicit(_b:FormalInputParameter[Button]) = _script('_, _param(_b,'b)) {_clicked(_b.value)}
                
-// bridge methods; only the first one is actually used; implicit scripts do not get bridge methods   
-override def live      = _execute(_live             )
-def searchSequence     = _execute(_searchSequence   )
-def searchCommand      = _execute(_searchCommand    )
-def searchInDatabase   = _execute(_searchInDatabase )
-def showSearchingText  = _execute(_showSearchingText)
-def showSearchResults  = _execute(_showSearchResults)
+  // bridge methods; only the first one is actually used; implicit scripts do not get bridge methods   
+  override def live      = _execute(_live             )
+  def searchSequence     = _execute(_searchSequence   )
+  def searchCommand      = _execute(_searchCommand    )
+  def searchInDatabase   = _execute(_searchInDatabase )
+  def showSearchingText  = _execute(_showSearchingText)
+  def showSearchResults  = _execute(_showSearchResults)
 }

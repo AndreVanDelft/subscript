@@ -29,8 +29,8 @@ class LookupFrame1Application extends LookupFrameApplication {
 
   override def _searchCommand = _script('searchCommand) {_alt(_implicit(searchButton), _implicit(Key.Enter))}
  
-  def _implicit(_keyValue:FormalConstrainedParameter[Key.Value]) = _script('_, _param(_keyValue,'keyValue)) {_vkey(top, ActualAdaptingParameter(_keyValue))}
+  def _implicit(_keyValue:FormalConstrainedParameter[Key.Value]) = _script('_, _param(_keyValue,'keyValue)) {_vkey(top, _keyValue??)}
                
   // bridge methods 
-  override def searchCommand         = _execute(_searchCommand)
+  override def searchCommand  = _execute(_searchCommand)
 }
