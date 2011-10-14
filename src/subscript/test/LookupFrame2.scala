@@ -60,44 +60,44 @@ class LookupFrame2Application extends SimpleSubscriptApplication {
 	showSearchResults = @gui: {outputTA.text = ...}
 	searchInDatabase  = {* Thread.sleep(3000)*}||...{*Thread.sleep(250); searchTF.text+=pass*}
 
-  _(keyValue:Key.Value??) = vkey(keyValue??)
+    implicit(keyValue:Key.Value??) = vkey(keyValue??)
 */
 
-  override def _live = _script('live, _par_or2(_seq(_loop, _searchSequence), _exit))
-  def _searchCommand = _script('searchCommand, _alt(__default(searchButton), __default(Key.Enter)))
-  def _cancelCommand = _script('cancelCommand, _alt(__default(cancelButton), __default(Key.Escape)))
-  def   _exitCommand = _script('exitCommand, __default(exitButton)) // windowClosing
-  def   _exit        =  _script('exit, _seq(_exitCommand, 
+  override def _live = _script('live) {_par_or2(_seq(_loop, _searchSequence), _exit)}
+  def _searchCommand = _script('searchCommand) {_alt(_implicit(searchButton), _implicit(Key.Enter))}
+  def _cancelCommand = _script('cancelCommand) {_alt(_implicit(cancelButton), _implicit(Key.Escape))}
+  def   _exitCommand = _script('exitCommand) {_implicit(exitButton)} // windowClosing
+  def   _exit        =  _script('exit) {_seq(_exitCommand, 
 		                    T_1_ary_code ("@:",    (here: N_annotation[N_while]) => {implicit val there=here.there; gui}, 
 		                     _while{!confirmExit})
-                            ))
+                            )}
  
-  def _cancelSearch = _script('cancelSearch, _seq(_cancelCommand, 
+  def _cancelSearch = _script('cancelSearch) {_seq(_cancelCommand, 
 		                    T_1_ary_code ("@:",   (here: N_annotation[N_call]) => {implicit val there=here.there; gui}, 
                              _showCanceledText)
                             )
-                     )
-  def _searchSequence = _script('searchSequence, _seq(_searchCommand, 
+  }
+  def _searchSequence = _script('searchSequence) {_seq(_searchCommand, 
      	                  _disrupt( 
 		                    _seq(_showSearchingText, _searchInDatabase, _showSearchResults),
                             _cancelSearch 
-                         )))
-  def _showSearchingText = _script('showSearchingText,
+                         ))}
+  def _showSearchingText = _script('showSearchingText) {
 		             T_1_ary_code ("@:", (here: N_annotation[N_code_normal]) => {implicit val there=here.there; gui}, 
 		              {outputTA.text = "Searching: "+searchTF.text})
-                 )
-  def _showSearchResults = _script('showSearchResults,
+  }
+  def _showSearchResults = _script('showSearchResults) {
 		             T_1_ary_code ("@:", (here: N_annotation[N_code_normal]) => {implicit val there=here.there; gui}, 
-		              {(here: N_code_normal) => outputTA.text = "Found: "+here.index+" items"}))
+		              {(here: N_code_normal) => outputTA.text = "Found: "+here.index+" items"})}
 		              
-  def _showCanceledText = _script('showCanceledText,
+  def _showCanceledText = _script('showCanceledText) {
 		             T_1_ary_code ("@:", (here: N_annotation[N_code_normal]) => {implicit val there=here.there; gui}, 
 		              {outputTA.text = "Searching Canceled"})
-                 )
-  def _searchInDatabase = _script('searchInDatabase, _threaded{for(i<-0 to 9) {outputTA.text+=i;Thread.sleep(300)}})
+  }
+  def _searchInDatabase = _script('searchInDatabase) {_threaded{for(i<-0 to 9) {outputTA.text+=i;Thread.sleep(300)}}}
  
-  def __default(_b:FormalInputParameter[Button])  = _script('_, _param(_b,'b),_clicked(_b.value))
-  def __default(_keyValue:FormalConstrainedParameter[Key.Value]) = _script('_, _param(_keyValue,'keyValue), _vkey(top, ActualAdaptingParameter(_keyValue)))
+  def _implicit(_b:FormalInputParameter[Button])  = _script('_, _param(_b,'b)) {_clicked(_b.value)}
+  def _implicit(_keyValue:FormalConstrainedParameter[Key.Value]) = _script('_, _param(_keyValue,'keyValue)) {_vkey(top, ActualAdaptingParameter(_keyValue))}
                
 // bridge methods; only the first one is actually used   
 override def live      = _execute(_live)
@@ -110,6 +110,4 @@ def searchInDatabase   = _execute(_searchInDatabase )
 def showSearchingText  = _execute(_showSearchingText)
 def showSearchResults  = _execute(_showSearchResults)
 def showCanceledText   = _execute(_showCanceledText )
-def _default(b:Button) = _execute(__default      (b))
-def _default(k:Key.Value) = _execute(__default   (k))
 }

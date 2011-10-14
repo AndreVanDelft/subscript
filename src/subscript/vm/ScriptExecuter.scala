@@ -54,7 +54,7 @@ class BasicExecuter extends ScriptExecuter {
 	      case _ =>
 	    }
 	  }
-    traceTree(rootNode, 0)
+	if (traceLevel >= 1) traceTree(rootNode, 0)
   }
   
   // send out a success when in an And-like context

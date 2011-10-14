@@ -201,9 +201,9 @@ case class N_n_ary_op      (template: T_n_ary, isLeftMerge: Boolean) extends Cal
 case class N_call          (template: T_0_ary_code[N_call]) extends CallGraphTreeParentNode[T_0_ary_code[N_call]] {
   var t_callee: T_script = null
   var actualParameters: scala.collection.immutable.Seq[ActualParameter[_<:Any]] = Nil
-  def calls(t: T_script, args: scala.collection.immutable.Seq[FormalParameter_withName[_]]) = {
+  def calls(t: T_script, args: FormalParameter_withName[_]*) = {
     this.t_callee = t
-    this.actualParameters = args.map(_.asInstanceOf[ActualParameter[_]])
+    this.actualParameters = args.toList.map(_.asInstanceOf[ActualParameter[_]])
   }
   def allActualParametersMatch: Boolean = actualParameters.forall {_.matches}
   def transferParameters      : Unit    = actualParameters.foreach{_.transfer}
