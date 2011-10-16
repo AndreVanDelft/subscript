@@ -19,7 +19,7 @@ object TestHelloWorld {
 // bridge method. Normally returns a ScriptExecuter; 
 // only a "main" method with the proper parameter type has return type Unit, to serve as a program entry point 
 
-  def _main(_args: FormalInputParameter[Array[String]]) = _script('main, _param(_args,'args)) {_seq({print("Hello ")}, {println("world!")})}
+  def _main(_args: FormalInputParameter[Array[String]]) = _script('main, _args~'args) {_seq({print("Hello ")}, {println("world!")})}
 
   def  main( args: Array[String]): Unit = _execute(_main(args))
 }

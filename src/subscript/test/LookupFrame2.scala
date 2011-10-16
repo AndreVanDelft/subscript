@@ -24,11 +24,11 @@ class LookupFrame2Application extends SimpleSubscriptApplication {
   val searchLabel  = new Label("Search")  {preferredSize = new Dimension(45,26)}
   val searchTF     = new TextField        {preferredSize = new Dimension(100, 26)}
   
-  val top = new MainFrame {
-    title    = "LookupFrame - Subscript"
-    location = new Point    (100,100)
-    preferredSize     = new Dimension(500,300)
-    contents = new BorderPanel {
+  val top          = new MainFrame {
+    title          = "LookupFrame - Subscript"
+    location       = new Point    (100,100)
+    preferredSize  = new Dimension(500,300)
+    contents       = new BorderPanel {
       add(new FlowPanel(searchLabel, searchTF, searchButton, cancelButton, exitButton), BorderPanel.Position.North) 
       add(outputTA, BorderPanel.Position.Center) 
     }
@@ -55,26 +55,41 @@ class LookupFrame2Application extends SimpleSubscriptApplication {
 	showSearchingText = @gui: {outputTA.text = "Searching: "+searchTF.text}
 	showCanceledText  = @gui: {outputTA.text = "Searching Canceled"}
 	showSearchResults = @gui: {outputTA.text = ...}
-	searchInDatabase  = {* Thread.sleep(3000)*}||...{*Thread.sleep(250); searchTF.text+=pass*}
+	searchInDatabase  = {* Thread.sleep(3000)*}||progressMonitor
+	
+	progressMonitor   = ...{*Thread.sleep(250)*} @gui:{searchTF.text+=pass}
 	
 	implicit vkey(k: Key.Value??) = vkey(top, k??)
 */
 
   override def _live     = _script('live             ) {_par_or2(_seq(_loop, _searchSequence), _exit)}
-  def _searchCommand     = _script('searchCommand    ) {_alt(_clicked(searchButton), _vkey(top, Key.Enter))} // inlined; otherwise not working TBD
-  def _cancelCommand     = _script('cancelCommand    ) {_alt(_clicked(cancelButton), _vkey(top, Key.Escape))}// inlined; otherwise not working TBD
+  def _searchCommand     = _script('searchCommand    ) {_alt(_clicked(searchButton), _vkey1(Key.Enter))} 
+  def _cancelCommand     = _script('cancelCommand    ) {_alt(_clicked(cancelButton), _vkey1(Key.Escape))}
   def   _exitCommand     = _script('exitCommand      ) {_clicked(exitButton)} // windowClosing
   def   _exit            = _script('exit             ) {_seq(  _exitCommand, _at{gui} (_while{!confirmExit}))}
   def _cancelSearch      = _script('cancelSearch     ) {_seq(_cancelCommand, _at{gui} (scriptCall_to_T_0_ary_code(_showCanceledText)))}
   def _searchSequence    = _script('searchSequence   ) {_seq(_searchCommand, 
      	                                                     _disrupt(_seq(_showSearchingText, _searchInDatabase, _showSearchResults),
                                                                       _cancelSearch ))}
-  def _showSearchingText = _script('showSearchingText) {_at{gui} (_normal {                         outputTA.text = "Searching: "+searchTF.text})}
-  def _showSearchResults = _script('showSearchResults) {_at{gui} (_normal1{(here: N_code_normal) => outputTA.text = "Found: "+here.index+" items"})}
+  def _showSearchingText = _script('showSearchingText) {_at{gui} (_normal {            
+    outputTA.text = 
+      "Searching: "+searchTF.text
+      })}
+  def _showSearchResults = _script('showSearchResults) {_at{gui} (_normal1{(here: N_code_normal) => 
+    outputTA.text = "Found: "+here.index+" items"})}
   def _showCanceledText  = _script('showCanceledText ) {_at{gui} (_normal {                         outputTA.text = "Searching Canceled"})}
-  def _searchInDatabase  = _script('searchInDatabase ) {_threaded{for(i<-0 to 9) {outputTA.text+=i;Thread.sleep(300)}}}
+  def _searchInDatabase  = _script('searchInDatabase ) {_threaded{Thread.sleep(2000)}} // {_par_or2(_threaded{Thread.sleep(5000)}, _progressMonitor)} TBD...
+  def _progressMonitor   = _script('progressMonitor  ) {
+  _seq(_loop, 
+      _at{gui} (
+          _normal{
+            (here: N_code_normal) => outputTA.text+=" "+(10-pass(here))}), 
+      _threaded{Thread.sleep(200)})}
  
-  def _key(_k:FormalConstrainedParameter[Key.Value]) = _script('_, _param(_k,'k)) {_vkey(top, _k~??)} // does not seem to work TBD
+  //def _vkey(_k:FormalConstrainedParameter[Key.Value]) = _script('clicked, _k~??'k) {_vkey(top, _k~??)} 
+  // the line above would give this strange error message: recursive method _vkey needs result type
+  // therefore we append a 1 to the name
+  def _vkey1(_k:FormalConstrainedParameter[Key.Value]) = _script('clicked, _k~??'k) {_vkey(top, _k~??)}
                
 // bridge methods; only the first one is actually used   
 override def live      = _execute(_live)

@@ -22,10 +22,20 @@ trait FormalParameter[T<:Any] {
   def isForcing    : Boolean
   def isConstrained: Boolean
 }
+
 trait   FormalParameter_withName[T<:Any] extends FormalParameter[T] {var name: Symbol = null; def nameThis(n:Symbol) = {name=n; this}}
-trait       FormalInputParameter[T<:Any] extends FormalParameter[T] {def bindToFormalInputParameter}
-trait      FormalOutputParameter[T<:Any] extends FormalParameter[T] {def bindToFormalOutputParameter}
-trait FormalConstrainedParameter[T<:Any] extends FormalParameter[T] {def bindToFormalConstrainedParameter; 
+
+trait       FormalInputParameter[T<:Any] extends FormalParameter[T] {
+  def bindToFormalInputParameter
+  def ~(n:Symbol) = {bindToFormalInputParameter; asInstanceOf[FormalParameter_withName[T]].nameThis(n)}
+}
+trait      FormalOutputParameter[T<:Any] extends FormalParameter[T] {
+  def bindToFormalOutputParameter
+  def ~?(n:Symbol) = {bindToFormalOutputParameter; asInstanceOf[FormalParameter_withName[T]].nameThis(n)}
+}
+trait FormalConstrainedParameter[T<:Any] extends FormalParameter[T] {
+  def bindToFormalConstrainedParameter; 
+  def ~??(n:Symbol) = {bindToFormalConstrainedParameter; asInstanceOf[FormalParameter_withName[T]].nameThis(n)}
   var value: T
   def ~?? = ActualAdaptingParameter(this)
 }
@@ -98,5 +108,5 @@ case class ActualAdaptingParameter[T<:Any](adaptee: FormalConstrainedParameter[T
   var isForcing     = adaptee.isForcing
   def isConstrained = adaptee.isConstrained || adaptee.isOutput && constraint!=null
 }
-case class LocalVariable[T<:Any](name: Symbol, var value: T)
+case class LocalVariable[V](name: Symbol, var value: V) //, declarationTemplate: T_0_ary_name_value[_])
 

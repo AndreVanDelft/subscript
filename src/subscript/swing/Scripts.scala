@@ -17,7 +17,9 @@ abstract class SimpleSubscriptApplication extends SimpleSwingApplication{
 object Scripts {
 
   def gui [N<:CallGraphNodeTrait[_]] = (there:N)=>gui1(there)  
-  def gui1[N<:CallGraphNodeTrait[_]](implicit n:N) = {n.adaptExecuter(new SwingCodeExecuterAdapter[CodeExecuter])}             
+  def gui1[N<:CallGraphNodeTrait[_]](implicit n:N) = {
+    n.adaptExecuter(new SwingCodeExecuterAdapter[CodeExecuterTrait])
+  }             
 
   // an extension on scala.swing.Reactor that supports event handling scripts in Subscript
   abstract class ScriptReactor[N<:N_atomic_action_eh[N]] extends Reactor {
@@ -124,35 +126,38 @@ object Scripts {
  to make it easy enforceable that "there" and even "there.there" would be of the proper type
 */
   
+// found   : subscript.LocalVariable[subscript.swing.Scripts.ClickedScriptReactor[subscript.vm.N_code_eh]] => subscript.vm.T_0_ary_code[subscript.vm.N_code_eh] 
+// required: subscript.LocalVariable[Any] => subscript.vm.TemplateNodeWithCode[_, Any]  
+  
   implicit def _clicked(_b:FormalInputParameter[Button])  = {
-   _script('clicked, _param(_b,'b)) {
+   _script('clicked, _b~'b) {
     _seq( 
-         _val('csr, new ClickedScriptReactor[N_code_eh](_b.value)),
+         _val('csr, (here:N_localvar[_]) => new ClickedScriptReactor[N_code_eh](_b.value)),
          _at{gui} ( 
-          _at{(there:N_code_eh) => {there.withLocal('csr, 0, (_csr: LocalVariable[ClickedScriptReactor[N_code_eh]]) =>
-                                                             {_csr.value.  subscribe(there); there.onDeactivate{()=>_csr.value.unsubscribe}})}
+          _at{(there:N_code_eh) => {there.withLocal('csr, (_csr: LocalVariable[ClickedScriptReactor[N_code_eh]]) =>
+                                                         {_csr.value.subscribe(there); there.onDeactivate{()=>_csr.value.unsubscribe}})}
              } (_eventhandling{})//{println("\nCLICKED!!!")} // Temporary tracing
     ))
    } 
   }
                
   implicit def _key(_publisher: FormalInputParameter[Publisher], _keyCode: FormalConstrainedParameter[Char])  = {
-   _script('key, _param(_publisher,'publisher), _param(_keyCode,'keyCode)) {
+   _script('key, _publisher~'publisher, _keyCode~??'keyCode) {
     _seq( 
-         _val('ksr, new KeyPressScriptReactor[N_code_eh](_publisher.value, _keyCode)),
-         _at{(there:N_code_eh) => {there.withLocal('ksr, 0, (_ksr: LocalVariable[ClickedScriptReactor[N_code_eh]]) =>
-                                                            {_ksr.value.subscribe(there); there.onDeactivate{()=>_ksr.value.unsubscribe}})}
+         _val('ksr, (here:N_localvar[_]) => new KeyPressScriptReactor[N_code_eh](_publisher.value, _keyCode)),
+         _at{(there:N_code_eh) => {there.withLocal('ksr, (_ksr: LocalVariable[KeyPressScriptReactor[N_code_eh]]) =>
+                                                         {_ksr.value.subscribe(there); there.onDeactivate{()=>_ksr.value.unsubscribe}})}
             } (_eventhandling{})//{println("\nKey"+_keyCode.value)} // Temporary tracing
     )
    }
   }
                
  implicit def _vkey(_publisher: FormalInputParameter[Publisher], _keyValue: FormalConstrainedParameter[Key.Value])  = {
-  _script('key, _param(_publisher,'publisher), _param(_keyValue,'keyValue)) {
+  _script('key, _publisher~'publisher, _keyValue~??'keyValue) {
     _seq( 
-     _val('ksr, new VKeyPressScriptReactor[N_code_eh](_publisher.value, _keyValue)),
-     _at{(there:N_code_eh) => {there.withLocal('ksr, 0, (_ksr: LocalVariable[ClickedScriptReactor[N_code_eh]]) =>
-                                                          {_ksr.value.subscribe(there); there.onDeactivate{()=>_ksr.value.unsubscribe}})}
+     _val('ksr, (here:N_localvar[_]) => new VKeyPressScriptReactor[N_code_eh](_publisher.value, _keyValue)),
+     _at{(there:N_code_eh) => {there.withLocal('ksr, (_ksr: LocalVariable[VKeyPressScriptReactor[N_code_eh]]) =>
+                                                     {_ksr.value.subscribe(there); there.onDeactivate{()=>_ksr.value.unsubscribe}})}
         } (_eventhandling{})//{println("\nVKey"+_keyValue.value)} // Temporary tracing
     )
    }
