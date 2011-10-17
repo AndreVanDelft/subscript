@@ -21,7 +21,7 @@ trait ScriptExecuter {
  * compiler
  * 
  * % ! -  ~
- * # /# /#/ %# %#%
+ * # #/ #/#/ #% #%#
  * communication
  * networks and pipes
  * exception handling 
@@ -628,10 +628,10 @@ class BasicExecuter extends ScriptExecuter {
       val s = message.aaStarteds.head.node
       if (s.aaStartedCount==1) {
         n.template.kind match {
-          case "#" | "%#%"  => nodesToBeSuspended = n.children - s 
-          case "%#"         => nodesToBeExcluded  = n.children.filter(_.index < s.index) 
+          case "#" | "#%#"  => nodesToBeSuspended = n.children - s 
+          case "#%"         => nodesToBeExcluded  = n.children.filter(_.index < s.index) 
                                nodesToBeSuspended = n.children.filter(_.index > s.index)
-          case "/#" | "/#/" => nodesToBeSuspended = n.children.filter(_.index < s.index) 
+          case "#/" | "#/#/" => nodesToBeSuspended = n.children.filter(_.index < s.index) 
         }
       }
     }

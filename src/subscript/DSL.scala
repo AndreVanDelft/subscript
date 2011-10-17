@@ -50,18 +50,24 @@ object DSL {
   def _op3(opSymbol: String)(c0: TemplateNode, c1: TemplateNode, c2: TemplateNode) = T_3_ary(opSymbol, c0, c1, c2)
   def _op (opSymbol: String)(children: TemplateNode*)                              = T_n_ary(opSymbol, children:_*)
   
-  def _seq           = _op (";")_
-  def _alt           = _op ("+")_
-  def _par           = _op ("&")_
-  def _par_or        = _op ("|")_
-  def _par_and2      = _op ("&&")_
-  def _par_or2       = _op ("||")_
-  def _disrupt       = _op ("/")_
-  def _not           = _op1("!")_
-  def _not_react     = _op1("-")_
-  def _react         = _op1("~")_
-  def _launch        = _op1("*")_
-  def _launch_anchor = _op1("**")_
+  def _seq               = _op (";")_
+  def _alt               = _op ("+")_
+  def _par               = _op ("&")_
+  def _par_or            = _op ("|")_
+  def _par_and2          = _op ("&&")_
+  def _par_or2           = _op ("||")_
+  def _par_equal         = _op ("==")_
+  def _disrupt           = _op ("/")_
+  def _shuffle           = _op ("#")_
+  def _shuffle_1_or_more = _op ("#%#")_
+  def _seq_1_or_more     = _op ("#%#")_
+  def _disrup            = _op ("#/")_
+  def _disrupt_0_or_more = _op ("#/#/")_
+  def _not               = _op1("!")_
+  def _not_react         = _op1("-")_
+  def _react             = _op1("~")_
+  def _launch            = _op1("*")_
+  def _launch_anchor     = _op1("**")_
 
   def _empty                             = _op0("(+)")
   def _deadlock                          = _op0("(-)")

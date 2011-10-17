@@ -22,10 +22,12 @@ class LookupFrame1Application extends LookupFrameApplication {
 
   /* the following subscript code has manually been compiled into Scala; see below
   scripts
-   override searchCommand = searchButton + Key.Enter 
+   override searchCommand        = searchButton + Key.Enter 
+   implicit vkey(k: Key.Value??) = vkey(top, k??)
 */
 
-  override def _searchCommand = _script('searchCommand) {_alt(_clicked(searchButton), _vkey(top, Key.Enter))}
+  override def _searchCommand                         = _script('searchCommand)    {_alt(_clicked(searchButton), _vkey(Key.Enter))}
+  def _vkey(_k:FormalConstrainedParameter[Key.Value]) = _script('clicked, _k~??'k) {subscript.swing.Scripts._vkey(top, _k~??)}
                
   // bridge methods 
   override def searchCommand  = _execute(_searchCommand)

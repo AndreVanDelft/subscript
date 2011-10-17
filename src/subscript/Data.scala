@@ -38,6 +38,7 @@ trait FormalConstrainedParameter[T<:Any] extends FormalParameter[T] {
   def ~??(n:Symbol) = {bindToFormalConstrainedParameter; asInstanceOf[FormalParameter_withName[T]].nameThis(n)}
   var value: T
   def ~?? = ActualAdaptingParameter(this)
+  def ~??(constraint: T=>Boolean) = ActualAdaptingParameter(this, constraint)
 }
 
 trait ActualParameterTrait[T<:Any] extends FormalParameter_withName[T] {

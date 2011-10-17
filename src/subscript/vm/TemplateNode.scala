@@ -64,7 +64,7 @@ object T_n_ary {
          | "&&" | "&" | "&&:" | "&:"
          | "=="  | "<<=="  | "<=="  | "==>>"  | "==>"  | "<==>"  | "<<==>"  | "<==>>"  | "<<==>>"
          | "==:" | "<<==:" | "<==:" | "==>>:" | "==>:" | "<==>:" | "<<==>:" | "<==>>:" | "<<==>>:"
-         | "#" | "/#"          => LogicalKind.And
+         | "#" | "#/"          => LogicalKind.And
                              
       case "||"  | "|"  
          | "||:" | "|:" 
@@ -72,9 +72,9 @@ object T_n_ary {
          | "||+" | "||/" 
          | "|+|" | "|/|" 
          | "+"   | "/" | "%" 
-         | "%#"  | "%#%"       => LogicalKind.Or                         
+         | "#%"  | "#%#"       => LogicalKind.Or                         
       
-      case "/#/"               => LogicalKind.None
+      case "#/#/"               => LogicalKind.None
       
       case _ => null
     }
@@ -114,9 +114,9 @@ object T_n_ary {
   def isSuspending(kind: String): Boolean = {
     kind match {
       case "#" 
-         | "%#" | "%#%"
-         | "/#" | "/#/" => true
-      case _            => false
+         | "#%" | "#%#"
+         | "#/" | "#/#/" => true
+      case _             => false
     }
   }
 }

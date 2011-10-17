@@ -63,8 +63,8 @@ class LookupFrame2Application extends SimpleSubscriptApplication {
 */
 
   override def _live     = _script('live             ) {_par_or2(_seq(_loop, _searchSequence), _exit)}
-  def _searchCommand     = _script('searchCommand    ) {_alt(_clicked(searchButton), _vkey1(Key.Enter))} 
-  def _cancelCommand     = _script('cancelCommand    ) {_alt(_clicked(cancelButton), _vkey1(Key.Escape))}
+  def _searchCommand     = _script('searchCommand    ) {_alt(_clicked(searchButton), _vkey(Key.Enter))} 
+  def _cancelCommand     = _script('cancelCommand    ) {_alt(_clicked(cancelButton), _vkey(Key.Escape))}
   def   _exitCommand     = _script('exitCommand      ) {_clicked(exitButton)} // windowClosing
   def   _exit            = _script('exit             ) {_seq(  _exitCommand, _at{gui} (_while{!confirmExit}))}
   def _cancelSearch      = _script('cancelSearch     ) {_seq(_cancelCommand, _at{gui} (scriptCall_to_T_0_ary_code(_showCanceledText)))}
@@ -89,7 +89,7 @@ class LookupFrame2Application extends SimpleSubscriptApplication {
   //def _vkey(_k:FormalConstrainedParameter[Key.Value]) = _script('clicked, _k~??'k) {_vkey(top, _k~??)} 
   // the line above would give this strange error message: recursive method _vkey needs result type
   // therefore we append a 1 to the name
-  def _vkey1(_k:FormalConstrainedParameter[Key.Value]) = _script('clicked, _k~??'k) {_vkey(top, _k~??)}
+  def _vkey(_k:FormalConstrainedParameter[Key.Value]) = _script('clicked, _k~??'k) {subscript.swing.Scripts._vkey(top, _k~??)}
                
 // bridge methods; only the first one is actually used   
 override def live      = _execute(_live)
