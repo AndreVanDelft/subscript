@@ -30,7 +30,7 @@ import subscript.vm._
 
 object DSL {
   
-  def _execute(_script: N_call => Unit) = {val executer = new BasicExecuter; _script(executer.anchorNode); executer.run}
+  def _execute(_script: N_call => Unit) = {val executer = new BasicScriptExecuter; _script(executer.anchorNode); executer.run}
 
   def _codeFragmentKind [N<:N_atomic_action[N]](opSymbol: String, cf:  => Unit ): T_0_ary_code[N] = T_0_ary_code(opSymbol, (_here:N) => cf)
   def _codeFragmentKind1[N<:N_atomic_action[N]](opSymbol: String, cf: (N=>Unit)): T_0_ary_code[N] = T_0_ary_code(opSymbol,              cf)

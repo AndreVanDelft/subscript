@@ -76,11 +76,19 @@ object Scripts {
   }
   
   // a ScriptReactor that has a Component as a Publisher. Automatically enables and disables the component
-  abstract class ComponentScriptReactor[N<:N_atomic_action_eh[N]](publisher:Publisher with Component) extends ScriptReactor[N] {
+  abstract class ComponentScriptReactor[N<:N_atomic_action_eh[N]](publisher:Publisher with Component, autoEnableComponent: Boolean = true) extends ScriptReactor[N] {
     override def enabled_=(b:Boolean) = {
       super.enabled_=(b); 
-      publisher.enabled = b
+      if (autoEnableComponent) publisher.enabled = b
     }
+  }
+
+  // a ComponentScriptReactor for any events
+  case class AnyEventScriptReactor[N<:N_atomic_action_eh[N]](comp:Component) extends ComponentScriptReactor[N](comp) {
+    def publisher = comp
+    val event: Event = null
+    private var myReaction: PartialFunction[Event,Unit] = {case _ => execute}
+    override def reaction: PartialFunction[Event,Unit] = myReaction
   }
   
   // a ComponentScriptReactor for clicked events on a button
@@ -129,21 +137,22 @@ object Scripts {
   }
   
 /* the following subscript code has manually been compiled into Scala; see below
- 
+  // the redirections to the swing thread are needed because enabling and disabling the button etc must there be done
  scripts
-  implicit clicked(b:Button) = 
-    val csr = ClickedScriptReactor(b)
-    @gui:  // the redirection to the swing thread is needed because enabling and disabling the button must there be done
-    @csr.subscribe(there); there.onDeactivate{()=>csr.unsubscribe}: {. .}
+  implicit clicked(b:Button) = val r = ClickedScriptReactor(b)
+                               @gui: @r.subscribe(there); there.onDeactivate{()=>r.unsubscribe}: {. .}
     
-  implicit key(comp: Component, keyCode: Char??) =
-    val ksr = KeyPressScriptReactor(keyCode)
-    @csr.subscribe(there); there.onDeactivate{()=>csr.unsubscribe}: {. .}
+  implicit key(comp: Component, keyCode: Char??) = val r = KeyPressScriptReactor(comp, keyCode)
+                                                   @r.subscribe(there); there.onDeactivate{()=>r.unsubscribe}: {. .}
  
-  implicit vkey(comp: Component, keyValue: Key.Value??) =
-    val ksr = KeyPressScriptReactor(keyValue)
-    @csr.subscribe(there); there.onDeactivate{()=>csr.unsubscribe}: {. .}
+  implicit vkey(comp: Component, keyValue: Key.Value??) = val r = KeyPressScriptReactor(comp, keyValue)
+                                                          @r.subscribe(there); there.onDeactivate{()=>r.unsubscribe}: {. .}
+                                                          
+  anyEvent(comp: Component) = val r = AnyEventReactor; @r.subscribe(there); there.onDeactivate{()=>r.unsubscribe}: {. .}                                                    
  
+  guard(comp: Component, test: => Boolean) = ..anyEvent(comp); if (!test.apply) (-)
+
+
  Note: the manual compilation yielded for the first annotation the type
   
    N_annotation[N_annotation[N_code_eh]]
@@ -152,45 +161,61 @@ object Scripts {
  to make it easy enforceable that "there" and even "there.there" would be of the proper type
 */
   
-// found   : subscript.LocalVariable[subscript.swing.Scripts.ClickedScriptReactor[subscript.vm.N_code_eh]] => subscript.vm.T_0_ary_code[subscript.vm.N_code_eh] 
-// required: subscript.LocalVariable[Any] => subscript.vm.TemplateNodeWithCode[_, Any]  
-  
   implicit def _clicked(_b:FormalInputParameter[Button])  = {
-   val _csr = _declare[ClickedScriptReactor[N_code_eh]]('csr)
+   val _r = _declare[ClickedScriptReactor[N_code_eh]]('r)
    _script('clicked, _b~'b) {
     _seq( 
-         _val(_csr, (here:N_localvar[_]) => new ClickedScriptReactor[N_code_eh](_b.value)),
-         _at{gui} ( 
-          _at{(there:N_code_eh) => {
-            println(_csr.at(there))
-            println(_csr.at(there).value)
-            _csr.at(there).value.subscribe(there); there.onDeactivate{()=>_csr.at(there).value.unsubscribe}}}
-             (_eventhandling{})//{println("\nCLICKED!!!")} // Temporary tracing
-    ))
+         _val(_r, (here:N_localvar[_]) => new ClickedScriptReactor[N_code_eh](_b.value)),
+         _at{gui} (_at{(there:N_code_eh) => {_r.at(there).value.subscribe(there); there.onDeactivate{()=>_r.at(there).value.unsubscribe}}}
+                      (_eventhandling{}) //{println("\nCLICKED!!!")} // Temporary tracing
+       )          )
    } 
   }
                
   implicit def _key(_publisher: FormalInputParameter[Publisher], _keyCode: FormalConstrainedParameter[Char])  = {
-   val _ksr = _declare[KeyPressScriptReactor[N_code_eh]]('ksr)
+   val _r = _declare[KeyPressScriptReactor[N_code_eh]]('r)
    _script('key, _publisher~'publisher, _keyCode~??'keyCode) {
     _seq( 
-         _val(_ksr, (here:N_localvar[_]) => new KeyPressScriptReactor[N_code_eh](_publisher.value, _keyCode)),
-         _at{(there:N_code_eh) => {_ksr.at(there).value.subscribe(there); there.onDeactivate{()=>_ksr.at(there).value.unsubscribe}}}
+         _val(_r, (here:N_localvar[_]) => new KeyPressScriptReactor[N_code_eh](_publisher.value, _keyCode)),
+         _at{(there:N_code_eh) => {_r.at(there).value.subscribe(there); there.onDeactivate{()=>_r.at(there).value.unsubscribe}}}
             (_eventhandling{})//{println("\nKey"+_keyCode.value)} // Temporary tracing
     )
    }
   }
                
  implicit def _vkey(_publisher: FormalInputParameter[Publisher], _keyValue: FormalConstrainedParameter[Key.Value])  = {
-   val _ksr = _declare[VKeyPressScriptReactor[N_code_eh]]('ksr)
+   val _r = _declare[VKeyPressScriptReactor[N_code_eh]]('r)
   _script('vkey, _publisher~'publisher, _keyValue~??'keyValue) {
     _seq( 
-     _val(_ksr, (here:N_localvar[_]) => new VKeyPressScriptReactor[N_code_eh](_publisher.value, _keyValue)),
-     _at{(there:N_code_eh) => {_ksr.at(there).value.subscribe(there); there.onDeactivate{()=>_ksr.at(there).value.unsubscribe}}}
+     _val(_r, (here:N_localvar[_]) => new VKeyPressScriptReactor[N_code_eh](_publisher.value, _keyValue)),
+     _at{(there:N_code_eh) => {_r.at(there).value.subscribe(there); there.onDeactivate{()=>_r.at(there).value.unsubscribe}}}
          (_eventhandling{})//{println("\nVKey"+_keyValue.value)} // Temporary tracing
     )
    }
   }
                
+ def _anyEvent(_comp: FormalInputParameter[Component])  = {
+   val _r = _declare[AnyEventScriptReactor[N_code_eh]]('r)
+  _script('anyEvent, _comp~'comp) {
+    _seq( 
+     _val(_r, (here:N_localvar[_]) => new AnyEventScriptReactor[N_code_eh](_comp.value)),
+     _at{(there:N_code_eh) => {_r.at(there).value.subscribe(there); there.onDeactivate{()=>
+         _r.at(there).value.
+         unsubscribe
+       }}}
+         (_eventhandling{})
+    )
+   }
+  }
+
+ 
+ def mytest = true
+  implicit def _guard(_comp: FormalInputParameter[Component], _test: FormalInputParameter[()=> Boolean]) = { 
+    _script('guard, _comp~'comp, _test~'test) {
+      _seq(_seq(_optionalBreak_loop, _anyEvent(_comp.value)), _if((n:N_if) => !_test.value.apply)(_deadlock))
+    }
+  }
+
+ 
   // no bridge methods for implicit scripts
 }

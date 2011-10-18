@@ -50,7 +50,9 @@ class LookupFrame2Application extends SimpleSubscriptApplication {
 	cancelSearch      = cancelCommand @gui: showCanceledText
 	
 	live              = ...searchSequence || exit
-	searchSequence    = searchCommand; showSearchingText searchInDatabase showSearchResults / cancelSearch
+	searchSequence    = guard(searchTF, ()=> !searchTF.text.isEmpty); // searchCommand should not be active if the text field is empty
+	                    searchCommand; 
+	                    showSearchingText searchInDatabase showSearchResults / cancelSearch
 	
 	showSearchingText = @gui: {outputTA.text = "Searching: "+searchTF.text}
 	showCanceledText  = @gui: {outputTA.text = "Searching Canceled"}
@@ -61,14 +63,14 @@ class LookupFrame2Application extends SimpleSubscriptApplication {
 	
 	implicit vkey(k: Key.Value??) = vkey(top, k??)
 */
-
   override def _live     = _script('live             ) {_par_or2(_seq(_loop, _searchSequence), _exit)}
   def _searchCommand     = _script('searchCommand    ) {_alt(_clicked(searchButton), _vkey(Key.Enter))} 
   def _cancelCommand     = _script('cancelCommand    ) {_alt(_clicked(cancelButton), _vkey(Key.Escape))}
   def   _exitCommand     = _script('exitCommand      ) {_clicked(exitButton)} // windowClosing
   def   _exit            = _script('exit             ) {_seq(  _exitCommand, _at{gui} (_while{!confirmExit}))}
   def _cancelSearch      = _script('cancelSearch     ) {_seq(_cancelCommand, _at{gui} (scriptCall_to_T_0_ary_code(_showCanceledText)))}
-  def _searchSequence    = _script('searchSequence   ) {_seq(_searchCommand, 
+  def _searchSequence    = _script('searchSequence   ) {_seq(/*_guard(searchTF, ()=> !searchTF.text.isEmpty), TBD get guard working correctly*/
+                                                             _searchCommand, 
      	                                                     _disrupt(_seq(_showSearchingText, _searchInDatabase, _showSearchResults),
                                                                       _cancelSearch ))}
   def _showSearchingText = _script('showSearchingText) {_at{gui} (_normal {            
@@ -86,10 +88,7 @@ class LookupFrame2Application extends SimpleSubscriptApplication {
             (here: N_code_normal) => outputTA.text+=" "+(10-pass(here))}), 
       _threaded{Thread.sleep(200)})}
  
-  //def _vkey(_k:FormalConstrainedParameter[Key.Value]) = _script('clicked, _k~??'k) {_vkey(top, _k~??)} 
-  // the line above would give this strange error message: recursive method _vkey needs result type
-  // therefore we append a 1 to the name
-  def _vkey(_k:FormalConstrainedParameter[Key.Value]) = _script('clicked, _k~??'k) {subscript.swing.Scripts._vkey(top, _k~??)}
+  def _vkey(_k:FormalConstrainedParameter[Key.Value]) = _script('vkey, _k~??'k) {subscript.swing.Scripts._vkey(top, _k~??)}
                
 // bridge methods; only the first one is actually used   
 override def live      = _execute(_live)

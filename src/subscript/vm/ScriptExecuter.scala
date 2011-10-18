@@ -53,12 +53,12 @@ trait ScriptExecuter {
  * exception handling 
  */
 
-class BasicExecuter extends ScriptExecuter {
+class BasicScriptExecuter extends ScriptExecuter {
   
   // some tracing stuff
   var nSteps = 0
   var maxSteps = 0 // 0 means unlimited
-  var traceLevel = 1 // 0-no tracing; 1-message handling 2-message insertion+handling
+  var traceLevel = 2 // 0-no tracing; 1-message handling 2-message insertion+handling
   def trace(level:Int,as: Any*) = {
     if (traceLevel>=level) {
       as.foreach {a=>print(a.toString)}; 
@@ -70,18 +70,24 @@ class BasicExecuter extends ScriptExecuter {
   }
   def traceTree: Unit = {
     var j = 0;
-	  def traceTree(n: CallGraphNodeTrait[_], depth: Int): Unit = {
+	  def traceTree[T <: TemplateNode](n: CallGraphNodeTrait[T], branches: List[Int], depth: Int): Unit = {
 	    for (i<-1 to 30) {
-	      print(if(i==depth)"*"else if(j%5==0)"-"else" ")
+	      print(if(i==depth)"*"else if (branches.contains(i)) "|" else if(j%5==0)"-"else" ")
 	    }
 	    j+=1
 	    println(n)
 	    n match {
-	      case p:CallGraphParentNodeTrait[_] => p.children.foreach{traceTree(_, depth+1)}
+	      case p:CallGraphParentNodeTrait[T] => 
+	        var k=0
+	        val pcl=p.children.length
+	        p.children.foreach{
+	          var bs = if (k<pcl-1) depth::branches else branches
+	          k += 1
+	          traceTree(_, bs, depth+1)}
 	      case _ =>
 	    }
 	  }
-	if (traceLevel >= 1) traceTree(rootNode, 0)
+	if (traceLevel >= 1) traceTree(rootNode, Nil, 0)
   }
   def traceMessages: Unit = {
 	if (traceLevel >= 1) {
@@ -512,6 +518,10 @@ class BasicExecuter extends ScriptExecuter {
     val n = message.node.asInstanceOf[CallGraphTreeNode_n_ary]
     n.continuation = null
     
+    if (message.id==140)
+    {
+      println
+    }
     // decide on what to do: 
     // activate next operand and/or have success, suspend, resume, exclude, or deactivate or nothing
     
@@ -521,6 +531,13 @@ class BasicExecuter extends ScriptExecuter {
     var activateNext        = false
     var activationEnded     = false
     var childNode: CallGraphNodeTrait[_<:TemplateNode] = null // may indicate node from which the a message came
+
+    val isSequential = 
+     n.template.kind match {
+      case ";" | "|;"  | "||;" |  "|;|" => true
+      case _ => false
+     }
+
     if (n.activationMode!=ActivationMode.Inactive) {
      n.template.kind match {
       case "%" => val d = message.deactivations; 
@@ -532,7 +549,7 @@ class BasicExecuter extends ScriptExecuter {
                     }
                   }
       case ";" | "|;" 
-       | "||;" |  "|;|" => 
+       | "||;" |  "|;|" => // messy; maybe the outer if on the activationMode should be moved inside the match{}
                          val s = message.success
                          val b = message.break
                          if (s!=null) {
@@ -540,11 +557,10 @@ class BasicExecuter extends ScriptExecuter {
                            childNode = s.child
                          }
                          else if (b!=null) {
-                           activateNextOrEnded = true
+                           activateNextOrEnded = true // && b.activationMode==ActivationMode.Optional -- not needed because of "if" before the "match"
                            childNode = b.child
                          }
-                         // && b.activationMode==ActivationMode.Optional not needed because of "if" before the "match"
-                         
+      
                          
       case "+" | "|+" | "|+|" 
                       => val a = message.aaActivated; val c = message.caActivated; val b = message.break
@@ -658,19 +674,24 @@ class BasicExecuter extends ScriptExecuter {
         }
       }
     }
-    
-    // decide on success and resumptions
-    var shouldSucceed = false
-    var nodesToBeResumed: Buffer[CallGraphNodeTrait[_ <:TemplateNode]] = null
-    if (message.success != null || message.aaEndeds != Nil) {
-      T_n_ary.getLogicalKind(n.template.kind) match {
-        case LogicalKind.None =>
-        case LogicalKind.And  => shouldSucceed = !n.aChildHadFailure &&
-                                                 n.children.forall((e:CallGraphNodeTrait[_])=>e.hasSuccess)
-        case LogicalKind.Or   => shouldSucceed = n.children.exists(_.hasSuccess)
+    var shouldSucceed = false    
+    // decide further on success and resumptions
+    if (!shouldSucceed) { // could already have been set for .. as child of ;
+      var nodesToBeResumed: Buffer[CallGraphNodeTrait[_ <:TemplateNode]] = null
+      if (message.success != null || message.aaEndeds != Nil) {
+        T_n_ary.getLogicalKind(n.template.kind) match {
+          case LogicalKind.None =>
+          case LogicalKind.And  => shouldSucceed = (isSequential || !n.aChildHadFailure) &&
+                                                   n.children.forall((e:CallGraphNodeTrait[_])=>e.hasSuccess)
+          case LogicalKind.Or   => shouldSucceed = n.children.exists(_.hasSuccess)
+        }
       }
 	}
-    if (shouldSucceed && (n.template.kind!=";"||activationEnded||n.activationMode!=ActivationMode.Active) ) {
+    if (shouldSucceed && (
+        !isSequential   ||   // TBD: check for other Sequential operators";"
+        activationEnded || // reached the end
+        message.break != null // succeed on sequential breaks, including the optional ones
+      ) ) {
       insert(Success(n)) // TBD: prevent multiple successes at same "time"
     }
     // do exclusions
