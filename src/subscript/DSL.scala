@@ -30,19 +30,12 @@ object DSL {
   def _at[N<:CallGraphNodeTrait[T],T<:TemplateNode](_cf:N=>Unit)  
   = (_child: T) => T_1_ary_code("@:", (here:N_annotation[N]) => _cf(here.there), _child)
  
-  // 'with' construct should allow for
-  //   with('myVar) {(_myVar: LocalVariable[MyVarType]) => {myCode}}
-  //   with('myVar) {(_myVar: LocalVariable[MyVarType]) => if (_myVar==theValue) restOfScript}
-  def _with[N<:CallGraphTreeNode[_],V<:Any](name: Symbol) (valueCode: LocalVariable[V] => TemplateNodeWithCode[_,V]): N => TemplateNodeWithCode[_,V] = {
-    here:N => valueCode.apply(here.getLocalVariable[V](name)) 
-    // TBD: instead of null, something would be needed like 
-    //  "here.getLocalVariable[V](name)"
-    // the problem is "here" - it is the parameter to the code in the TemplateNodeWithCode[_,V]
-  }
-    
+  def _declare[T](name: Symbol) = new LocalVariable[T](name)
   
-  def _var(name: Symbol, valueCode: N_localvar[_]=>Any) = T_0_ary_name_valueCode("var" , name,  valueCode)
-  def _val(name: Symbol, valueCode: N_localvar[_]=>Any) = T_0_ary_name_valueCode("val" , name,  valueCode)
+  def _var     [T<:Any](v: LocalVariable[T], valueCode: N_localvar[_]=>T) = T_0_ary_local_valueCode("var"    , v, valueCode)
+  def _val     [T<:Any](v: LocalVariable[T], valueCode: N_localvar[_]=>T) = T_0_ary_local_valueCode("val"    , v, valueCode)
+  def _var_loop[T<:Any](v: LocalVariable[T], valueCode: N_localvar[_]=>T) = T_0_ary_local_valueCode("var..." , v, valueCode)
+  def _val_loop[T<:Any](v: LocalVariable[T], valueCode: N_localvar[_]=>T) = T_0_ary_local_valueCode("val..." , v, valueCode)
   
   def _op0(opSymbol: String)                                                       = T_0_ary(opSymbol)
   def _op1(opSymbol: String)(c0: TemplateNode)                                     = T_1_ary(opSymbol, c0)

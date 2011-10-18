@@ -213,10 +213,7 @@ class BasicExecuter extends ScriptExecuter {
       case t @ T_0_ary     ("(+-)"               ) => N_nu            (t)
       case t @ T_0_ary_code("call"      , _      ) => N_call          (t.asInstanceOf[T_0_ary_code[N_call         ]])
       case t @ T_0_ary_name("private"   , name   ) => N_privatevar    (t.asInstanceOf[T_0_ary_name[N_privatevar   ]])
-      case t @T_0_ary_name_valueCode("var"   ,name,_) => N_localvar   (t.asInstanceOf[T_0_ary_name_valueCode[N_localvar[Any]]],isLoop=false)
-      case t @T_0_ary_name_valueCode("val"   ,name,_) => N_localvar   (t.asInstanceOf[T_0_ary_name_valueCode[N_localvar[Any]]],isLoop=false)
-      case t @T_0_ary_name_valueCode("var...",name,_) => N_localvar   (t.asInstanceOf[T_0_ary_name_valueCode[N_localvar[Any]]],isLoop= true)
-      case t @T_0_ary_name_valueCode("val...",name,_) => N_localvar   (t.asInstanceOf[T_0_ary_name_valueCode[N_localvar[Any]]],isLoop= true)
+      case t @T_0_ary_local_valueCode(kind,lv:LocalVariable[_],_) => N_localvar    (t,isLoop=kind=="val..."||kind=="var...")
       case t @ T_0_ary_code("{}"        , _      ) => N_code_normal   (t.asInstanceOf[T_0_ary_code[N_code_normal  ]])
       case t @ T_0_ary_code("{??}"      , _      ) => N_code_unsure   (t.asInstanceOf[T_0_ary_code[N_code_unsure  ]])
       case t @ T_0_ary_code("{!!}"      , _      ) => N_code_tiny     (t.asInstanceOf[T_0_ary_code[N_code_tiny    ]])
@@ -283,9 +280,9 @@ class BasicExecuter extends ScriptExecuter {
       message.node match {
            //case n@N_root            (t: T_1_ary     ) => activateFrom(n, t.child0)
            case n@N_code_tiny       (t: T_0_ary_code[_])  =>                                    executeCode(n, ()=>t.code(n)); if (n.hasSuccess) doNeutral(n); insertDeactivation(n,null)
-           case n@N_localvar        (t: T_0_ary_name_valueCode[_], isLoop)  => if (isLoop) setIteration_n_ary_op_ancestor(n); 
-            val v = executeCode(n, ()=>t.code(n)); n.n_ary_op_ancestor.initLocalVariable(t.name, n.pass, v); doNeutral(n); insertDeactivation(n,null)
-           case n@N_privatevar      (t: T_0_ary_name[_])          => n.n_ary_op_ancestor.initLocalVariable(t.name, n.pass, n.getLocalVariable(t.name).value)
+           case n@N_localvar        (t: T_0_ary_local_valueCode[_], isLoop)  => if (isLoop) setIteration_n_ary_op_ancestor(n); 
+            val v = executeCode(n, ()=>t.code(n));          n.n_ary_op_ancestor.initLocalVariable(t.localVariable.name, n.pass, v); doNeutral(n); insertDeactivation(n,null)
+           case n@N_privatevar      (t: T_0_ary_name[_]) => n.n_ary_op_ancestor.initLocalVariable(t.name, n.pass, n.getLocalVariableHolder(t.name).value)
            case n@N_code_normal     (_: T_0_ary_code[_]) => insert(AAActivated(n,null)); insert(AAToBeExecuted(n))
            case n@N_code_unsure     (_: T_0_ary_code[_]) => insert(AAActivated(n,null)); insert(AAToBeExecuted(n))
            case n@N_code_threaded   (_: T_0_ary_code[_]) => insert(AAActivated(n,null)); insert(AAToBeExecuted(n))
@@ -711,7 +708,10 @@ class BasicExecuter extends ScriptExecuter {
       else if (!rootNode.children.isEmpty) {
         traceTree
         traceMessages
-        synchronized {wait()} // for an event to happen 
+        synchronized { // TBD: there should also be a synchronized call in the CodeExecuters
+          if (scriptGraphMessages.isEmpty) // looks stupid, but event may have happened&notify() may have been called during tracing
+            synchronized {wait()} // for an event to happen 
+        }
         // note: there may also be deadlock because of unmatching communications
         // so there should preferably be a check for the existence of waiting eh actions
       }

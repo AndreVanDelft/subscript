@@ -3,6 +3,7 @@ package subscript.test
 import subscript._
 import subscript.DSL._
 import subscript.Predef._
+import subscript.vm._
 
 // Subscript sample application: "Hello world!", printed using a sequence of calls to a default script that prints its string parameter
 //

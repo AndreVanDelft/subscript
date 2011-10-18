@@ -1,4 +1,4 @@
-package subscript
+package subscript.vm
 
 /*
 Overview of formal and actual parameter use
@@ -109,5 +109,7 @@ case class ActualAdaptingParameter[T<:Any](adaptee: FormalConstrainedParameter[T
   var isForcing     = adaptee.isForcing
   def isConstrained = adaptee.isConstrained || adaptee.isOutput && constraint!=null
 }
-case class LocalVariable[V](name: Symbol, var value: V) //, declarationTemplate: T_0_ary_name_value[_])
-
+case class LocalVariable[V](name: Symbol) {
+  def at(implicit node: CallGraphTreeNode[_]): VariableHolder[V] = node.getLocalVariableHolder(name)
+}
+case class VariableHolder[V](value: V)

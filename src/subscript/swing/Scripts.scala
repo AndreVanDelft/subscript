@@ -130,35 +130,38 @@ object Scripts {
 // required: subscript.LocalVariable[Any] => subscript.vm.TemplateNodeWithCode[_, Any]  
   
   implicit def _clicked(_b:FormalInputParameter[Button])  = {
+   val _csr = _declare[ClickedScriptReactor[N_code_eh]]('csr)
    _script('clicked, _b~'b) {
     _seq( 
-         _val('csr, (here:N_localvar[_]) => new ClickedScriptReactor[N_code_eh](_b.value)),
+         _val(_csr, (here:N_localvar[_]) => new ClickedScriptReactor[N_code_eh](_b.value)),
          _at{gui} ( 
-          _at{(there:N_code_eh) => {there.withLocal('csr, (_csr: LocalVariable[ClickedScriptReactor[N_code_eh]]) =>
-                                                         {_csr.value.subscribe(there); there.onDeactivate{()=>_csr.value.unsubscribe}})}
-             } (_eventhandling{})//{println("\nCLICKED!!!")} // Temporary tracing
+          _at{(there:N_code_eh) => {
+            println(_csr.at(there))
+            println(_csr.at(there).value)
+            _csr.at(there).value.subscribe(there); there.onDeactivate{()=>_csr.at(there).value.unsubscribe}}}
+             (_eventhandling{})//{println("\nCLICKED!!!")} // Temporary tracing
     ))
    } 
   }
                
   implicit def _key(_publisher: FormalInputParameter[Publisher], _keyCode: FormalConstrainedParameter[Char])  = {
+   val _ksr = _declare[KeyPressScriptReactor[N_code_eh]]('ksr)
    _script('key, _publisher~'publisher, _keyCode~??'keyCode) {
     _seq( 
-         _val('ksr, (here:N_localvar[_]) => new KeyPressScriptReactor[N_code_eh](_publisher.value, _keyCode)),
-         _at{(there:N_code_eh) => {there.withLocal('ksr, (_ksr: LocalVariable[KeyPressScriptReactor[N_code_eh]]) =>
-                                                         {_ksr.value.subscribe(there); there.onDeactivate{()=>_ksr.value.unsubscribe}})}
-            } (_eventhandling{})//{println("\nKey"+_keyCode.value)} // Temporary tracing
+         _val(_ksr, (here:N_localvar[_]) => new KeyPressScriptReactor[N_code_eh](_publisher.value, _keyCode)),
+         _at{(there:N_code_eh) => {_ksr.at(there).value.subscribe(there); there.onDeactivate{()=>_ksr.at(there).value.unsubscribe}}}
+            (_eventhandling{})//{println("\nKey"+_keyCode.value)} // Temporary tracing
     )
    }
   }
                
  implicit def _vkey(_publisher: FormalInputParameter[Publisher], _keyValue: FormalConstrainedParameter[Key.Value])  = {
-  _script('key, _publisher~'publisher, _keyValue~??'keyValue) {
+   val _ksr = _declare[VKeyPressScriptReactor[N_code_eh]]('ksr)
+  _script('vkey, _publisher~'publisher, _keyValue~??'keyValue) {
     _seq( 
-     _val('ksr, (here:N_localvar[_]) => new VKeyPressScriptReactor[N_code_eh](_publisher.value, _keyValue)),
-     _at{(there:N_code_eh) => {there.withLocal('ksr, (_ksr: LocalVariable[VKeyPressScriptReactor[N_code_eh]]) =>
-                                                     {_ksr.value.subscribe(there); there.onDeactivate{()=>_ksr.value.unsubscribe}})}
-        } (_eventhandling{})//{println("\nVKey"+_keyValue.value)} // Temporary tracing
+     _val(_ksr, (here:N_localvar[_]) => new VKeyPressScriptReactor[N_code_eh](_publisher.value, _keyValue)),
+     _at{(there:N_code_eh) => {_ksr.at(there).value.subscribe(there); there.onDeactivate{()=>_ksr.at(there).value.unsubscribe}}}
+         (_eventhandling{})//{println("\nVKey"+_keyValue.value)} // Temporary tracing
     )
    }
   }

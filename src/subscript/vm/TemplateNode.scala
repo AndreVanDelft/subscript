@@ -30,8 +30,8 @@ case class T_n_ary (kind: String, children: TemplateNode*)                      
   }
 }
 
-case class T_0_ary_name          [N<:CallGraphNodeTrait[TemplateNode]] (kind: String, name: Symbol)                                         extends TemplateNode
-case class T_0_ary_name_valueCode[N<:CallGraphNodeTrait[TemplateNode]] (kind: String, name: Symbol, code: N=>Any)                           extends TemplateNodeWithCode[N, Any]
+case class T_0_ary_name           [N<:CallGraphNodeTrait[TemplateNode]] (kind: String, name: Symbol)                                        extends TemplateNode
+case class T_0_ary_local_valueCode[V<:Any] (kind: String, localVariable: LocalVariable[V], code: N_localvar[_]=>V)  extends TemplateNodeWithCode[N_localvar[_], V]
 case class T_0_ary_code[N<:CallGraphNodeTrait[TemplateNode]] (kind: String, code: N => Unit)                                                extends TemplateNodeWithCode[N, Unit]
 case class T_1_ary_code[N<:CallGraphNodeTrait[TemplateNode]] (kind: String, code: N => Unit, child0: TemplateNode)                          extends TemplateNodeWithCode[N, Unit]
 case class T_2_ary_code[N<:CallGraphNodeTrait[TemplateNode]] (kind: String, code: N => Unit, child0: TemplateNode, child1: TemplateNode)    extends TemplateNodeWithCode[N, Unit]  {child1.indexAsChild = 1}

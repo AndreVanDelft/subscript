@@ -3,7 +3,7 @@ package subscript.test
 import subscript._
 import subscript.DSL._
 import subscript.Predef._
-import subscript.vm.TemplateNode
+import subscript.vm._
 
 // Subscript sample application: "Hello world!", printed using a sequence of 2 code fragments
 //

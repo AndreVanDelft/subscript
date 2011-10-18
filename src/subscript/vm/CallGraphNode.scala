@@ -1,7 +1,6 @@
 package subscript.vm
 
 import scala.collection.mutable._
-import subscript._
 
 object ActivationMode extends Enumeration {
   type ActivationModeType = Value
@@ -21,8 +20,6 @@ trait CallGraphNodeTrait[+T<:TemplateNode] {
   def n_ary_op_else_ancestor: N_n_ary_op
   def lowestSingleCommonAncestor: CallGraphParentNodeTrait[_<:TemplateNode]
   def forEachParent(n: CallGraphParentNodeTrait[_<:TemplateNode] => Unit): Unit
-//  def getParameterLookup: Map[Symbol,ActualParameter[_<:Any]] = null
-//  def getParameter[P](formalName: Symbol): ActualParameter[_<:Any] = getParameterLookup(formalName)
 
   val index = CallGraphNode.nextIndex()
   var stamp = 0
@@ -104,7 +101,7 @@ trait CallGraphTreeNode[+T<:TemplateNode] extends CallGraphNode[T] {
     }
   }
   def passToBeUsedToGetVariableNamed(name: Symbol) = pass
-  def getLocalVariable[V<:Any](name: Symbol): LocalVariable[V] = {
+  def getLocalVariableHolder[V<:Any](name: Symbol): VariableHolder[V] = {
     //var usePass = this match {
     //  case lvl@N_localvar_loop(_:T) if (lvl.name==name) => pass-1
     //  case _ => pass
@@ -114,20 +111,16 @@ trait CallGraphTreeNode[+T<:TemplateNode] extends CallGraphNode[T] {
     // so the following code is used instead:
 
     var usePass = passToBeUsedToGetVariableNamed(name)
-    var result: LocalVariable[V] = null
+    var result: VariableHolder[V] = null
     var nary   = n_ary_op_ancestor
     while (result==null) {
-      result = nary.getLocalVariable(name, usePass)
+      result = nary.getVariableHolder(name, usePass)
       if (result==null) {
         usePass = nary.pass
         nary    = nary.n_ary_op_ancestor
       }
     }
     result
-  }
-
-  def withLocal[V<:Any](name: Symbol, task: LocalVariable[V] => Unit) = {
-    task.apply(getLocalVariable[V](name))
   }
 }
 // a node that may have multiple parents; used for rendez-vous style communication
@@ -180,10 +173,10 @@ case class N_code_threaded   (template: T_0_ary_code[N_code_threaded]) extends N
 case class N_code_unsure     (template: T_0_ary_code[N_code_unsure  ]) extends N_atomic_action   [N_code_unsure  ](template)
 case class N_code_eh         (template: T_0_ary_code[N_code_eh      ]) extends N_atomic_action_eh[N_code_eh      ](template)
 case class N_code_eh_loop    (template: T_0_ary_code[N_code_eh_loop ]) extends N_atomic_action_eh[N_code_eh_loop ](template)
-case class N_localvar     [V](template: T_0_ary_name_valueCode[N_localvar[V]], isLoop: Boolean) 
-                                                    extends CallGraphLeafNode         [T_0_ary_name_valueCode[N_localvar     [V]]]
-                                                       with CallGraphNodeWithCodeTrait[T_0_ary_name_valueCode[N_localvar     [V]],Any] {
-  override def passToBeUsedToGetVariableNamed(thatName: Symbol): Int = if (isLoop&&this.template.name==thatName) pass-1 else pass // used in: var i=0...(i+1)
+case class N_localvar     [V](template: T_0_ary_local_valueCode[V], isLoop: Boolean) 
+                                                    extends CallGraphLeafNode         [T_0_ary_local_valueCode[V]]
+                                                       with CallGraphNodeWithCodeTrait[T_0_ary_local_valueCode[V],V] {
+  override def passToBeUsedToGetVariableNamed(thatName: Symbol): Int = if (isLoop&&this.template.localVariable.name==thatName) pass-1 else pass // used in: var i=0...(i+1)
 }
 case class N_privatevar    (template: T_0_ary_name[N_privatevar   ]) extends CallGraphLeafNode  [T_0_ary_name[N_privatevar]]
 case class N_while         (template: T_0_ary_test[N_while        ]) extends CallGraphLeafNode  [T_0_ary_test[N_while]] with CallGraphNodeWithCodeTrait[T_0_ary_test[N_while], Boolean]
@@ -210,9 +203,9 @@ case class N_launch_anchor (template: T_1_ary     ) extends CallGraphTreeParentN
 case class N_inline_if     (template: T_2_ary     ) extends CallGraphTreeParentNode[T_2_ary]
 case class N_inline_if_else(template: T_3_ary     ) extends CallGraphTreeParentNode[T_3_ary]
 case class N_n_ary_op      (template: T_n_ary, isLeftMerge: Boolean) extends CallGraphTreeNode_n_ary {
-  val mapNamePassToLocalVariable = new HashMap[(Symbol,Int), LocalVariable[_]]
-  def    initLocalVariable[T<:Any](name: Symbol, fromPass: Int, value: T)        = mapNamePassToLocalVariable += ((name,fromPass)->new LocalVariable(name,value))
-  def     getLocalVariable[T<:Any](name: Symbol, fromPass: Int):LocalVariable[T] = mapNamePassToLocalVariable.get((name,fromPass)) match {case None=>null case Some(v:T) => v}
+  val mapNamePassToVariableHolder = new HashMap[(Symbol,Int), VariableHolder[_]]
+  def    initLocalVariable[V<:Any](name: Symbol, fromPass: Int, value: V)         = mapNamePassToVariableHolder += ((name,fromPass)->new VariableHolder(value))
+  def    getVariableHolder[V<:Any](name: Symbol, fromPass: Int):VariableHolder[V] = mapNamePassToVariableHolder.get((name,fromPass)) match {case None=>null case Some(v:VariableHolder[V]) => v}
   override def toString = super.toString+(if(isIteration)"..."else"")
 }
 
