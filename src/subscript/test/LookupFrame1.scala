@@ -21,7 +21,7 @@ class LookupFrame1Application extends LookupFrameApplication {
   f.setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE)
 
   /* the following subscript code has manually been compiled into Scala; see below
-  scripts
+  script..
    override searchCommand        = searchButton + Key.Enter 
    implicit vkey(k: Key.Value??) = vkey(top, k??)
 */

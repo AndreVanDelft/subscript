@@ -32,9 +32,8 @@ class LookupFrameApplication extends SimpleSubscriptApplication {
   }
   
 /* the following subscript code has manually been compiled into Scala; see below
- override scripts
-  live              = ...; searchSequence
- scripts
+ script..
+  override live     = ...; searchSequence
   searchSequence    = searchCommand    showSearchingText  searchInDatabase showSearchResults
   searchCommand     = searchButton
   showSearchingText = @gui: {outputTA.text = "Searching: "+searchTF.text}

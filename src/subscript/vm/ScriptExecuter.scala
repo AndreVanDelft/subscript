@@ -78,12 +78,12 @@ class BasicScriptExecuter extends ScriptExecuter {
 	    println(n)
 	    n match {
 	      case p:CallGraphParentNodeTrait[T] => 
-	        var k=0
 	        val pcl=p.children.length
-	        p.children.foreach{
-	          var bs = if (k<pcl-1) depth::branches else branches
-	          k += 1
-	          traceTree(_, bs, depth+1)}
+	        p.children.foreach{ c =>
+	          var bs = if (c.template.indexAsChild<pcl-1) 
+	                    depth::branches 
+	                    else branches
+	          traceTree(c, bs, depth+1)}
 	      case _ =>
 	    }
 	  }
@@ -214,7 +214,7 @@ class BasicScriptExecuter extends ScriptExecuter {
   def hasSucces      = rootNode.hasSuccess
   
   var aaStartedCount = 0; // TBD: use for determining success
-  val anchorTemplate = new T_0_ary_code[N_call]("call", null)
+  val anchorTemplate = new T_call(null)
   val rootTemplate   = new T_1_ary("**", anchorTemplate)
   val rootNode       = new N_launch_anchor(rootTemplate)
   val anchorNode     = new N_call(anchorTemplate)
@@ -243,9 +243,9 @@ class BasicScriptExecuter extends ScriptExecuter {
       case t @ T_0_ary     ("(-)"                ) => N_delta         (t)
       case t @ T_0_ary     ("(+)"                ) => N_epsilon       (t)
       case t @ T_0_ary     ("(+-)"               ) => N_nu            (t)
-      case t @ T_0_ary_code("call"      , _      ) => N_call          (t.asInstanceOf[T_0_ary_code[N_call         ]])
+      case t @ T_call      (              _      ) => N_call          (t)
       case t @ T_0_ary_name("private"   , name   ) => N_privatevar    (t.asInstanceOf[T_0_ary_name[N_privatevar   ]])
-      case t @T_0_ary_local_valueCode(kind,lv:LocalVariable[_],_) => N_localvar    (t,isLoop=kind=="val..."||kind=="var...")
+      case t @ T_0_ary_local_valueCode(kind,lv:LocalVariable[_],_) => N_localvar    (t,isLoop=kind=="val..."||kind=="var...")
       case t @ T_0_ary_code("{}"        , _      ) => N_code_normal   (t.asInstanceOf[T_0_ary_code[N_code_normal  ]])
       case t @ T_0_ary_code("{??}"      , _      ) => N_code_unsure   (t.asInstanceOf[T_0_ary_code[N_code_unsure  ]])
       case t @ T_0_ary_code("{!!}"      , _      ) => N_code_tiny     (t.asInstanceOf[T_0_ary_code[N_code_tiny    ]])
@@ -256,7 +256,7 @@ class BasicScriptExecuter extends ScriptExecuter {
       case t @ T_1_ary     ("*"         , _      ) => N_launch        (t)
       case t @ T_1_ary     ("**"        , _      ) => N_launch_anchor (t)
       case t @ T_1_ary     (kind: String, _      ) => N_1_ary_op      (t)
-      case t @ T_1_ary_code("@:"        , _, _   ) => N_annotation[CallGraphNodeTrait[_]] (t.asInstanceOf[T_1_ary_code[N_annotation[CallGraphNodeTrait[_]]]])
+      case t @ T_annotation(              _, _   ) => N_annotation    (t)
       case t @ T_1_ary_test("if"        , _, _   ) => N_if            (t.asInstanceOf[T_1_ary_test[N_if]])
       case t @ T_2_ary_test("if_else"   , _, _, _) => N_if_else       (t.asInstanceOf[T_2_ary_test[N_if_else]])
       case t @ T_2_ary     ("?"         , _, _   ) => N_inline_if     (t)
@@ -266,13 +266,7 @@ class BasicScriptExecuter extends ScriptExecuter {
                         child0: TemplateNode     ) => N_script        (t.asInstanceOf[T_script    ])
       case _ => null 
     }
-    if (result.isInstanceOf[N_atomic_action[_]]) {
-      val naa = result.asInstanceOf[N_atomic_action[_]]
-      naa.codeExecuter = defaultCodeFragmentExecuterFor(naa)
-    }
-    else {
-      result.codeExecuter = new TinyCodeExecuter(result, this)
-    }
+    result.codeExecuter = defaultCodeFragmentExecuterFor(result)
     result
   }
   def defaultCodeFragmentExecuterFor(node: CallGraphNodeTrait[_<:TemplateNode]): CodeExecuterTrait = {
@@ -280,13 +274,24 @@ class BasicScriptExecuter extends ScriptExecuter {
       case n@N_code_normal  (_) => new   NormalCodeFragmentExecuter(n, this)
       case n@N_code_unsure  (_) => new   UnsureCodeFragmentExecuter(n, this)
       case n@N_code_threaded(_) => new ThreadedCodeFragmentExecuter(n, this)
-      case _ => null
+      case _                    => new     TinyCodeExecuter(node, this)
     }
   }
-  def executeCode[R](n: CallGraphNodeTrait[_], code: ()=>R): R = {
+  def executeCode_localvar      (n: N_localvar[_]   ) = executeCode(n, ()=>n.template.code.apply.apply(n))
+  def executeCode_call          (n: N_call          ) = {
+    var v = executeTemplateCode[N_call,T_call, N_call=>Unit](n)
+    v(n)
+  }
+  def executeCode_annotation[CN<:CallGraphNodeTrait[CT],CT<:TemplateNode](n: N_annotation[CN,CT]) = executeTemplateCode[N_annotation[CN,CT], T_annotation[CN,CT],Unit](n)
+  
+  def executeTemplateCode[N<:CallGraphNodeWithCodeTrait[T,R],T<:TemplateNodeWithCode[N,R],R](n: N): R = {
+    executeCode(n, 
+        ()=>n.template.code.apply.apply(n))
+  }
+  def executeCode[R](n: CallGraphNodeTrait[_], code: =>()=>R): R = {
     n.codeExecuter.doCodeExecution(code)
   }
-  def executeCodeIfDefined(n: CallGraphNodeTrait[_], code: ()=>Unit): Unit = {
+  def executeCodeIfDefined(n: CallGraphNodeTrait[_], code: =>()=>Unit): Unit = {
     if (code!=null) executeCode(n, code)
   }
   def handleDeactivation(message: Deactivation): Unit = {
@@ -311,9 +316,9 @@ class BasicScriptExecuter extends ScriptExecuter {
       executeCodeIfDefined(message.node, message.node.onActivateOrResume)
       message.node match {
            //case n@N_root            (t: T_1_ary     ) => activateFrom(n, t.child0)
-           case n@N_code_tiny       (t: T_0_ary_code[_])  =>                                    executeCode(n, ()=>t.code(n)); if (n.hasSuccess) doNeutral(n); insertDeactivation(n,null)
+           case n@N_code_tiny       (t: T_0_ary_code[_])  =>                                    executeTemplateCode[N_code_tiny, T_0_ary_code[N_code_tiny], Unit](n); if (n.hasSuccess) doNeutral(n); insertDeactivation(n,null)
            case n@N_localvar        (t: T_0_ary_local_valueCode[_], isLoop)  => if (isLoop) setIteration_n_ary_op_ancestor(n); 
-            val v = executeCode(n, ()=>t.code(n));          n.n_ary_op_ancestor.initLocalVariable(t.localVariable.name, n.pass, v); doNeutral(n); insertDeactivation(n,null)
+            val v = executeCode_localvar(n);n.n_ary_op_ancestor.initLocalVariable(t.localVariable.name, n.pass, v); doNeutral(n); insertDeactivation(n,null)
            case n@N_privatevar      (t: T_0_ary_name[_]) => n.n_ary_op_ancestor.initLocalVariable(t.name, n.pass, n.getLocalVariableHolder(t.name).value)
            case n@N_code_normal     (_: T_0_ary_code[_]) => insert(AAActivated(n,null)); insert(AAToBeExecuted(n))
            case n@N_code_unsure     (_: T_0_ary_code[_]) => insert(AAActivated(n,null)); insert(AAToBeExecuted(n))
@@ -331,7 +336,7 @@ class BasicScriptExecuter extends ScriptExecuter {
            case n@N_epsilon         (t: T_0_ary        ) => insert(Success(n)); insertDeactivation(n,null)
            case n@N_nu              (t: T_0_ary        ) => doNeutral(n);       insertDeactivation(n,null)
            case n@N_while           (t: T_0_ary_test[_]) => setIteration_n_ary_op_ancestor(n); 
-                                                            executeCode(n, ()=>n.hasSuccess = t.code(n))
+                                                            n.hasSuccess = executeTemplateCode[N_while, T_0_ary_test[N_while], Boolean](n)
                                                             doNeutral(n)
                                                             if (!n.hasSuccess) {
                                                                insert(Break(n, null, ActivationMode.Inactive))
@@ -341,15 +346,15 @@ class BasicScriptExecuter extends ScriptExecuter {
            case n@N_launch          (t: T_1_ary        ) => activateFrom(CallGraphNode.getLowestLaunchAnchorAncestor(n), t.child0); insertDeactivation(n,null)
            case n@N_launch_anchor   (t: T_1_ary        ) => activateFrom(n, t.child0)
            case n@N_1_ary_op        (t: T_1_ary        ) => activateFrom(n, t.child0); insertContinuation1(message)
-           case n@N_annotation      (t: T_1_ary_code[_]) => activateFrom(n, t.child0); t.code(n)
-           case n@N_if              (t: T_1_ary_test[_]) => if (t.code(n)) activateFrom(n, t.child0) else {doNeutral(n)}
-           case n@N_if_else         (t: T_2_ary_test[_]) => if (t.code(n)) activateFrom(n, t.child0) 
+           case n@N_annotation      (t: T_annotation[_,_]) => activateFrom(n, t.child0); executeCode_annotation(n)
+           case n@N_if              (t: T_1_ary_test[_]) => if (executeTemplateCode[N_if     , T_1_ary_test[N_if     ], Boolean](n)) activateFrom(n, t.child0) else {doNeutral(n)}
+           case n@N_if_else         (t: T_2_ary_test[_]) => if (executeTemplateCode[N_if_else, T_2_ary_test[N_if_else], Boolean](n)) activateFrom(n, t.child0) 
                                                                      else  activateFrom(n, t.child1)
            case n@N_inline_if       (t: T_2_ary        ) => activateFrom(n, t.child0)
            case n@N_inline_if_else  (t: T_3_ary        ) => activateFrom(n, t.child0)
            case n@N_n_ary_op        (t: T_n_ary, 
                                          isLeftMerge   ) => val cn = activateFrom(n, t.children.head); if (!isLeftMerge) insertContinuation(message, cn)
-           case n@N_call            (t: T_0_ary_code[_]) => executeCode(n, ()=>t.code(n)); activateFrom(n, n.t_callee)  // TBD: insert(CAActivated)+insert(CAActivatedTBD) depending on template
+           case n@N_call            (t: T_call         ) => executeCode_call(n); activateFrom(n, n.t_callee)  // TBD: insert(CAActivated)+insert(CAActivatedTBD) depending on template
            case n@N_script          (t: T_script       ) => activateFrom(n, t.child0)
       }      
   }
@@ -373,7 +378,7 @@ class BasicScriptExecuter extends ScriptExecuter {
                                                                    insertContinuation(message) 
                                                                    return
                                                                  }
-               case n@  N_call          (_: T_0_ary_code[_])  => if (!n.allActualParametersMatch) {return}
+               case n@  N_call          (_: T_call          ) => if (!n.allActualParametersMatch) {return}
                                                                  n.transferParameters
                case _ => {}
           }
@@ -585,21 +590,23 @@ class BasicScriptExecuter extends ScriptExecuter {
                            childNode = n.lastActivatedChild
                          }
                          
-      case _          => val b  = message.break
-                         val as = message.aaStarteds
-                         n.aaStartedSinceLastOptionalBreak = n.aaStartedSinceLastOptionalBreak || as!=Nil
-                         if (b==null) {
-                           if (n.activationMode==ActivationMode.Optional) {
-                               activateNextOrEnded = n.aaStartedSinceLastOptionalBreak
-                               if (activateNextOrEnded) {
-                                 n.activationMode = ActivationMode.Active
-                                 n.aaStartedSinceLastOptionalBreak = false
-                                 childNode = n.lastActivatedChild
-                               }
-                           }
-                           else {
-                             activateNextOrEnded = true
-                             childNode = n.lastActivatedChild
+      case _          => if (message.activation!=null || message.success!=null || message.deactivations != Nil) {
+                           val b  = message.break
+                           val as = message.aaStarteds
+                           n.aaStartedSinceLastOptionalBreak = n.aaStartedSinceLastOptionalBreak || as!=Nil
+                           if (b==null) {
+                             if (n.activationMode==ActivationMode.Optional) {
+                                 activateNextOrEnded = n.aaStartedSinceLastOptionalBreak
+                                 if (activateNextOrEnded) {
+                                   n.activationMode = ActivationMode.Active
+                                   n.aaStartedSinceLastOptionalBreak = false
+                                   childNode = n.lastActivatedChild
+                                 }
+                             }
+                             else {
+                               activateNextOrEnded = true
+                               childNode = n.lastActivatedChild
+                             }
                            }
                          }
       }
@@ -662,6 +669,8 @@ class BasicScriptExecuter extends ScriptExecuter {
                             if (consideredNodes!=Nil) {
                               nodesToBeExcluded = n.children -- consideredNodes
                             }
+      case "&"  | "|" 
+         | "&:" | "|:" =>          
     }
     if (T_n_ary.isSuspending(n.template) && !message.aaStarteds.isEmpty) {
       val s = message.aaStarteds.head.node
@@ -677,13 +686,17 @@ class BasicScriptExecuter extends ScriptExecuter {
     var shouldSucceed = false    
     // decide further on success and resumptions
     if (!shouldSucceed) { // could already have been set for .. as child of ;
-      var nodesToBeResumed: Buffer[CallGraphNodeTrait[_ <:TemplateNode]] = null
-      if (message.success != null || message.aaEndeds != Nil) {
-        T_n_ary.getLogicalKind(n.template.kind) match {
-          case LogicalKind.None =>
-          case LogicalKind.And  => shouldSucceed = (isSequential || !n.aChildHadFailure) &&
-                                                   n.children.forall((e:CallGraphNodeTrait[_])=>e.hasSuccess)
-          case LogicalKind.Or   => shouldSucceed = n.children.exists(_.hasSuccess)
+      
+      // TBD: improve
+      if (activateNextOrEnded || message.success != null) {
+        var nodesToBeResumed: Buffer[CallGraphNodeTrait[_ <:TemplateNode]] = null
+        if (message.success != null || message.aaEndeds != Nil) {
+          T_n_ary.getLogicalKind(n.template.kind) match {
+            case LogicalKind.None =>
+            case LogicalKind.And  => shouldSucceed = (isSequential || !n.aChildHadFailure) &&
+                                                     n.children.forall((e:CallGraphNodeTrait[_])=>e.hasSuccess)
+            case LogicalKind.Or   => shouldSucceed = n.children.exists(_.hasSuccess)
+          }
         }
       }
 	}

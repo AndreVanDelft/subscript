@@ -18,8 +18,8 @@ object TestHelloWorld_withCall {
 // would be translated to 2*2 = 4 methods
   
 // script methods, to be called from bridge-to-Scala method or from other scripts
-         def _main (_args: FormalInputParameter[Array[String]]) = _script('main, _args~'args)    {_seq(_printlnScript("hello" ), _printlnScript("world!"))}
-implicit def _printlnScript(_s:  FormalInputParameter[String] ) = _script('printlnScript, _s~'s) { {println(_s.value)} }
+         def _main (_args: FormalInputParameter[Array[String]]) = _script('main, _args~'args)    {_seq(_call{_printlnScript("hello" )}, _printlnScript("world!"))}
+implicit def _printlnScript(_s:  FormalInputParameter[String] ) = {_script('printlnScript, _s~'s) { {println(_s.value)} }}
 
 // bridge methods. Most return a ScriptExecuter; 
 // only a "main" method with the proper parameter type has return type Unit, to serve as a program entry point 

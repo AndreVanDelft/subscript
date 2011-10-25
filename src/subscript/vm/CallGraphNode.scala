@@ -221,8 +221,8 @@ case class N_if            (template: T_1_ary_test[N_if        ]) extends CallGr
 case class N_if_else       (template: T_2_ary_test[N_if_else   ]) extends CallGraphTreeParentNode[T_2_ary_test[N_if_else   ]] with CallGraphNodeWithCodeTrait[T_2_ary_test[N_if_else   ], Boolean]
 case class N_launch        (template: T_1_ary     ) extends CallGraphLeafNode      [T_1_ary]
 
-case class N_annotation[N<:CallGraphNodeTrait[_]] (template: T_1_ary_code[N_annotation[N]]) extends 
-   CallGraphTreeParentNode[T_1_ary_code[N_annotation[N]]] with CallGraphNodeWithCodeTrait[T_1_ary_code[N_annotation[N]], Unit] {def there:N=children.head.asInstanceOf[N]}
+case class N_annotation[CN<:CallGraphNodeTrait[CT],CT<:TemplateNode] (template: T_annotation[CN,CT]) extends 
+   CallGraphTreeParentNode[T_annotation[CN,CT]] with CallGraphNodeWithCodeTrait[T_annotation[CN,CT], Unit] {def there:CN=children.head.asInstanceOf[CN]}
 
 // the following 4 types may have multiple children active synchronously
 case class N_launch_anchor (template: T_1_ary     ) extends CallGraphTreeParentNode[T_1_ary]
@@ -235,10 +235,10 @@ case class N_n_ary_op      (template: T_n_ary, isLeftMerge: Boolean) extends Cal
   override def toString = super.toString+(if(isIteration)"..."else"")
 }
 
-case class N_call          (template: T_0_ary_code[N_call]) extends CallGraphTreeParentNode[T_0_ary_code[N_call]] {
+case class N_call(template: T_call) extends CallGraphTreeParentNode[T_call] with CallGraphNodeWithCodeTrait[T_call, N_call=>Unit]{
   var t_callee: T_script = null
   var actualParameters: scala.collection.immutable.Seq[ActualParameter[_<:Any]] = Nil
-  def calls(t: T_script, args: FormalParameter_withName[_]*) = {
+  def calls(t: T_script, args: FormalParameter_withName[_]*): Unit = {
     this.t_callee = t
     this.actualParameters = args.toList.map(_.asInstanceOf[ActualParameter[_]])
   }

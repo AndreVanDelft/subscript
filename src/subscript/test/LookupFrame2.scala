@@ -38,10 +38,11 @@ class LookupFrame2Application extends SimpleSubscriptApplication {
   val f = top.peer.getRootPane().getParent().asInstanceOf[javax.swing.JFrame]
   f.setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE) // TBD: does not seem to work
 
+  def sleep(duration_ms: Long) = try {Thread.sleep(duration_ms)} catch {case e: InterruptedException => println("sleep interrupted")}
   def confirmExit: Boolean = Dialog.showConfirmation(null, "Are you sure?", "About to exit")==Dialog.Result.Yes
   
   /* the following subscript code has manually been compiled into Scala; see below
- scripts
+ script..
 	searchCommand     = searchButton + Key.Enter
 	cancelCommand     = cancelButton + Key.Escape 
 	exitCommand       =   exitButton + windowClosing
@@ -68,8 +69,8 @@ class LookupFrame2Application extends SimpleSubscriptApplication {
   def _cancelCommand     = _script('cancelCommand    ) {_alt(_clicked(cancelButton), _vkey(Key.Escape))}
   def   _exitCommand     = _script('exitCommand      ) {_clicked(exitButton)} // windowClosing
   def   _exit            = _script('exit             ) {_seq(  _exitCommand, _at{gui} (_while{!confirmExit}))}
-  def _cancelSearch      = _script('cancelSearch     ) {_seq(_cancelCommand, _at{gui} (scriptCall_to_T_0_ary_code(_showCanceledText)))}
-  def _searchSequence    = _script('searchSequence   ) {_seq(/*_guard(searchTF, ()=> !searchTF.text.isEmpty), TBD get guard working correctly*/
+  def _cancelSearch      = _script('cancelSearch     ) {_seq(_cancelCommand, _at{gui} (_call{_showCanceledText}))}
+  def _searchSequence    = _script('searchSequence   ) {_seq(/*_guard(searchTF,  !searchTF.text.isEmpty), TBD get guard working correctly*/
                                                              _searchCommand, 
      	                                                     _disrupt(_seq(_showSearchingText, _searchInDatabase, _showSearchResults),
                                                                       _cancelSearch ))}
@@ -80,7 +81,7 @@ class LookupFrame2Application extends SimpleSubscriptApplication {
   def _showSearchResults = _script('showSearchResults) {_at{gui} (_normal1{(here: N_code_normal) => 
     outputTA.text = "Found: "+here.index+" items"})}
   def _showCanceledText  = _script('showCanceledText ) {_at{gui} (_normal {                         outputTA.text = "Searching Canceled"})}
-  def _searchInDatabase  = _script('searchInDatabase ) {_threaded{Thread.sleep(2000)}} // {_par_or2(_threaded{Thread.sleep(5000)}, _progressMonitor)} TBD...
+  def _searchInDatabase  = _script('searchInDatabase ) {_threaded{sleep(2000)}} // {_par_or2(_threaded{Thread.sleep(5000)}, _progressMonitor)} TBD...
   def _progressMonitor   = _script('progressMonitor  ) {
   _seq(_loop, 
       _at{gui} (

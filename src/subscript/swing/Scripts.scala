@@ -47,6 +47,9 @@ object Scripts {
     n.adaptExecuter(new SwingCodeExecuterAdapter[CodeExecuterTrait])
   }             
 
+  object ScriptReactor {
+    var consumedEvent: Event = null // event.consume not available for button clicks; this consumedEvent is a workaround
+  }
   // an extension on scala.swing.Reactor that supports event handling scripts in Subscript
   abstract class ScriptReactor[N<:N_atomic_action_eh[N]] extends Reactor {
     def publisher:Publisher
@@ -60,7 +63,16 @@ object Scripts {
     
     val event: Event
     def reaction: PartialFunction[Event,Unit] = myReaction
-    private val myReaction: PartialFunction[Event,Unit] = {case event => execute}
+    private val myReaction: PartialFunction[Event,Unit] = {
+      case event => {
+                 execute
+                 if (executer.n.hasSuccess) {
+                   ScriptReactor.consumedEvent = event
+                   consumeEvent
+                 }
+               }
+    }
+    def consumeEvent = {}
     
     def subscribe(n: N): Unit = {
       executer = new EventHandlingCodeFragmentExecuter(n, n.scriptExecuter)
@@ -92,9 +104,16 @@ object Scripts {
   }
   
   // a ComponentScriptReactor for clicked events on a button
+  // TBD: a way to consume clicked events on the button
   case class ClickedScriptReactor[N<:N_atomic_action_eh[N]](b:AbstractButton) extends ComponentScriptReactor[N](b) {
     def publisher = b
+    //b.peer.addActionListener(new ActionListener {})
     val event: Event = ButtonClicked(b)
+    override def consumeEvent = {
+      event match {
+        case ie: InputEvent => ie.consume // unfortunately, this is not applicable
+        case _ => // no consume event option seems to be available
+    } }
   }
   
   // a ScriptReactor for key press events
@@ -140,7 +159,7 @@ object Scripts {
   // the redirections to the swing thread are needed because enabling and disabling the button etc must there be done
  scripts
   implicit clicked(b:Button) = val r = ClickedScriptReactor(b)
-                               @gui: @r.subscribe(there); there.onDeactivate{()=>r.unsubscribe}: {. .}
+                               @gui: @r.subscribe(there); there.onDeactivate{r.unsubscribe}: {. .}
     
   implicit key(comp: Component, keyCode: Char??) = val r = KeyPressScriptReactor(comp, keyCode)
                                                    @r.subscribe(there); there.onDeactivate{()=>r.unsubscribe}: {. .}
@@ -166,7 +185,8 @@ object Scripts {
    _script('clicked, _b~'b) {
     _seq( 
          _val(_r, (here:N_localvar[_]) => new ClickedScriptReactor[N_code_eh](_b.value)),
-         _at{gui} (_at{(there:N_code_eh) => {_r.at(there).value.subscribe(there); there.onDeactivate{()=>_r.at(there).value.unsubscribe}}}
+         _at{gui} (_at{(there:N_code_eh) => {
+           _r.at(there).value.subscribe(there); there.onDeactivate{()=>_r.at(there).value.unsubscribe}}}
                       (_eventhandling{}) //{println("\nCLICKED!!!")} // Temporary tracing
        )          )
    } 

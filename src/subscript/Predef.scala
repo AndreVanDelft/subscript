@@ -31,7 +31,6 @@ import subscript.vm._;
 //
 // The swing stuff will have to be moved to object subscript.swing.Scripts or something like that
 object Predef {
-  implicit def valueToActualValueParameter[T<:Any](value: T) = new ActualValueParameter(value)
   def pass(implicit node: CallGraphNodeTrait[_]): Int = node.pass
   
 //  scripts

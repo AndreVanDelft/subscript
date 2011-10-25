@@ -33,7 +33,7 @@ trait CodeExecuterTrait {
   // graph operations such as aaStarted may only be done when called from executer!
   def asynchronousAllowed: Boolean
   
-  def doCodeExecution[R](code: ()=>R): R = code.apply() // for Atomic Actions, if, while, tiny, script calls etc, and also for onActivate etc
+  def doCodeExecution[R](code: ()=>R): R = code.apply // for Atomic Actions, if, while, tiny, script calls etc, and also for onActivate etc
   
   private def shouldNotBeCalledHere = throw new Exception("Illegal Call")
   def executeAA     : Unit                                      = shouldNotBeCalledHere // TBD: clean up class/trait hierarchy so that this def can be ditched
@@ -45,7 +45,10 @@ trait CodeExecuterTrait {
 }
 case class TinyCodeExecuter(n: CallGraphNodeTrait[_ <: TemplateNode], scriptExecuter: ScriptExecuter) extends CodeExecuterTrait  { // TBD: for while, {!!}, @:, script call
   val asynchronousAllowed = false
-  override def doCodeExecution[R](code: ()=>R): R = super.doCodeExecution{()=>n.hasSuccess = true; code.apply()}
+  override def doCodeExecution[R](code: ()=>R): R = super.doCodeExecution{
+    n.hasSuccess = true; 
+    code
+    }
 }
 abstract class AACodeFragmentExecuter[N<:N_atomic_action[N]](_n: N, _scriptExecuter: ScriptExecuter) extends CodeExecuterTrait  {
   
@@ -61,7 +64,11 @@ abstract class AACodeFragmentExecuter[N<:N_atomic_action[N]](_n: N, _scriptExecu
   val asynchronousAllowed = true
   override def interruptAA = {}
   def naa = n.asInstanceOf[N]
-  def doCodeExecution(lowLevelCodeExecuter: CodeExecuterTrait): Unit = lowLevelCodeExecuter.doCodeExecution{()=>n.hasSuccess = true; naa.template.code(naa); executionFinished}
+  def doCodeExecution(lowLevelCodeExecuter: CodeExecuterTrait): Unit = lowLevelCodeExecuter.doCodeExecution{
+    ()=>n.hasSuccess = true; 
+    naa.template.code.apply.apply(naa); 
+    executionFinished
+  }
   def aaStarted = scriptExecuter.insert(AAStarted(n,null))
   def aaEnded   = scriptExecuter.insert(AAEnded(n,null)) 
   def succeeded = scriptExecuter.insert(Success(n,null)) 
@@ -173,7 +180,7 @@ case class EventHandlingCodeFragmentExecuter[N<:N_atomic_action_eh[N]](_n: N, _s
     n.hasSuccess = isMatching
     if (n.hasSuccess) 
     {
-      n.template.code(n) // may affect n.hasSuccess
+      n.template.code.apply.apply(n) // may affect n.hasSuccess
     }
     if (n.hasSuccess) 
     {
