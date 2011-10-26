@@ -347,7 +347,7 @@ class BasicScriptExecuter extends ScriptExecuter {
            case n@N_launch_anchor   (t: T_1_ary        ) => activateFrom(n, t.child0)
            case n@N_1_ary_op        (t: T_1_ary        ) => activateFrom(n, t.child0); insertContinuation1(message)
            case n@N_annotation      (t: T_annotation[_,_]) => activateFrom(n, t.child0); executeCode_annotation(n)
-           case n@N_if              (t: T_1_ary_test[_]) => if (executeTemplateCode[N_if     , T_1_ary_test[N_if     ], Boolean](n)) activateFrom(n, t.child0) else {doNeutral(n)}
+           case n@N_if              (t: T_1_ary_test[_]) => if (executeTemplateCode[N_if     , T_1_ary_test[N_if     ], Boolean](n)) activateFrom(n, t.child0) else {doNeutral(n); insertDeactivation(n,null)}
            case n@N_if_else         (t: T_2_ary_test[_]) => if (executeTemplateCode[N_if_else, T_2_ary_test[N_if_else], Boolean](n)) activateFrom(n, t.child0) 
                                                                      else  activateFrom(n, t.child1)
            case n@N_inline_if       (t: T_2_ary        ) => activateFrom(n, t.child0)
@@ -382,8 +382,8 @@ class BasicScriptExecuter extends ScriptExecuter {
                                                                  n.transferParameters
                case _ => {}
           }
-          // TBD: node.onSuccess
          message.node.hasSuccess = true
+         executeCodeIfDefined(message.node, message.node.onSuccess)
          message.node.forEachParent(p => insert(Success(p, message.node)))
   }
   def handleAAActivated(message: AAActivated): Unit = {

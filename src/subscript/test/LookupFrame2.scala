@@ -36,8 +36,8 @@ class LookupFrame2Application extends SimpleSubscriptApplication {
   
   top.listenTo (searchTF.keys)
   val f = top.peer.getRootPane().getParent().asInstanceOf[javax.swing.JFrame]
-  f.setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE) // TBD: does not seem to work
-
+  f.setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE) // TBD: does not seem to work on MacOS
+  
   def sleep(duration_ms: Long) = try {Thread.sleep(duration_ms)} catch {case e: InterruptedException => println("sleep interrupted")}
   def confirmExit: Boolean = Dialog.showConfirmation(null, "Are you sure?", "About to exit")==Dialog.Result.Yes
   
@@ -70,7 +70,7 @@ class LookupFrame2Application extends SimpleSubscriptApplication {
   def   _exitCommand     = _script('exitCommand      ) {_clicked(exitButton)} // windowClosing
   def   _exit            = _script('exit             ) {_seq(  _exitCommand, _at{gui} (_while{!confirmExit}))}
   def _cancelSearch      = _script('cancelSearch     ) {_seq(_cancelCommand, _at{gui} (_call{_showCanceledText}))}
-  def _searchSequence    = _script('searchSequence   ) {_seq(/*_guard(searchTF,  !searchTF.text.isEmpty), TBD get guard working correctly*/
+  def _searchSequence    = _script('searchSequence   ) {_seq(/*_guard(searchTF, ()=> !(searchTF.text.isEmpty)),  TBD get guard working correctly*/
                                                              _searchCommand, 
      	                                                     _disrupt(_seq(_showSearchingText, _searchInDatabase, _showSearchResults),
                                                                       _cancelSearch ))}
