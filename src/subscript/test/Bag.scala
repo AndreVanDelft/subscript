@@ -13,9 +13,6 @@ import subscript.vm._
 //
 // Note: the main part of this source file has been manually compiled from Subscript code into plain Scala
 //
-// Note: multiple atomic actions may want to react on a click of one and only button.
-// Then they all may succeed, as it is currently impossible to consume a ButtonClicked event
-// Hence this bag may behave more like a set
 
 object Bag extends BagApplication
 
