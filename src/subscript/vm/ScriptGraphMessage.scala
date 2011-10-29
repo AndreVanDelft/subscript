@@ -44,7 +44,7 @@ import scala.collection.mutable._
   
 	case class Activation   (node: CallGraphNodeTrait[_<:TemplateNode]) extends ScriptGraphMessageN
 	case class Continuation (node: CallGraphTreeNode_n_ary) extends ScriptGraphMessageN {
-	  priority = -1
+	  priority = -3
 	  var activation: Activation = null
 	  var deactivations: List[Deactivation] = Nil
 	  var success: Success = null
@@ -71,7 +71,7 @@ import scala.collection.mutable._
 	}
 	case class Continuation1    (node: N_1_ary_op) extends ScriptGraphMessageN {priority = -1}
 	case class Deactivation     (node: CallGraphNodeTrait[_<:TemplateNode], 
-	                            child: CallGraphNodeTrait[_<:TemplateNode], excluded: Boolean) extends ScriptGraphMessageN {priority = -3}
+	                            child: CallGraphNodeTrait[_<:TemplateNode], excluded: Boolean) extends ScriptGraphMessageN {priority = -2}
 	case class Suspend          (node: CallGraphNodeTrait[_<:TemplateNode]) extends ScriptGraphMessageN
 	case class Resume           (node: CallGraphNodeTrait[_<:TemplateNode]) extends ScriptGraphMessageN
 	case class Exclude          (node: CallGraphNodeTrait[_<:TemplateNode]) extends ScriptGraphMessageN

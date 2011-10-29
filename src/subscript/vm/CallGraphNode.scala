@@ -235,7 +235,7 @@ case class N_n_ary_op      (template: T_n_ary, isLeftMerge: Boolean) extends Cal
   val mapNamePassToVariableHolder = new HashMap[(Symbol,Int), VariableHolder[_]]
   def    initLocalVariable[V<:Any](name: Symbol, fromPass: Int, value: V)         = mapNamePassToVariableHolder += ((name,fromPass)->new VariableHolder(value))
   def    getVariableHolder[V<:Any](name: Symbol, fromPass: Int):VariableHolder[V] = mapNamePassToVariableHolder.get((name,fromPass)) match {case None=>null case Some(v:VariableHolder[V]) => v}
-  override def toString = super.toString+(if(isIteration)"..."else"")
+  override def toString = super.toString+children.length+(if(isIteration)"..."else"")
 }
 
 case class N_call(template: T_call) extends CallGraphTreeParentNode[T_call] with CallGraphNodeWithCodeTrait[T_call, N_call=>Unit]{

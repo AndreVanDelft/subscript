@@ -304,7 +304,6 @@ class BasicScriptExecuter extends ScriptExecuter {
                                                      return}
            case _ => 
       }
-      // TBD: node.onDeactivation
       message.node.forEachParent(p => insertDeactivation(p,message.node))
       executeCodeIfDefined(message.node, message.node.onDeactivate)
       executeCodeIfDefined(message.node, message.node.onDeactivateOrSuspend)
@@ -523,9 +522,10 @@ class BasicScriptExecuter extends ScriptExecuter {
     val n = message.node.asInstanceOf[CallGraphTreeNode_n_ary]
     n.continuation = null
     
-    if (message.id==140)
+    if (message.id>400)
     {
-      println
+      //println // to ease setting a break point
+      //traceTree
     }
     // decide on what to do: 
     // activate next operand and/or have success, suspend, resume, exclude, or deactivate or nothing
@@ -652,14 +652,13 @@ class BasicScriptExecuter extends ScriptExecuter {
                             val minIndex = message.aaStarteds.map(_.child.index).min
                             nodesToBeExcluded = n.children.filter(_.index < minIndex)
                           }
-                          else {
-                            // deactivate to the right when one has finished successfully
-                            message.deactivations match {
-                              case d::tail => if (d.child.hasSuccess && !d.excluded) {
-                                nodesToBeExcluded = n.children.filter(_.index>d.child.index)
-                              }
-                              case _ =>
+                          // deactivate to the right when one has finished successfully
+        				      // TBD: something goes wrong here; LookupFrame2 does not "recover" from a Cancel search
+                          message.deactivations match {
+                            case d::tail => if (d.child.hasSuccess && !d.excluded) {
+                              nodesToBeExcluded = n.children.filter(_.index>d.child.index)
                             }
+                            case _ =>
                           }
                   
       case "&&"  | "||" 
