@@ -60,6 +60,19 @@ object DSL {
  
   def _declare[T](name: Symbol) = new LocalVariable[T](name)
   
+  // local variables need to be declared explicitly first; usage is as in:
+  //  implicit def _key(_publisher: FormalInputParameter[Publisher], _keyCode: FormalConstrainedParameter[Char])  = {
+  //    val _r = _declare[KeyPressScriptReactor[N_code_eh]]('r)      // <<== declaration
+  //    _script('key, _publisher~'publisher, _keyCode~??'keyCode) {
+  //     _seq( 
+  //       _val(_r, (here:N_localvar[_]) => new KeyPressScriptReactor[N_code_eh](_publisher.value, _keyCode)),  // <<== initialisation
+  //       _at{(there:N_code_eh) => {_r.at(there).value.subscribe(there); there.onDeactivate{_r.at(there).value.unsubscribe}; 
+  //                                                                      there.onSuccess   {_r.at(there).value.acknowledgeEventHandled}}}
+  //          (_eventhandling{})//{println("\nKey"+_keyCode.value)} // Temporary tracing
+  //     )
+  //    }
+  //  }
+  
   def _var     [T<:Any](v: LocalVariable[T], valueCode: => N_localvar[_]=>T) = T_0_ary_local_valueCode("var"    , v, () => valueCode)
   def _val     [T<:Any](v: LocalVariable[T], valueCode: => N_localvar[_]=>T) = T_0_ary_local_valueCode("val"    , v, () => valueCode)
   def _var_loop[T<:Any](v: LocalVariable[T], valueCode: => N_localvar[_]=>T) = T_0_ary_local_valueCode("var..." , v, () => valueCode)
