@@ -32,7 +32,7 @@ object DSL {
   type _scriptType = N_call=>Unit
   def _script(name: Symbol, p: FormalParameter_withName[_]*)(_t: TemplateNode): N_call=>Unit = ((_c: N_call) => _c.calls(T_script("script", name, _t), p:_*))
   
-  def _execute(_script: N_call => Unit) = {val executer = new BasicScriptExecuter; _script(executer.anchorNode); executer.run}
+  def _execute(_script: N_call => Unit) = {val executer = new CommonScriptExecuter; _script(executer.anchorNode); executer.run}
 
   def _codeFragmentKind [N<:N_atomic_action[N]](opSymbol: String, cf:  => Unit ): T_0_ary_code[N] = T_0_ary_code(opSymbol, () => (_here:N) => cf)
   def _codeFragmentKind1[N<:N_atomic_action[N]](opSymbol: String, cf: (N=>Unit)): T_0_ary_code[N] = T_0_ary_code(opSymbol, () =>              cf)

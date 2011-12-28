@@ -53,7 +53,7 @@ trait ScriptExecuter {
  * exception handling 
  */
 
-class BasicScriptExecuter extends ScriptExecuter {
+class CommonScriptExecuter extends ScriptExecuter {
   
   // some tracing stuff
   var nSteps = 0
