@@ -18,7 +18,9 @@ object TestHelloWorld_withCall {
 // would be translated to 2*2 = 4 methods
   
 // script methods, to be called from bridge-to-Scala method or from other scripts
-         def _main (_args: FormalInputParameter[Array[String]]) = _script('main, _args~'args)    {_seq(_call{_printlnScript("hello" )}, _printlnScript("world!"))}
+// Note: the DSL cannot take advantage of the "implicit" _printlnScript, since the parameters "hello" and "world!" 
+// would first need to be boxed to a ActualValueParameter, before _printlnScript would apply 
+         def _main (_args: FormalInputParameter[Array[String]]) = _script('main, _args~'args)    {_seq(_call{_printlnScript("hello")}, _printlnScript("world!"))}
 implicit def _printlnScript(_s:  FormalInputParameter[String] ) = {_script('printlnScript, _s~'s) { {println(_s.value)} }}
 
 // bridge methods. Most return a ScriptExecuter; 

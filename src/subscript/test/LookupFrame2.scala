@@ -91,16 +91,6 @@ class LookupFrame2Application extends SimpleSubscriptApplication {
  
   def _vkey(_k:FormalConstrainedParameter[Key.Value]) = _script('vkey, _k~??'k) {subscript.swing.Scripts._vkey(top, _k~??)}
                
-// bridge methods; only the first one is actually used   
-override def live      = _execute(_live)
-def searchCommand      = _execute(_searchCommand    )
-def cancelCommand      = _execute(_cancelCommand    )
-def   exitCommand      = _execute(_exitCommand      )
-def   exit             = _execute(_exit             )
-def cancelSearch       = _execute(_cancelSearch     )
-def searchSequence     = _execute(_searchSequence   )
-def showSearchingText  = _execute(_showSearchingText)
-def showSearchResults  = _execute(_showSearchResults)
-def showCanceledText   = _execute(_showCanceledText )
-def searchInDatabase   = _execute(_searchInDatabase )
+// bridge method   
+override def live = _execute(_live)
 }

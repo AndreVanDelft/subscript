@@ -31,6 +31,7 @@ import scala.collection.mutable._
 // code fragments, script calls, parameter checks, tests in if and while, annotations
 trait CodeExecuterTrait {
   // graph operations such as aaStarted may only be done when called from executer!
+  var canceled = false // TBD(?) inspect this flag before execution
   def asynchronousAllowed: Boolean
   
   def doCodeExecution[R](code: ()=>R): R = code.apply // for Atomic Actions, if, while, tiny, script calls etc, and also for onActivate etc
@@ -42,6 +43,7 @@ trait CodeExecuterTrait {
   def interruptAA   : Unit                                      = shouldNotBeCalledHere // TBD: clean up class/trait hierarchy so that this def can be ditched
   def n: CallGraphNodeTrait[_<:TemplateNode]
   def scriptExecuter: ScriptExecuter
+  def cancelAA = canceled=true 
 }
 case class TinyCodeExecuter(n: CallGraphNodeTrait[_ <: TemplateNode], scriptExecuter: ScriptExecuter) extends CodeExecuterTrait  { // TBD: for while, {!!}, @:, script call
   val asynchronousAllowed = false
@@ -63,6 +65,7 @@ abstract class AACodeFragmentExecuter[N<:N_atomic_action[N]](_n: N, _scriptExecu
   def scriptExecuter = _scriptExecuter
   val asynchronousAllowed = true
   override def interruptAA = {}
+  override def cancelAA = super.cancelAA; interruptAA
   def naa = n.asInstanceOf[N]
   def doCodeExecution(lowLevelCodeExecuter: CodeExecuterTrait): Unit = lowLevelCodeExecuter.doCodeExecution{
     ()=>n.hasSuccess = true; 

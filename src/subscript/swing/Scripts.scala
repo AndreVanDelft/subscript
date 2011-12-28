@@ -200,7 +200,4 @@ object Scripts {
       _seq(_loop, _if_else((n:N_if_else) => _test.value.apply) (_seq(_optionalBreak_loop, _anyEvent(_comp.value/*,!test*/)), _anyEvent(_comp.value/*,test*/)))
     }
   }
-
- 
-  // no bridge methods for implicit scripts
 }

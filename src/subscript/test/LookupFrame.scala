@@ -48,11 +48,6 @@ class LookupFrameApplication extends SimpleSubscriptApplication {
   def _showSearchResults = _script('showSearchResults) {_at{gui} (_normal1{(here: N_code_normal) => outputTA.text = "Found: "+here.index+" items"})}
   def _searchInDatabase  = _script('searchInDatabase ) {_threaded{Thread.sleep(2000)}}
                
-  // bridge methods; only the first one is actually used; implicit scripts do not get bridge methods   
-  override def live      = _execute(_live             )
-  def searchSequence     = _execute(_searchSequence   )
-  def searchCommand      = _execute(_searchCommand    )
-  def searchInDatabase   = _execute(_searchInDatabase )
-  def showSearchingText  = _execute(_showSearchingText)
-  def showSearchResults  = _execute(_showSearchResults)
+  // bridge method   
+  override def live = _execute(_live             )
 }

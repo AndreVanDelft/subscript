@@ -77,7 +77,8 @@ trait CallGraphNodeTrait[+T<:TemplateNode] {
   def asynchronousAllowed: Boolean = false
   var codeExecuter: CodeExecuterTrait = null
   def adaptExecuter(ca: CodeExecuterAdapter[CodeExecuterTrait]): Unit = {ca.adapt(codeExecuter); codeExecuter=ca}
-  var aChildHadFailure = false
+  var aChildEndedInFailure = false
+  var aChildEndedInSuccess = false
 
   override def toString = index+" "+template
 
@@ -174,6 +175,7 @@ abstract class N_atomic_action[N<:N_atomic_action[N]](template: T_0_ary_code[N])
        extends CallGraphLeafNode [T_0_ary_code[N]] 
           with CallGraphNodeWithCodeTrait[T_0_ary_code[N], Unit] {
   override def asynchronousAllowed: Boolean = true
+  var msgAAToBeExecuted: CallGraphMessage[_] = null
 }
   // TBD keep track of state of N_atomic_action in order to be able to decide on what to do when
   // - code execution started or ended

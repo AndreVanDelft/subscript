@@ -28,7 +28,4 @@ class LookupFrame1Application extends LookupFrameApplication {
 
   override def _searchCommand                         = _script('searchCommand) {_alt(_clicked(searchButton), _vkey(Key.Enter))}
   def _vkey(_k:FormalConstrainedParameter[Key.Value]) = _script('vkey, _k~??'k) {subscript.swing.Scripts._vkey(top, _k~??)}
-               
-  // bridge methods 
-  override def searchCommand  = _execute(_searchCommand)
 }

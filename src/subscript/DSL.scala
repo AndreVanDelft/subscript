@@ -29,6 +29,8 @@ package subscript
 import subscript.vm._
 
 object DSL {
+  type _scriptType = N_call=>Unit
+  def _script(name: Symbol, p: FormalParameter_withName[_]*)(_t: TemplateNode): N_call=>Unit = ((_c: N_call) => _c.calls(T_script("script", name, _t), p:_*))
   
   def _execute(_script: N_call => Unit) = {val executer = new BasicScriptExecuter; _script(executer.anchorNode); executer.run}
 
@@ -118,6 +120,4 @@ object DSL {
   def _if     (_cond:N_if     =>Boolean)(c0: TemplateNode) = T_1_ary_test("if", () =>                 _cond, c0)
   def _if_else(_cond:         =>Boolean)(c0: TemplateNode, c1: TemplateNode) = T_2_ary_test("if_else", () => (here: N_if) => _cond, c0, c1)
   def _if_else(_cond:N_if_else=>Boolean)(c0: TemplateNode, c1: TemplateNode) = T_2_ary_test("if_else", () =>                 _cond, c0, c1)
- 
-  def _script(name: Symbol, p: FormalParameter_withName[_]*)(_t: TemplateNode): N_call=>Unit = ((_c: N_call) => _c.calls(T_script("script", name, _t), p:_*))
-}
+ }
