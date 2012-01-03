@@ -42,9 +42,9 @@ import scala.collection.mutable._
   // various kinds of messages sent around in the script call graph
   abstract class ScriptGraphMessageN extends CallGraphMessage[CallGraphNodeTrait[_<:TemplateNode]]
   
-	case class Activation   (node: CallGraphNodeTrait[_<:TemplateNode]) extends ScriptGraphMessageN
+	case class Activation   (node: CallGraphNodeTrait[_<:TemplateNode]) extends ScriptGraphMessageN {priority = 7 }
 	case class Continuation (node: CallGraphTreeNode_n_ary) extends ScriptGraphMessageN {
-	  priority = -3
+	  priority = 3
 	  var activation: Activation = null
 	  var deactivations: List[Deactivation] = Nil
 	  var success: Success = null
@@ -69,26 +69,26 @@ import scala.collection.mutable._
 	    result
 	  }
 	}
-	case class Continuation1    (node: N_1_ary_op) extends ScriptGraphMessageN {priority = -1}
+	case class Continuation1    (node: N_1_ary_op) extends ScriptGraphMessageN {priority = 4}
 	case class Deactivation     (node: CallGraphNodeTrait[_<:TemplateNode], 
-	                            child: CallGraphNodeTrait[_<:TemplateNode], excluded: Boolean) extends ScriptGraphMessageN {priority = -2}
-	case class Suspend          (node: CallGraphNodeTrait[_<:TemplateNode]) extends ScriptGraphMessageN
-	case class Resume           (node: CallGraphNodeTrait[_<:TemplateNode]) extends ScriptGraphMessageN
-	case class Exclude          (node: CallGraphNodeTrait[_<:TemplateNode]) extends ScriptGraphMessageN
+	                            child: CallGraphNodeTrait[_<:TemplateNode], excluded: Boolean) extends ScriptGraphMessageN {priority = 5}
+	case class Suspend          (node: CallGraphNodeTrait[_<:TemplateNode]) extends ScriptGraphMessageN {priority = 8}
+	case class Resume           (node: CallGraphNodeTrait[_<:TemplateNode]) extends ScriptGraphMessageN {priority = 9}
+	case class Exclude          (node: CallGraphNodeTrait[_<:TemplateNode]) extends ScriptGraphMessageN {priority = 10}
 	case class Success          (node: CallGraphNodeTrait[_<:TemplateNode], 
-	                            child: CallGraphNodeTrait[_<:TemplateNode] = null) extends ScriptGraphMessageN
+	                            child: CallGraphNodeTrait[_<:TemplateNode] = null) extends ScriptGraphMessageN {priority = 11}
 	case class Break            (node: CallGraphNodeTrait[_<:TemplateNode], 
-	                            child: CallGraphNodeTrait[_<:TemplateNode], activationMode: ActivationMode.ActivationModeType) extends ScriptGraphMessageN
+	                            child: CallGraphNodeTrait[_<:TemplateNode], activationMode: ActivationMode.ActivationModeType) extends ScriptGraphMessageN {priority = 12}
 	case class AAActivated      (node: CallGraphNodeTrait[_<:TemplateNode], 
-	                            child: CallGraphNodeTrait[_<:TemplateNode]) extends ScriptGraphMessageN
+	                            child: CallGraphNodeTrait[_<:TemplateNode]) extends ScriptGraphMessageN {priority = 13}
 	case class CAActivated      (node: CallGraphNodeTrait[_<:TemplateNode], 
-	                            child: CallGraphNodeTrait[_<:TemplateNode]) extends ScriptGraphMessageN {priority = 2} // for immediate handling
-	case class CAActivatedTBD   (node: CallGraphNodeTrait[_<:TemplateNode]) extends ScriptGraphMessageN {priority = -10} // for late handling
+	                            child: CallGraphNodeTrait[_<:TemplateNode]) extends ScriptGraphMessageN {priority = 14} // for immediate handling
+	case class CAActivatedTBD   (node: CallGraphNodeTrait[_<:TemplateNode]) extends ScriptGraphMessageN {priority = 2} // for late handling
 	case class AAStarted        (node: CallGraphNodeTrait[_<:TemplateNode], 
-	                            child: CallGraphNodeTrait[_<:TemplateNode]) extends ScriptGraphMessageN {priority = 2}
+	                            child: CallGraphNodeTrait[_<:TemplateNode]) extends ScriptGraphMessageN {priority = 16}
 	case class AAEnded          (node: CallGraphNodeTrait[_<:TemplateNode], 
-	                            child: CallGraphNodeTrait[_<:TemplateNode]) extends ScriptGraphMessageN {priority = 1}
-	case class AAToBeExecuted     [T<:TemplateNodeWithCode[_,R],R](node: CallGraphNodeWithCodeTrait[T,R]) extends CallGraphMessage[CallGraphNodeWithCodeTrait[T,R]] {priority = -20}
-	case class AAToBeReexecuted   [T<:TemplateNodeWithCode[_,R],R](node: CallGraphNodeWithCodeTrait[T,R]) extends CallGraphMessage[CallGraphNodeWithCodeTrait[T,R]] {priority = -30}
-	case class AAExecutionFinished[T<:TemplateNodeWithCode[_,R],R](node: CallGraphNodeWithCodeTrait[T,R]) extends CallGraphMessage[CallGraphNodeWithCodeTrait[T,R]] {priority = -1}
+	                            child: CallGraphNodeTrait[_<:TemplateNode]) extends ScriptGraphMessageN {priority = 15}
+	case class AAToBeExecuted     [T<:TemplateNodeWithCode[_,R],R](node: CallGraphNodeWithCodeTrait[T,R]) extends CallGraphMessage[CallGraphNodeWithCodeTrait[T,R]] {priority = 1}
+	case class AAToBeReexecuted   [T<:TemplateNodeWithCode[_,R],R](node: CallGraphNodeWithCodeTrait[T,R]) extends CallGraphMessage[CallGraphNodeWithCodeTrait[T,R]] {priority = 0}
+	case class AAExecutionFinished[T<:TemplateNodeWithCode[_,R],R](node: CallGraphNodeWithCodeTrait[T,R]) extends CallGraphMessage[CallGraphNodeWithCodeTrait[T,R]] {priority = 6}
  

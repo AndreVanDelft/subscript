@@ -250,8 +250,12 @@ case class N_call(template: T_call) extends CallGraphTreeParentNode[T_call] with
   def allActualParametersMatch: Boolean = actualParameters.forall {_.matches}
   def transferParameters      : Unit    = actualParameters.foreach{_.transfer}
 }
-
-case class N_script    (var template: T_script    ) extends CallGraphTreeParentNode[T_script]
+case class N_script       (var template: T_script       ) extends CallGraphTreeParentNode   [T_script]
+case class N_communication(var template: T_communication) extends CallGraphNonTreeParentNode[T_communication] {
+  def inits(t: T_communication, owner: Any): TemplateNode = {return null
+  }
+  def _getParameter[T](p: Symbol): CommunicationParameter[T] = {return CommunicationParameter[T](p)}
+}
 
 // Utility stuff for Script Call Graph Nodes
 object CallGraphNode {

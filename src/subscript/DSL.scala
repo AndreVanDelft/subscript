@@ -26,11 +26,28 @@
 
 package subscript
 
+import scala.collection.mutable.LinkedList
 import subscript.vm._
+
+case class Communication(_body: N_communication => TemplateNode)
+case class Communicators(name: Symbol, communications: List[Tuple2[Communication, Int]]) {
+  val instances = new LinkedList[(N_call, List[FormalParameter_withName[_]])]
+}
 
 object DSL {
   type _scriptType = N_call=>Unit
-  def _script(name: Symbol, p: FormalParameter_withName[_]*)(_t: TemplateNode): N_call=>Unit = ((_c: N_call) => _c.calls(T_script("script", name, _t), p:_*))
+  def _script   (name          : Symbol       , p: FormalParameter_withName[_]*)(_t: TemplateNode): N_call => Unit = {(_c: N_call) => _c.calls(T_script("script"       ,               name,   _t), p:_*)}
+  def _comscript(communicators : Communicators, p: FormalParameter_withName[_]*)                  : N_call => Unit = {(_c: N_call) => _c.calls(T_script("communicator" , communicators.name, null), p:_*)}
+  
+//  def _communication(owner: Any, names: Symbol*): N_communication => TemplateNode = {
+//    (_c: N_communication) => _c.inits(T_communication("communication", names.toList.map(_.asInstanceOf[Symbol])), owner)
+//  }
+//  def _communication(owner: Any, names: Symbol*)(_body: N_communication => TemplateNode) = { 
+//    (_c: N_communication) => _c.inits(T_communication("communication", names.toList.map(_.asInstanceOf[Symbol])), owner)
+//  }
+
+  def _communication(_body: N_communication => TemplateNode) = Communication(_body)
+  def _communicators(name: Symbol, communications: Tuple2[Communication, Int]*) = Communicators(name, communications.toList)
   
   def _execute(_script: N_call => Unit) = {val executer = new CommonScriptExecuter; _script(executer.anchorNode); executer.run}
 

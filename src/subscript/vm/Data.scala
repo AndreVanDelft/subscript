@@ -66,6 +66,27 @@ trait FormalConstrainedParameter[T<:Any] extends FormalParameter[T] {
   def ~?? = ActualAdaptingParameter(this)
   def ~??(constraint: T=>Boolean) = ActualAdaptingParameter(this, constraint)
 }
+case class CommunicationParameter[T<:Any](n: Symbol) extends FormalParameter_withName[T] {
+  name = n // TBD: improve, now we have both n and name as fields
+  
+    // we need here the default value for R (false, 0, null or a "Unit")
+    // for some strange reason, the following line would go wrong:
+    //
+    // var result: R = _
+    //
+    // A solution using a temporary class was found at
+    // http://missingfaktor.blogspot.com/2011/08/emulating-cs-default-keyword-in-scala.html
+    class Tmp {var default: T = _} 
+    var default_T: T = (new Tmp).default
+    // luckily we have the default value for type R now...
+
+  var value         = default_T
+  def matches(aValue: T, doIsForcing: Boolean) = true 
+  def isInput       = !isForcing && ! isOutput
+  var isOutput      = false  
+  var isForcing     = false // var, not def!!!
+  var isConstrained = false
+}
 
 trait ActualParameterTrait[T<:Any] extends FormalParameter_withName[T] {
   def originalValue: T
