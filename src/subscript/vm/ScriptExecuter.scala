@@ -77,7 +77,7 @@ class CommonScriptExecuter extends ScriptExecuter {
 	    j+=1
 	    println(n)
 	    n match {
-	      case p:CallGraphParentNodeTrait[T] => 
+	      case p:CallGraphParentNodeTrait[_] => 
 	        val pcl=p.children.length
 	        p.children.foreach{ c =>
 	          var bs = if (c.template.indexAsChild<pcl-1) 
@@ -371,7 +371,15 @@ class CommonScriptExecuter extends ScriptExecuter {
            case n@N_inline_if_else  (t: T_3_ary        ) => activateFrom(n, t.child0)
            case n@N_n_ary_op        (t: T_n_ary, 
                                          isLeftMerge   ) => val cn = activateFrom(n, t.children.head); if (!isLeftMerge) insertContinuation(message, cn)
-           case n@N_call            (t: T_call         ) => executeCode_call(n); activateFrom(n, n.t_callee)  // TBD: insert(CAActivated)+insert(CAActivatedTBD) depending on template
+           case n@N_call            (t: T_call         ) => executeCode_call(n);
+                                                            if (n.t_callee!=null) {activateFrom(n, n.t_callee)}
+                                                            else {
+                                                              insert(CAActivated   (n,null))
+                                                              insert(CAActivatedTBD(n,null))
+                                                              for (c <- n.t_commcallee.communicators.communications) {
+                                                                insert(CommunicationMatching(c._1.asInstanceOf[CommunicationRelation]))
+                                                              }
+                                                            }
            case n@N_script          (t: T_script       ) => activateFrom(n, t.child0)
       }      
   }
@@ -511,11 +519,7 @@ class CommonScriptExecuter extends ScriptExecuter {
   def handleExclude(message: Exclude): Unit = { // TBD: remove messages for the node; interrupt execution
     val n = message.node
     n.isExcluded = true
-    if (      n.isInstanceOf[CallGraphTreeParentNode[_<:TemplateNode]]) {
-      val p = n.asInstanceOf[CallGraphTreeParentNode[_<:TemplateNode]]
-      p.forEachChild(c => insert(Exclude(c)))
-      return
-    }
+    
     if (       n.isInstanceOf[CallGraphNodeWithCodeTrait[_,_]]) {
       val nc = n.asInstanceOf[CallGraphNodeWithCodeTrait[_,_]]
       if (nc.codeExecuter != null) {
@@ -523,6 +527,7 @@ class CommonScriptExecuter extends ScriptExecuter {
       }
     }
     message.node match {
+      case cc: N_call => cc.stopPending
       case aa: N_atomic_action[_] =>
         aa.codeExecuter.cancelAA
         if (aa.msgAAToBeExecuted != null) {
@@ -532,7 +537,11 @@ class CommonScriptExecuter extends ScriptExecuter {
         // TBD: also for caNodes!!
         insert(Deactivation(aa, null, excluded=true))
     }
-    
+    if (      n.isInstanceOf[CallGraphTreeParentNode[_<:TemplateNode]]) {
+      val p = n.asInstanceOf[CallGraphTreeParentNode[_<:TemplateNode]]
+      p.forEachChild(c => insert(Exclude(c)))
+      return
+    }
   }
 	                
   def handleContinuation1(message: Continuation1): Unit = {
@@ -762,7 +771,7 @@ class CommonScriptExecuter extends ScriptExecuter {
       case a@Break        (_, _, _) => handleBreak      (a)
       case a@AAActivated      (_,_) => handleAAActivated(a)
       case a@CAActivated      (_,_) => handleCAActivated(a)
-      case a@CAActivatedTBD     (_) => handleCAActivatedTBD(a)
+      case a@CAActivatedTBD   (_,_) => handleCAActivatedTBD(a)
       case a@AAStarted        (_,_) => handleAAStarted  (a)
       case a@AAEnded          (_,_) => handleAAEnded    (a)
       case a@AAExecutionFinished(_) => handleAAExecutionFinished(a)

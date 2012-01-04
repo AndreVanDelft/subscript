@@ -25,10 +25,10 @@ object ABC  {
 // bridge method. Normally returns a ScriptExecuter; 
 // only a "main" method with the proper parameter type has return type Unit, to serve as a program entry point 
 
-  val __a = _communicators('a, (__a_b,0))
-  val __b = _communicators('b, (__a_b,1))
+  val __a = _communicators('a, (__a_b,0, Multiplicity.One))
+  val __b = _communicators('b, (__a_b,1, Multiplicity.One))
   
-  val __a_b = _communication{(_comm: N_communication) =>
+  val __a_b = _communicationRelation {(_comm: N_communication) =>
     val _p0 = _comm._getParameter[String]('p0)
     val _p1 = _comm._getParameter[String]('p1)
     _normal{println("a,b communicate: "+_p0.value+_p1.value)}

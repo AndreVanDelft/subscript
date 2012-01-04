@@ -236,25 +236,50 @@ case class N_inline_if_else(template: T_3_ary     ) extends CallGraphTreeParentN
 case class N_n_ary_op      (template: T_n_ary, isLeftMerge: Boolean) extends CallGraphTreeNode_n_ary {
   val mapNamePassToVariableHolder = new HashMap[(Symbol,Int), VariableHolder[_]]
   def    initLocalVariable[V<:Any](name: Symbol, fromPass: Int, value: V)         = mapNamePassToVariableHolder += ((name,fromPass)->new VariableHolder(value))
-  def    getVariableHolder[V<:Any](name: Symbol, fromPass: Int):VariableHolder[V] = mapNamePassToVariableHolder.get((name,fromPass)) match {case None=>null case Some(v:VariableHolder[V]) => v}
+  def    getVariableHolder[V<:Any](name: Symbol, fromPass: Int):VariableHolder[V] = mapNamePassToVariableHolder.get((name,fromPass)) match {case None=>null case Some(v:VariableHolder[_]) => v}
   override def toString = super.toString+children.length+(if(isIteration)"..."else"")
 }
 
+// only one class for normal script calls and communicator-script calls
+// this will make parsing etc much easier,
+// but there are some fields that are either for normal script calls or for communicator-script calls
 case class N_call(template: T_call) extends CallGraphTreeParentNode[T_call] with CallGraphNodeWithCodeTrait[T_call, N_call=>Unit]{
-  var t_callee: T_script = null
+  var t_callee    : T_script     = null
+  var t_commcallee: T_commscript = null
+  var pendingAt: Communicators = null
+  def stopPending {if (pendingAt!=null) {pendingAt.removePendingCall(this)}}
   var actualParameters: scala.collection.immutable.Seq[ActualParameter[_<:Any]] = Nil
   def calls(t: T_script, args: FormalParameter_withName[_]*): Unit = {
-    this.t_callee = t
     this.actualParameters = args.toList.map(_.asInstanceOf[ActualParameter[_]])
+    this.t_callee = t
+  }
+  def calls(t: T_commscript, args: FormalParameter_withName[_]*): Unit = {
+    this.actualParameters = args.toList.map(_.asInstanceOf[ActualParameter[_]])
+    this.t_commcallee = t
+    this.t_commcallee.communicators.newInstances(this) = args.toList // "pend" it there
   }
   def allActualParametersMatch: Boolean = actualParameters.forall {_.matches}
   def transferParameters      : Unit    = actualParameters.foreach{_.transfer}
 }
 case class N_script       (var template: T_script       ) extends CallGraphTreeParentNode   [T_script]
 case class N_communication(var template: T_communication) extends CallGraphNonTreeParentNode[T_communication] {
-  def inits(t: T_communication, owner: Any): TemplateNode = {return null
+  def inits(t: T_communication, owner: Any): TemplateNode = {return null // TBD
   }
   def _getParameter[T](p: Symbol): CommunicationParameter[T] = {return CommunicationParameter[T](p)}
+}
+
+object Multiplicity extends Enumeration {
+  type MultiplicityType = Value
+  val Zero_or_One, Zero_or_More, One, One_or_More = Value
+}
+
+
+// no nodes, but structures to support communications
+case class CommunicationRelation(_body: N_communication => TemplateNode)
+case class Communicators(name: Symbol, communications: List[Tuple3[CommunicationRelation, Int, Multiplicity.MultiplicityType]]) {
+  def removePendingCall(call: N_call) {instances.remove(call); newInstances.remove(call)}
+  val instances = new HashMap[N_call, List[FormalParameter_withName[_]]]
+  val newInstances = new HashMap[N_call, List[FormalParameter_withName[_]]]
 }
 
 // Utility stuff for Script Call Graph Nodes
