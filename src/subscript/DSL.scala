@@ -44,7 +44,7 @@ object DSL {
   def _communicationRelation(_body: N_communication => TemplateNode) = CommunicationRelation(_body)
   def _communicators(name: Symbol, communications: Tuple3[CommunicationRelation, Int, Multiplicity.MultiplicityType]*) = Communicators(name, communications.toList)
   
-  def _execute(_script: N_call => Unit) = {val executer = new CommonScriptExecuter; _script(executer.anchorNode); executer.run}
+  def _execute(_script: N_call => Unit) = {val executor = new CommonScriptExecutor; _script(executor.anchorNode); executor.run}
 
   def _codeFragmentKind [N<:N_atomic_action[N]](opSymbol: String, cf:  => Unit ): T_0_ary_code[N] = T_0_ary_code(opSymbol, () => (_here:N) => cf)
   def _codeFragmentKind1[N<:N_atomic_action[N]](opSymbol: String, cf: (N=>Unit)): T_0_ary_code[N] = T_0_ary_code(opSymbol, () =>              cf)

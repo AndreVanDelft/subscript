@@ -52,7 +52,7 @@ trait CallGraphNodeTrait[+T<:TemplateNode] {
   var stamp = 0
   var aaStartedCount = 0
   var properties: Map[Any,Any] = new HashMap[Any,Any]
-  var scriptExecuter: ScriptExecuter = null
+  var scriptExecutor: ScriptExecutor = null
   
   def getCodeProperty(key: Any): ()=>Unit = {
     properties.get(key) match {
@@ -75,8 +75,8 @@ trait CallGraphNodeTrait[+T<:TemplateNode] {
   def onSuccess            (c:   =>Unit) = setCodeProperty(OnSuccess            , ()=>c)
 
   def asynchronousAllowed: Boolean = false
-  var codeExecuter: CodeExecuterTrait = null
-  def adaptExecuter(ca: CodeExecuterAdapter[CodeExecuterTrait]): Unit = {ca.adapt(codeExecuter); codeExecuter=ca}
+  var codeExecutor: CodeExecutorTrait = null
+  def adaptExecutor(ca: CodeExecutorAdapter[CodeExecutorTrait]): Unit = {ca.adapt(codeExecutor); codeExecutor=ca}
   var aChildEndedInFailure = false
   var aChildEndedInSuccess = false
 
@@ -96,7 +96,7 @@ trait CallGraphParentNodeTrait[+T<:TemplateNode] extends CallGraphNodeTrait[T] {
 }
 // a node having code; probably to be dropped since @annotations: may attach code to any kind of node
 trait CallGraphNodeWithCodeTrait[T<:TemplateNodeWithCode[_,R],R] extends CallGraphNodeTrait[T] {
-  // var codeExecuter: AACodeFragmentExecuter    overriding not possible?
+  // var codeExecutor: AACodeFragmentExecutor    overriding not possible?
 }
 
 // should this not be an abstract class?

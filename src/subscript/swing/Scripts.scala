@@ -38,13 +38,13 @@ abstract class SimpleSubscriptApplication extends SimpleSwingApplication{
     new Thread{override def run={live;quit}}.start()
   }
   def _live: N_call => Unit
-  def  live: ScriptExecuter
+  def  live: ScriptExecutor
 }
 object Scripts {
 
   def gui [N<:CallGraphNodeTrait[_]] = (there:N)=>gui1(there)  
   def gui1[N<:CallGraphNodeTrait[_]](implicit n:N) = {
-    n.adaptExecuter(new SwingCodeExecuterAdapter[CodeExecuterTrait])
+    n.adaptExecutor(new SwingCodeExecutorAdapter[CodeExecutorTrait])
   }             
 
   object ScriptReactor {
@@ -53,21 +53,21 @@ object Scripts {
   // an extension on scala.swing.Reactor that supports event handling scripts in Subscript
   abstract class ScriptReactor[N<:N_atomic_action_eh[N]] extends Reactor {
     def publisher:Publisher
-    var executer: EventHandlingCodeFragmentExecuter[N] = _
+    var executor: EventHandlingCodeFragmentExecutor[N] = _
     def execute = executeMatching(true)
-    def executeMatching(isMatching: Boolean): Unit = executer.executeMatching(isMatching)
+    def executeMatching(isMatching: Boolean): Unit = executor.executeMatching(isMatching)
     val publisher1 = publisher // needed in subclass since publisher does not seem to be accessible
     private var myEnabled = false
     def enabled = myEnabled
     def enabled_=(b:Boolean) = {myEnabled=b}
-    def acknowledgeEventHandled = {ScriptReactor.consumedEvent = null} // will be done when an Event Handling Code Fragment succeeds, performed by the ScriptExecuter
+    def acknowledgeEventHandled = {ScriptReactor.consumedEvent = null} // will be done when an Event Handling Code Fragment succeeds, performed by the ScriptExecutor
     
     val event: Event
     def reaction: PartialFunction[Event,Unit] = myReaction
     private val myReaction: PartialFunction[Event,Unit] = {
       case event if (ScriptReactor.consumedEvent == null) => {
                  execute
-                 if (executer.n.hasSuccess) {
+                 if (executor.n.hasSuccess) {
                    ScriptReactor.consumedEvent = event
                    consumeEvent
                  }
@@ -76,8 +76,8 @@ object Scripts {
     def consumeEvent = {}
     
     def subscribe(n: N): Unit = {
-      executer = new EventHandlingCodeFragmentExecuter(n, n.scriptExecuter)
-      n.codeExecuter = executer
+      executor = new EventHandlingCodeFragmentExecutor(n, n.scriptExecutor)
+      n.codeExecutor = executor
       val wasAlreadyEnabled = enabled
       publisher.reactions += reaction;
       if (!wasAlreadyEnabled) {enabled=true}

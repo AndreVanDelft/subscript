@@ -27,10 +27,10 @@
 package subscript.vm
 import scala.collection.mutable._
 
-// Executers that execute any call to Scala code in the application:
+// Executors that execute any call to Scala code in the application:
 // code fragments, script calls, parameter checks, tests in if and while, annotations
-trait CodeExecuterTrait {
-  // graph operations such as aaStarted may only be done when called from executer!
+trait CodeExecutorTrait {
+  // graph operations such as aaStarted may only be done when called from executor!
   var canceled = false // TBD(?) inspect this flag before execution
   def asynchronousAllowed: Boolean
   
@@ -38,68 +38,68 @@ trait CodeExecuterTrait {
   
   private def shouldNotBeCalledHere = throw new Exception("Illegal Call")
   def executeAA     : Unit                                      = shouldNotBeCalledHere // TBD: clean up class/trait hierarchy so that this def can be ditched
-  def executeAA(lowLevelCodeExecuter: CodeExecuterTrait): Unit  = shouldNotBeCalledHere // TBD: clean up class/trait hierarchy so that this def can be ditched
+  def executeAA(lowLevelCodeExecutor: CodeExecutorTrait): Unit  = shouldNotBeCalledHere // TBD: clean up class/trait hierarchy so that this def can be ditched
   def afterExecuteAA: Unit                                      = shouldNotBeCalledHere // TBD: clean up class/trait hierarchy so that this def can be ditched
   def interruptAA   : Unit                                      = shouldNotBeCalledHere // TBD: clean up class/trait hierarchy so that this def can be ditched
   def n: CallGraphNodeTrait[_<:TemplateNode]
-  def scriptExecuter: ScriptExecuter
+  def scriptExecutor: ScriptExecutor
   def cancelAA = canceled=true 
 }
-case class TinyCodeExecuter(n: CallGraphNodeTrait[_ <: TemplateNode], scriptExecuter: ScriptExecuter) extends CodeExecuterTrait  { // TBD: for while, {!!}, @:, script call
+case class TinyCodeExecutor(n: CallGraphNodeTrait[_ <: TemplateNode], scriptExecutor: ScriptExecutor) extends CodeExecutorTrait  { // TBD: for while, {!!}, @:, script call
   val asynchronousAllowed = false
   override def doCodeExecution[R](code: ()=>R): R = super.doCodeExecution{
     n.hasSuccess = true; 
     code
     }
 }
-abstract class AACodeFragmentExecuter[N<:N_atomic_action[N]](_n: N, _scriptExecuter: ScriptExecuter) extends CodeExecuterTrait  {
+abstract class AACodeFragmentExecutor[N<:N_atomic_action[N]](_n: N, _scriptExecutor: ScriptExecutor) extends CodeExecutorTrait  {
   
-  // Executer for Atomic Actions. These require some communication with the ScriptExecuter, to make sure that 
+  // Executor for Atomic Actions. These require some communication with the ScriptExecutor, to make sure that 
   // graph messages such as AAStarted, AAEnded en Success are properly sent.
-  // Note: such messages may only be handled from the main ScriptExecuter loop!
+  // Note: such messages may only be handled from the main ScriptExecutor loop!
   //
   // Since scala code execution from Subscript may be asynchronous (e.g., in the Swing thread or in a new thread), 
-  // there is some loosely communication with the ScriptExecuter
+  // there is some loosely communication with the ScriptExecutor
   // E.g., after calling the Scala code, the method executionFinished is called, which inserts an AAExecutionFinished
   def n = _n
-  def scriptExecuter = _scriptExecuter
+  def scriptExecutor = _scriptExecutor
   val asynchronousAllowed = true
   override def interruptAA = {}
   override def cancelAA = super.cancelAA; interruptAA
   def naa = n.asInstanceOf[N]
-  def doCodeExecution(lowLevelCodeExecuter: CodeExecuterTrait): Unit = lowLevelCodeExecuter.doCodeExecution{
+  def doCodeExecution(lowLevelCodeExecutor: CodeExecutorTrait): Unit = lowLevelCodeExecutor.doCodeExecution{
     ()=>n.hasSuccess = true; 
     naa.template.code.apply.apply(naa); 
     executionFinished
   }
-  def aaStarted = scriptExecuter.insert(AAStarted(n,null))
-  def aaEnded   = scriptExecuter.insert(AAEnded(n,null)) 
-  def succeeded = scriptExecuter.insert(Success(n,null)) 
+  def aaStarted = scriptExecutor.insert(AAStarted(n,null))
+  def aaEnded   = scriptExecutor.insert(AAEnded(n,null)) 
+  def succeeded = scriptExecutor.insert(Success(n,null)) 
   override def executeAA: Unit = executeAA(this) // for Atomic Action execution...should ensure that executionFinished is called
-  def executeAA(lowLevelCodeExecuter: CodeExecuterTrait): Unit // for Atomic Action execution...should ensure that executionFinished is called
-  def afterExecuteAA             // to be called by executer, asynchronously, in reaction to executionFinished (through a message queue, not through a call inside a call)
-  def executionFinished = scriptExecuter.insert(AAExecutionFinished(naa)) // so that executer calls afterRun here
-  def toBeReexecuted    = scriptExecuter.insert(AAToBeReexecuted   (naa)) // so that executer reschedules n for execution
-  def deactivate        = scriptExecuter.insert(Deactivation       (naa,null,false))
+  def executeAA(lowLevelCodeExecutor: CodeExecutorTrait): Unit // for Atomic Action execution...should ensure that executionFinished is called
+  def afterExecuteAA             // to be called by executor, asynchronously, in reaction to executionFinished (through a message queue, not through a call inside a call)
+  def executionFinished = scriptExecutor.insert(AAExecutionFinished(naa)) // so that executor calls afterRun here
+  def toBeReexecuted    = scriptExecutor.insert(AAToBeReexecuted   (naa)) // so that executor reschedules n for execution
+  def deactivate        = scriptExecutor.insert(Deactivation       (naa,null,false))
   def suspend   = {}
   def resume    = {}
 
-  def notifyScriptExecuter = scriptExecuter.synchronized {
-        scriptExecuter.notify() // kick the scriptExecuter, just in case it was waiting
+  def notifyScriptExecutor = scriptExecutor.synchronized {
+        scriptExecutor.notify() // kick the scriptExecutor, just in case it was waiting
   }
 
 }
 
-class NormalCodeFragmentExecuter[N<:N_atomic_action[N]](n: N, scriptExecuter: ScriptExecuter) extends AACodeFragmentExecuter[N](n, scriptExecuter)  {
+class NormalCodeFragmentExecutor[N<:N_atomic_action[N]](n: N, scriptExecutor: ScriptExecutor) extends AACodeFragmentExecutor[N](n, scriptExecutor)  {
   //without the next two definitions the compiler would give the following error messages; TBD: get rid of these
-  // class NormalCodeFragmentExecuter needs to be abstract, since: 
-  //   method scriptExecuter in trait CodeExecuterTrait of type => subscript.vm.ScriptExecuter is not defined 
-  //   method n in trait CodeExecuterTrait of type => subscript.vm.CallGraphNodeTrait[_ <: subscript.vm.TemplateNode] is not defined	CodeExecuter.scala	/subscript/src/subscript/vm	line 54	Scala Problem
+  // class NormalCodeFragmentExecutor needs to be abstract, since: 
+  //   method scriptExecutor in trait CodeExecutorTrait of type => subscript.vm.ScriptExecutor is not defined 
+  //   method n in trait CodeExecutorTrait of type => subscript.vm.CallGraphNodeTrait[_ <: subscript.vm.TemplateNode] is not defined	CodeExecutor.scala	/subscript/src/subscript/vm	line 54	Scala Problem
   
   
-  override def executeAA(lowLevelCodeExecuter: CodeExecuterTrait): Unit = {
+  override def executeAA(lowLevelCodeExecutor: CodeExecutorTrait): Unit = {
     aaStarted
-    doCodeExecution(lowLevelCodeExecuter)
+    doCodeExecution(lowLevelCodeExecutor)
   }
   override def afterExecuteAA = {
     if (!n.isExcluded) {
@@ -108,8 +108,8 @@ class NormalCodeFragmentExecuter[N<:N_atomic_action[N]](n: N, scriptExecuter: Sc
     deactivate
   }
 }
-class UnsureCodeFragmentExecuter(n: N_code_unsure, scriptExecuter: ScriptExecuter) extends AACodeFragmentExecuter(n, scriptExecuter)  {
-  override def executeAA(lowLevelCodeExecuter: CodeExecuterTrait): Unit = doCodeExecution(lowLevelCodeExecuter)
+class UnsureCodeFragmentExecutor(n: N_code_unsure, scriptExecutor: ScriptExecutor) extends AACodeFragmentExecutor(n, scriptExecutor)  {
+  override def executeAA(lowLevelCodeExecutor: CodeExecutorTrait): Unit = doCodeExecution(lowLevelCodeExecutor)
   override def afterExecuteAA = {
     if (n.hasSuccess) {
        aaStarted; aaEnded; succeeded; deactivate
@@ -119,33 +119,33 @@ class UnsureCodeFragmentExecuter(n: N_code_unsure, scriptExecuter: ScriptExecute
     }
   }
 }
-// Adapter to wrap around other CodeExecuters
+// Adapter to wrap around other CodeExecutors
 // TBD: improve
-trait CodeExecuterAdapter[CE<:CodeExecuterTrait] extends CodeExecuterTrait {
+trait CodeExecutorAdapter[CE<:CodeExecutorTrait] extends CodeExecutorTrait {
   var adaptee: CE = _
-  def adapt[R](codeExecuter: CE) = {adaptee = codeExecuter}
+  def adapt[R](codeExecutor: CE) = {adaptee = codeExecutor}
   def asynchronousAllowed = adaptee.asynchronousAllowed
-  def notifyScriptExecuter = adaptee.synchronized {
-        adaptee.notify() // kick the scriptExecuter, just in case it was waiting
+  def notifyScriptExecutor = adaptee.synchronized {
+        adaptee.notify() // kick the scriptExecutor, just in case it was waiting
   }
 }
-class ThreadedCodeFragmentExecuter(n: N_code_threaded, scriptExecuter: ScriptExecuter) extends NormalCodeFragmentExecuter(n, scriptExecuter)  {
+class ThreadedCodeFragmentExecutor(n: N_code_threaded, scriptExecutor: ScriptExecutor) extends NormalCodeFragmentExecutor(n, scriptExecutor)  {
   override def interruptAA: Unit = if (myThread!=null) myThread.interrupt
   var myThread: Thread = null
-  override def doCodeExecution(lowLevelCodeExecuter: CodeExecuterTrait): Unit = {
+  override def doCodeExecution(lowLevelCodeExecutor: CodeExecutorTrait): Unit = {
       val runnable = new Runnable {
         def run() {
-          ThreadedCodeFragmentExecuter.super.doCodeExecution(lowLevelCodeExecuter)
-          notifyScriptExecuter // kick the scriptExecuter, just in case it was waiting
+          ThreadedCodeFragmentExecutor.super.doCodeExecution(lowLevelCodeExecutor)
+          notifyScriptExecutor // kick the scriptExecutor, just in case it was waiting
         }
       }
       myThread = new Thread(runnable)
       myThread.start()
   }
 }
-class SwingCodeExecuterAdapter[CE<:CodeExecuterTrait] extends CodeExecuterAdapter[CE]{
+class SwingCodeExecutorAdapter[CE<:CodeExecutorTrait] extends CodeExecutorAdapter[CE]{
   def n = adaptee.n
-  def scriptExecuter = adaptee.scriptExecuter
+  def scriptExecutor = adaptee.scriptExecutor
   override def      executeAA: Unit = adaptee.executeAA(this) // Not to be called? TBD: clean up class/trait hierarchy 
   override def afterExecuteAA: Unit = adaptee.afterExecuteAA  // TBD: clean up class/trait hierarchy so that this def can be ditched
   override def    interruptAA: Unit = adaptee.interruptAA     // TBD: clean up class/trait hierarchy so that this def can be ditched
@@ -164,7 +164,7 @@ class SwingCodeExecuterAdapter[CE<:CodeExecuterTrait] extends CodeExecuterAdapte
     
     if (adaptee.asynchronousAllowed) {
       var runnable = new Runnable {
-        def run(): Unit = {result = adaptee.doCodeExecution(code); notifyScriptExecuter}
+        def run(): Unit = {result = adaptee.doCodeExecution(code); notifyScriptExecutor}
       }
       javax.swing.SwingUtilities.invokeLater(runnable)
     }
@@ -177,9 +177,9 @@ class SwingCodeExecuterAdapter[CE<:CodeExecuterTrait] extends CodeExecuterAdapte
     result
   }
 }
-case class EventHandlingCodeFragmentExecuter[N<:N_atomic_action_eh[N]](_n: N, _scriptExecuter: ScriptExecuter) extends AACodeFragmentExecuter(_n, _scriptExecuter)  {
-  override def executeAA(lowLevelCodeExecuter: CodeExecuterTrait): Unit = executeMatching(true) // dummy method needed because of a flaw in the class hierarchy
-  def executeMatching(isMatching: Boolean): Unit = {  // not to be called by scriptExecuter, but by application code
+case class EventHandlingCodeFragmentExecutor[N<:N_atomic_action_eh[N]](_n: N, _scriptExecutor: ScriptExecutor) extends AACodeFragmentExecutor(_n, _scriptExecutor)  {
+  override def executeAA(lowLevelCodeExecutor: CodeExecutorTrait): Unit = executeMatching(true) // dummy method needed because of a flaw in the class hierarchy
+  def executeMatching(isMatching: Boolean): Unit = {  // not to be called by scriptExecutor, but by application code
     n.hasSuccess = isMatching
     if (n.hasSuccess) 
     {
@@ -187,9 +187,9 @@ case class EventHandlingCodeFragmentExecuter[N<:N_atomic_action_eh[N]](_n: N, _s
     }
     if (n.hasSuccess) 
     {
-      executionFinished // will probably imply a call back to afterExecute from the ScriptExecuter thread
+      executionFinished // will probably imply a call back to afterExecute from the ScriptExecutor thread
       // TBD: maybe a provision should be taken here to prevent handling a second event here, in case this is a N_code_eh
-      notifyScriptExecuter // kick the scriptExecuter, just in case it was waiting
+      notifyScriptExecutor // kick the scriptExecutor, just in case it was waiting
     }
   }
   override def afterExecuteAA = {

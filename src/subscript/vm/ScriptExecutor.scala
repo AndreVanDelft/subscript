@@ -27,10 +27,10 @@
 package subscript.vm
 import scala.collection.mutable._
 
-trait ScriptExecuter {
+trait ScriptExecutor {
   val anchorNode: N_call
   def hasSucces: Boolean
-  def run: ScriptExecuter
+  def run: ScriptExecutor
   def insert(sga: CallGraphMessage[_ <: CallGraphNodeTrait[_<:TemplateNode]])
 }
 
@@ -53,7 +53,7 @@ trait ScriptExecuter {
  * exception handling 
  */
 
-class CommonScriptExecuter extends ScriptExecuter {
+class CommonScriptExecutor extends ScriptExecutor {
   
   // some tracing stuff
   var nSteps = 0
@@ -111,7 +111,7 @@ class CommonScriptExecuter extends ScriptExecuter {
   // connect a parent and a child node in the graph
   def connect(parentNode: CallGraphParentNodeTrait[_<:TemplateNode], childNode: CallGraphTreeNode[_<:TemplateNode]) {
     childNode.parent = parentNode
-    childNode.scriptExecuter = parentNode.scriptExecuter
+    childNode.scriptExecutor = parentNode.scriptExecutor
     parentNode.children.append(childNode)
     if (parentNode.isInstanceOf[CallGraphTreeNode_n_ary]) {
       val p = parentNode.asInstanceOf[CallGraphTreeNode_n_ary]
@@ -160,7 +160,7 @@ class CommonScriptExecuter extends ScriptExecuter {
   // remove a message from the queue
   def remove(m: CallGraphMessage[_ <: CallGraphNodeTrait[_<:TemplateNode]]) = {
     trace(2,"-- ",m)
-    //scriptGraphMessages -= m  is not allowed...FTTB we will ignore this message, by checking the canceled flag in the executer
+    //scriptGraphMessages -= m  is not allowed...FTTB we will ignore this message, by checking the canceled flag in the executor
     m match {
       case maa@AAToBeExecuted  (n: CallGraphNodeWithCodeTrait[_,_]) => n.asInstanceOf[N_atomic_action[_]].msgAAToBeExecuted = null
       case maa@AAToBeReexecuted(n: CallGraphNodeTrait          [_]) => n.asInstanceOf[N_atomic_action[_]].msgAAToBeExecuted = null
@@ -233,7 +233,7 @@ class CommonScriptExecuter extends ScriptExecuter {
   val rootTemplate   = new T_1_ary("**", anchorTemplate)
   val rootNode       = new N_launch_anchor(rootTemplate)
   val anchorNode     = new N_call(anchorTemplate)
-  rootNode.scriptExecuter = this 
+  rootNode.scriptExecutor = this 
   connect(parentNode = rootNode, childNode = anchorNode)
   //insert(Activation(anchorNode)) 
   def activateFrom(parent: CallGraphParentNodeTrait[_<:TemplateNode], template: TemplateNode, pass: Int = 0): CallGraphTreeNode[_<:TemplateNode] = {
@@ -281,15 +281,15 @@ class CommonScriptExecuter extends ScriptExecuter {
                         child0: TemplateNode     ) => N_script        (t.asInstanceOf[T_script    ])
       case _ => null 
     }
-    result.codeExecuter = defaultCodeFragmentExecuterFor(result)
+    result.codeExecutor = defaultCodeFragmentExecutorFor(result)
     result
   }
-  def defaultCodeFragmentExecuterFor(node: CallGraphNodeTrait[_<:TemplateNode]): CodeExecuterTrait = {
+  def defaultCodeFragmentExecutorFor(node: CallGraphNodeTrait[_<:TemplateNode]): CodeExecutorTrait = {
     node match {
-      case n@N_code_normal  (_) => new   NormalCodeFragmentExecuter(n, this)
-      case n@N_code_unsure  (_) => new   UnsureCodeFragmentExecuter(n, this)
-      case n@N_code_threaded(_) => new ThreadedCodeFragmentExecuter(n, this)
-      case _                    => new     TinyCodeExecuter(node, this)
+      case n@N_code_normal  (_) => new   NormalCodeFragmentExecutor(n, this)
+      case n@N_code_unsure  (_) => new   UnsureCodeFragmentExecutor(n, this)
+      case n@N_code_threaded(_) => new ThreadedCodeFragmentExecutor(n, this)
+      case _                    => new     TinyCodeExecutor(node, this)
     }
   }
   def executeCode_localvar      (n: N_localvar[_]   ) = executeCode(n, ()=>n.template.code.apply.apply(n))
@@ -304,7 +304,7 @@ class CommonScriptExecuter extends ScriptExecuter {
         ()=>n.template.code.apply.apply(n))
   }
   def executeCode[R](n: CallGraphNodeTrait[_], code: =>()=>R): R = {
-    n.codeExecuter.doCodeExecution(code)
+    n.codeExecutor.doCodeExecution(code)
   }
   def executeCodeIfDefined(n: CallGraphNodeTrait[_], code: =>()=>Unit): Unit = {
     if (code!=null) executeCode(n, code)
@@ -522,16 +522,16 @@ class CommonScriptExecuter extends ScriptExecuter {
     
     if (       n.isInstanceOf[CallGraphNodeWithCodeTrait[_,_]]) {
       val nc = n.asInstanceOf[CallGraphNodeWithCodeTrait[_,_]]
-      if (nc.codeExecuter != null) {
-        nc.codeExecuter.interruptAA
+      if (nc.codeExecutor != null) {
+        nc.codeExecutor.interruptAA
       }
     }
     message.node match {
       case cc: N_call => cc.stopPending
       case aa: N_atomic_action[_] =>
-        aa.codeExecuter.cancelAA
+        aa.codeExecutor.cancelAA
         if (aa.msgAAToBeExecuted != null) {
-          remove(message) // does not really remove from the queue; will have to check the canceled flag of the codeExecuter...
+          remove(message) // does not really remove from the queue; will have to check the canceled flag of the codeExecutor...
           aa.msgAAToBeExecuted = null
         }
         // TBD: also for caNodes!!
@@ -551,20 +551,20 @@ class CommonScriptExecuter extends ScriptExecuter {
   }
   
   def handleAAToBeExecuted[T<:TemplateNodeWithCode[_,R],R](message: AAToBeExecuted[T,R]) {
-    val e = message.node.codeExecuter
+    val e = message.node.codeExecutor
     if (!e.canceled)  // temporary fix, since the message queue does not yet allow for removals
          e.executeAA
   }
   def handleAAToBeReexecuted[T<:TemplateNodeWithCode[_,R],R](message: AAToBeReexecuted[T,R]) {
-    val e = message.node.codeExecuter
+    val e = message.node.codeExecutor
     if (!e.canceled) // temporary fix, since the message queue does not yet allow for removals
        insert(AAToBeExecuted(message.node)) // this way, failed {??} code ends up at the back of the queue
   }
   def handleAAExecutionFinished[T<:TemplateNodeWithCode[_,R],R](message: AAExecutionFinished[T,R]) {
-     message.node.codeExecuter.afterExecuteAA
+     message.node.codeExecutor.afterExecuteAA
   }
   
-  // The most complicated method of the Script Executer: determine what an N-ary operator will do
+  // The most complicated method of the Script Executor: determine what an N-ary operator will do
   // after it has received a set of messages.
   // The decision is based on three aspects:
   // - the kind of operator
@@ -757,7 +757,7 @@ class CommonScriptExecuter extends ScriptExecuter {
     
   }
   
-  // message dispatcher; not really OO, but all real activity should be at the executers; other things should be passive
+  // message dispatcher; not really OO, but all real activity should be at the executors; other things should be passive
   def handle(message: CallGraphMessage[_]):Unit = {
     message match {
       case a@ Activation        (_) => handleActivation   (a)
@@ -781,7 +781,7 @@ class CommonScriptExecuter extends ScriptExecuter {
   }
   
   // Main method of BasicExecutioner
-  def run: ScriptExecuter = {
+  def run: ScriptExecutor = {
     activateFrom(anchorNode, anchorNode.t_callee)
     var isActive = true
     while (isActive) { // main execution loop
@@ -800,7 +800,7 @@ class CommonScriptExecuter extends ScriptExecuter {
       else if (!rootNode.children.isEmpty) {
         traceTree
         traceMessages
-        synchronized { // TBD: there should also be a synchronized call in the CodeExecuters
+        synchronized { // TBD: there should also be a synchronized call in the CodeExecutors
           if (scriptGraphMessages.isEmpty) // looks stupid, but event may have happened&notify() may have been called during tracing
             synchronized {wait()} // for an event to happen 
         }
