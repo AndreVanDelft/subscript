@@ -46,8 +46,8 @@ abstract class TemplateNodeWithCode[N<:CallGraphNodeTrait[TemplateNode], R] exte
 case class T_script (kind: String, name: Symbol, child0: TemplateNode) extends TemplateNode {
   override def toString = super.toString+" "+name
 }
-case class T_commscript(kind: String, communicators: Communicators) extends TemplateNode {
-  override def toString = super.toString+" "+communicators.name
+case class T_commscript(kind: String, communicator: Communicator) extends TemplateNode {
+  override def toString = super.toString+" "+communicator.name
 }
 case class T_communication(kind: String, names: Seq[Symbol]) extends TemplateNode {
   override def toString = super.toString+" "+names.mkString(",")

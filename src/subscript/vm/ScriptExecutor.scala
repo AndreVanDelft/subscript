@@ -375,10 +375,7 @@ class CommonScriptExecutor extends ScriptExecutor {
                                                             if (n.t_callee!=null) {activateFrom(n, n.t_callee)}
                                                             else {
                                                               insert(CAActivated   (n,null))
-                                                              insert(CAActivatedTBD(n,null))
-                                                              for (c <- n.t_commcallee.communicators.communications) {
-                                                                insert(CommunicationMatching(c._1.asInstanceOf[CommunicationRelation]))
-                                                              }
+                                                              insert(CAActivatedTBD(n))
                                                             }
            case n@N_script          (t: T_script       ) => activateFrom(n, t.child0)
       }      
@@ -441,8 +438,34 @@ class CommonScriptExecutor extends ScriptExecutor {
           }
           message.node.forEachParent(p => insert(CAActivated(p, message.node)))
   }
-  // TBD: process all fresh CA nodes to activate prospective communications
+  
   def handleCAActivatedTBD(message: CAActivatedTBD): Unit = {
+    if (CommunicationMatchingMessage.activatedCommunicationCalls.isEmpty) {
+      insert(CommunicationMatchingMessage)
+    }
+    CommunicationMatchingMessage.activatedCommunicationCalls += message.node
+  }
+  // TBD: process all fresh CA nodes to activate prospective communications
+ def handleCommunicationMatchingMessage = {
+    var startingCommunicationsOpenForMorePartners: List[N_communication] = Nil
+    for (acc <- CommunicationMatchingMessage.activatedCommunicationCalls) {
+      // check out the associated communication relations:
+      // if one of these may be activated with help of pending CA partners, then do so
+      // else make this CA call pending as well
+      if (false) {
+        // TBD
+        // a communication may become active when
+        // all mandatory positions for partners at the same instance may be filled
+        // partners should have compatible parameters, be active in parallel, and obey network topology
+        //for (comm <- acc.t_commcallee.communicator.communications) {
+          
+        // }
+      }
+      else {
+        acc.t_commcallee.communicator.instances += acc // TBD: remove again when acc is deactivated, using stopPending
+      }
+    }
+    CommunicationMatchingMessage.activatedCommunicationCalls.clear()
   }
   // TBD: ensure that an n-ary node gets only 1 AAStarted msg after an AA started in a communication reachable from multiple child nodes (*)
   def handleAAStarted(message: AAStarted): Unit = {
@@ -771,12 +794,13 @@ class CommonScriptExecutor extends ScriptExecutor {
       case a@Break        (_, _, _) => handleBreak      (a)
       case a@AAActivated      (_,_) => handleAAActivated(a)
       case a@CAActivated      (_,_) => handleCAActivated(a)
-      case a@CAActivatedTBD   (_,_) => handleCAActivatedTBD(a)
+      case a@CAActivatedTBD     (_) => handleCAActivatedTBD(a)
       case a@AAStarted        (_,_) => handleAAStarted  (a)
       case a@AAEnded          (_,_) => handleAAEnded    (a)
       case a@AAExecutionFinished(_) => handleAAExecutionFinished(a)
       case a@AAToBeReexecuted   (_) => handleAAToBeReexecuted   (a)
       case a@AAToBeExecuted     (_) => handleAAToBeExecuted     (a)
+      case CommunicationMatchingMessage => handleCommunicationMatchingMessage
     }
   }
   

@@ -83,8 +83,7 @@ import scala.collection.mutable._
 	                            child: CallGraphNodeTrait[_<:TemplateNode]) extends CallGraphMessageN {priority = 14}
 	case class CAActivated      (node: CallGraphNodeTrait[_<:TemplateNode], 
 	                            child: CallGraphNodeTrait[_<:TemplateNode]) extends CallGraphMessageN {priority = 15} // for immediate handling
-	case class CAActivatedTBD   (node: CallGraphNodeTrait[_<:TemplateNode], 
-	                            child: CallGraphNodeTrait[_<:TemplateNode]) extends CallGraphMessageN {priority = 2} // for late handling
+	case class CAActivatedTBD   (node: N_call                             ) extends CallGraphMessageN {priority = 2} // for late handling
 	case class AAStarted        (node: CallGraphNodeTrait[_<:TemplateNode], 
 	                            child: CallGraphNodeTrait[_<:TemplateNode]) extends CallGraphMessageN {priority = 17}
 	case class AAEnded          (node: CallGraphNodeTrait[_<:TemplateNode], 
@@ -92,9 +91,10 @@ import scala.collection.mutable._
 	case class AAToBeExecuted     [T<:TemplateNodeWithCode[_,R],R](node: CallGraphNodeWithCodeTrait[T,R]) extends CallGraphMessage[CallGraphNodeWithCodeTrait[T,R]] {priority = 1}
 	case class AAToBeReexecuted   [T<:TemplateNodeWithCode[_,R],R](node: CallGraphNodeWithCodeTrait[T,R]) extends CallGraphMessage[CallGraphNodeWithCodeTrait[T,R]] {priority = 0}
 	case class AAExecutionFinished[T<:TemplateNodeWithCode[_,R],R](node: CallGraphNodeWithCodeTrait[T,R]) extends CallGraphMessage[CallGraphNodeWithCodeTrait[T,R]] {priority = 6}
-	case class CommunicationMatching(cr: CommunicationRelation) extends CallGraphMessage[N_call] {
+	case object CommunicationMatchingMessage extends CallGraphMessage[CallGraphNodeTrait[TemplateNode]] {
 	  priority = 3 
-	  def node=null.asInstanceOf[N_call]
+	  def node:CallGraphNodeTrait[TemplateNode] = null
+	  def activatedCommunicationCalls = scala.collection.mutable.ArrayBuffer.empty[N_call]
 	}
 	// TBD: AAActivated etc to inherit from 1 trait; params: 1 node, many children
 	// adjust insert method

@@ -31,8 +31,8 @@ import subscript.vm._
 
 object DSL {
   type _scriptType = N_call=>Unit
-  def _script   (name         : Symbol       , p: FormalParameter_withName[_]*)(_t: TemplateNode): N_call => Unit = {(_c: N_call) => _c.calls(T_script    ("script"       , name,      _t), p:_*)}
-  def _comscript(communicators: Communicators, p: FormalParameter_withName[_]*)                  : N_call => Unit = {(_c: N_call) => _c.calls(T_commscript("communicator" , communicators), p:_*)}
+  def _script   (name        : Symbol      , p: FormalParameter_withName[_]*)(_t: TemplateNode): N_call => Unit = {(_c: N_call) => _c.calls(T_script    ("script"       , name,     _t), p:_*)}
+  def _comscript(communicator: Communicator, p: FormalParameter_withName[_]*)                  : N_call => Unit = {(_c: N_call) => _c.calls(T_commscript("communicator" , communicator), p:_*)}
   
 //  def _communication(owner: Any, names: Symbol*): N_communication => TemplateNode = {
 //    (_c: N_communication) => _c.inits(T_communication("communication", names.toList.map(_.asInstanceOf[Symbol])), owner)
@@ -41,8 +41,11 @@ object DSL {
 //    (_c: N_communication) => _c.inits(T_communication("communication", names.toList.map(_.asInstanceOf[Symbol])), owner)
 //  }
 
-  def _communicationRelation(_body: N_communication => TemplateNode) = CommunicationRelation(_body)
-  def _communicators(name: Symbol, communications: Tuple3[CommunicationRelation, Int, Multiplicity.MultiplicityType]*) = Communicators(name, communications.toList)
+  def _communication(body: N_communication => TemplateNode) = Communication(body)
+  def _communicator(name: Symbol) = Communicator(name)
+  def _relate(communication: Communication, crs: CommunicatorRole*): Unit = communication.setCommunicatorRoles(crs.toList)
+
+  implicit def communicatorToCommunicatorRole(c: Communicator) = new CommunicatorRole(c)
   
   def _execute(_script: N_call => Unit) = {val executor = new CommonScriptExecutor; _script(executor.anchorNode); executor.run}
 

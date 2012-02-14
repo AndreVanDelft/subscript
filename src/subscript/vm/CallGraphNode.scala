@@ -246,7 +246,7 @@ case class N_n_ary_op      (template: T_n_ary, isLeftMerge: Boolean) extends Cal
 case class N_call(template: T_call) extends CallGraphTreeParentNode[T_call] with CallGraphNodeWithCodeTrait[T_call, N_call=>Unit]{
   var t_callee    : T_script     = null
   var t_commcallee: T_commscript = null
-  var pendingAt: Communicators = null
+  var pendingAt: Communicator = null
   def stopPending {if (pendingAt!=null) {pendingAt.removePendingCall(this)}}
   var actualParameters: scala.collection.immutable.Seq[ActualParameter[_<:Any]] = Nil
   def calls(t: T_script, args: FormalParameter_withName[_]*): Unit = {
@@ -256,7 +256,6 @@ case class N_call(template: T_call) extends CallGraphTreeParentNode[T_call] with
   def calls(t: T_commscript, args: FormalParameter_withName[_]*): Unit = {
     this.actualParameters = args.toList.map(_.asInstanceOf[ActualParameter[_]])
     this.t_commcallee = t
-    this.t_commcallee.communicators.newInstances(this) = args.toList // "pend" it there
   }
   def allActualParametersMatch: Boolean = actualParameters.forall {_.matches}
   def transferParameters      : Unit    = actualParameters.foreach{_.transfer}
@@ -266,6 +265,7 @@ case class N_communication(var template: T_communication) extends CallGraphNonTr
   def inits(t: T_communication, owner: Any): TemplateNode = {return null // TBD
   }
   def _getParameter[T](p: Symbol): CommunicationParameter[T] = {return CommunicationParameter[T](p)}
+  var communication: Communication = null
 }
 
 object Multiplicity extends Enumeration {
@@ -275,11 +275,25 @@ object Multiplicity extends Enumeration {
 
 
 // no nodes, but structures to support communications
-case class CommunicationRelation(_body: N_communication => TemplateNode)
-case class Communicators(name: Symbol, communications: List[Tuple3[CommunicationRelation, Int, Multiplicity.MultiplicityType]]) {
-  def removePendingCall(call: N_call) {instances.remove(call); newInstances.remove(call)}
-  val instances = new HashMap[N_call, List[FormalParameter_withName[_]]]
-  val newInstances = new HashMap[N_call, List[FormalParameter_withName[_]]]
+case class Communication(_body: N_communication => TemplateNode) {
+  var communicatorRoles: List[CommunicatorRole] = null
+  def setCommunicatorRoles(crs: List[CommunicatorRole]): Unit = {
+    communicatorRoles = crs
+    for (cr <- crs) {
+      cr match {case CommunicatorRole(c) => c.roles += cr}
+    }
+  }
+}
+case class Communicator(name: Symbol) {
+  def removePendingCall(call: N_call) {instances -= call}
+  val instances = scala.collection.mutable.ArrayBuffer.empty[N_call]
+  var roles = new ListBuffer[CommunicatorRole]
+}
+case class CommunicatorRole(communicator: Communicator) {
+  var multiplicity = Multiplicity.One
+  var parameterNames = new ListBuffer[Symbol] 
+  def ~(s: Symbol): CommunicatorRole = {parameterNames += s; this}
+  def ~(m: Multiplicity.MultiplicityType): CommunicatorRole = {multiplicity = m; this}
 }
 
 // Utility stuff for Script Call Graph Nodes
