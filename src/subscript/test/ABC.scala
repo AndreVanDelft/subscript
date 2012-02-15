@@ -28,10 +28,10 @@ object ABC  {
   val __a = _communicator('a)
   val __b = _communicator('b)
   
-  val __a_b = _communication({(_comm: N_communication) => 
+  val __a_b = _communication{(_comm: N_communication) => 
     val _p0 = _comm._getParameter[String]('p0)
     val _p1 = _comm._getParameter[String]('p1)
-    _normal{println("a,b communicate: "+_p0.value+_p1.value)}})
+    _normal{println("a,b communicate: "+_p0.value+_p1.value)}}
   
   _relate(__a_b, __a~'p0, __b~'p1)
     

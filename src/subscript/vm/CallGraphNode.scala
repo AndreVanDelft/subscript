@@ -177,10 +177,7 @@ abstract class N_atomic_action[N<:N_atomic_action[N]](template: T_0_ary_code[N])
   override def asynchronousAllowed: Boolean = true
   var msgAAToBeExecuted: CallGraphMessage[_] = null
 }
-  // TBD keep track of state of N_atomic_action in order to be able to decide on what to do when
-  // - code execution started or ended
-  // - aa started or ended or endedOptionally
-  // - suspend/resume/exclude
+
 abstract class N_atomic_action_eh[N<:N_atomic_action[N]](template: T_0_ary_code[N]) extends N_atomic_action(template)
 
 abstract class CallGraphTreeNode_n_ary extends CallGraphTreeParentNode[T_n_ary] {
@@ -191,11 +188,6 @@ abstract class CallGraphTreeNode_n_ary extends CallGraphTreeParentNode[T_n_ary] 
   var continuation: Continuation = null
   var lastActivatedChild: CallGraphNodeTrait[_<:TemplateNode] = null
   var aaStartedSinceLastOptionalBreak = false
-  // TBD keep track of state in order to be able to decide on what to do when
-  // - aa activated, started or ended
-  // - suspend/resume/exclusion
-  // - child succeeded
-  // - child deactivated
 }
 
 case class N_code_normal     (template: T_0_ary_code[N_code_normal  ]) extends N_atomic_action   [N_code_normal  ](template)
@@ -246,8 +238,8 @@ case class N_n_ary_op      (template: T_n_ary, isLeftMerge: Boolean) extends Cal
 case class N_call(template: T_call) extends CallGraphTreeParentNode[T_call] with CallGraphNodeWithCodeTrait[T_call, N_call=>Unit]{
   var t_callee    : T_script     = null
   var t_commcallee: T_commscript = null
-  var pendingAt: Communicator = null
-  def stopPending {if (pendingAt!=null) {pendingAt.removePendingCall(this)}}
+  def communicator: Communicator = t_commcallee.communicator
+  def stopPending {if (communicator!=null) {communicator.removePendingCall(this)}}
   var actualParameters: scala.collection.immutable.Seq[ActualParameter[_<:Any]] = Nil
   def calls(t: T_script, args: FormalParameter_withName[_]*): Unit = {
     this.actualParameters = args.toList.map(_.asInstanceOf[ActualParameter[_]])
@@ -277,11 +269,16 @@ object Multiplicity extends Enumeration {
 // no nodes, but structures to support communications
 case class Communication(_body: N_communication => TemplateNode) {
   var communicatorRoles: List[CommunicatorRole] = null
+  var template: T_communication = null
   def setCommunicatorRoles(crs: List[CommunicatorRole]): Unit = {
+    var names = new ListBuffer[Symbol]
     communicatorRoles = crs
     for (cr <- crs) {
-      cr match {case CommunicatorRole(c) => c.roles += cr}
+      cr.communication = this
+      cr.communicator.roles += cr
+      names += cr.communicator.name
     }
+    template = T_communication("comm", names)
   }
 }
 case class Communicator(name: Symbol) {
@@ -290,6 +287,7 @@ case class Communicator(name: Symbol) {
   var roles = new ListBuffer[CommunicatorRole]
 }
 case class CommunicatorRole(communicator: Communicator) {
+  var communication: Communication = null
   var multiplicity = Multiplicity.One
   var parameterNames = new ListBuffer[Symbol] 
   def ~(s: Symbol): CommunicatorRole = {parameterNames += s; this}
@@ -317,12 +315,12 @@ object CallGraphNode {
     return null // dummy exit
   }
   
-  // find the lowest launch_anchor common ancestor of a nodes
+  // find the lowest launch_anchor common ancestor of a node
   //
   def getLowestLaunchAnchorAncestor(n: CallGraphNodeTrait[_]) = 
       getLowestSingleCommonAncestor(n, _.isInstanceOf[N_launch_anchor] )
       
-  // find the lowest single common ancestor of a nodes, that fulfills a given condition:
+  // find the lowest single common ancestor of a node, that fulfills a given condition:
   // easy when there is 0 or 1 parents
   //
   def getLowestSingleCommonAncestor(n: CallGraphNodeTrait[_], condition: (CallGraphNodeTrait[_])=>Boolean): CallGraphParentNodeTrait[_<:TemplateNode] = {

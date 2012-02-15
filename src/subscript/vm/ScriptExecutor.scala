@@ -440,33 +440,84 @@ class CommonScriptExecutor extends ScriptExecutor {
   }
   
   def handleCAActivatedTBD(message: CAActivatedTBD): Unit = {
-    if (CommunicationMatchingMessage.activatedCommunicationCalls.isEmpty) {
+    if (CommunicationMatchingMessage.activatedCommunicatorCalls.isEmpty) {
       insert(CommunicationMatchingMessage)
     }
-    CommunicationMatchingMessage.activatedCommunicationCalls += message.node
+    CommunicationMatchingMessage.activatedCommunicatorCalls += message.node
   }
   // TBD: process all fresh CA nodes to activate prospective communications
  def handleCommunicationMatchingMessage = {
     var startingCommunicationsOpenForMorePartners: List[N_communication] = Nil
-    for (acc <- CommunicationMatchingMessage.activatedCommunicationCalls) {
+    for (acc <- CommunicationMatchingMessage.activatedCommunicatorCalls) {
       // check out the associated communication relations:
       // if one of these may be activated with help of pending CA partners, then do so
       // else make this CA call pending as well
-      if (false) {
-        // TBD
-        // a communication may become active when
-        // all mandatory positions for partners at the same instance may be filled
-        // partners should have compatible parameters, be active in parallel, and obey network topology
-        //for (comm <- acc.t_commcallee.communicator.communications) {
-          
-        // }
+      
+      var i = 0
+      while (i < acc.communicator.roles.length && acc.children.isEmpty) {
+        val cr = acc.communicator.roles(i)
+        i += 1
+        tryCommunication(acc, cr)
       }
-      else {
-        acc.t_commcallee.communicator.instances += acc // TBD: remove again when acc is deactivated, using stopPending
+      if (acc.children.isEmpty) {
+        acc.communicator.instances += acc // TBD: remove again when acc is deactivated, using stopPending
       }
     }
-    CommunicationMatchingMessage.activatedCommunicationCalls.clear()
+    CommunicationMatchingMessage.activatedCommunicatorCalls.clear()
   }
+        
+	// a communication may become active when
+	// all mandatory positions for partners at the same instance may be filled
+	// partners should have compatible parameters, be active in parallel, and obey network topology
+  def tryCommunication(freshCall: N_call, freshCallRole: CommunicatorRole): Boolean = {
+    val communication = freshCallRole.communication
+    
+    def tryCommunicationWithPartners(partners: List[N_call]): Boolean = {
+        def canCommunicateWithPartners(n: N_call): Boolean = {
+          var i = 0
+          while (i < partners.length) {
+            // TBD: check for parallel locations
+            val p = partners(i)
+            val r = communication.communicatorRoles(i)
+            // TBD: check parameter compatibilities
+            
+            // TBD: check network topology
+          }
+          return true
+        }
+	    var i = partners.length
+        if (i == communication.communicatorRoles.length) {  
+           val nc = N_communication(communication.template)
+           // set nc.partners vv and make it activate
+           nc.communication = communication
+           nc.parents ++: partners
+           for (p<-partners) {p.children+=nc}
+           //executeCode_call(nc);
+           //activateFrom(nc, n.t_callee)}
+           return true
+        }
+        else {
+	      val role = communication.communicatorRoles(i)
+	      val nodes = if (role==freshCallRole) List(freshCall)
+	                else  role.communicator.instances
+          var j = 0
+          while (j < nodes.length) {
+	        val node = role.communicator.instances(j)
+            j += 1
+            if (canCommunicateWithPartners(node)) {
+              if (tryCommunicationWithPartners(node::partners)) {
+                return true;
+              }
+            }
+          }
+	      return false
+	    }
+    }
+
+    return tryCommunicationWithPartners(Nil)
+ }
+	          
+ 
   // TBD: ensure that an n-ary node gets only 1 AAStarted msg after an AA started in a communication reachable from multiple child nodes (*)
   def handleAAStarted(message: AAStarted): Unit = {
     message.node.hasSuccess = false

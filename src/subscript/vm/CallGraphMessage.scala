@@ -94,7 +94,7 @@ import scala.collection.mutable._
 	case object CommunicationMatchingMessage extends CallGraphMessage[CallGraphNodeTrait[TemplateNode]] {
 	  priority = 3 
 	  def node:CallGraphNodeTrait[TemplateNode] = null
-	  def activatedCommunicationCalls = scala.collection.mutable.ArrayBuffer.empty[N_call]
+	  def activatedCommunicatorCalls = scala.collection.mutable.ArrayBuffer.empty[N_call]
 	}
 	// TBD: AAActivated etc to inherit from 1 trait; params: 1 node, many children
 	// adjust insert method
