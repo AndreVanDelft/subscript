@@ -47,7 +47,12 @@ object DSL {
 
   implicit def communicatorToCommunicatorRole(c: Communicator) = new CommunicatorRole(c)
   
-  def _execute(_script: N_call => Unit) = {val executor = new CommonScriptExecutor; _script(executor.anchorNode); executor.run}
+  def _execute(_script: N_call => Unit): ScriptExecutor = _execute(_script, true)
+  def _execute(_script: N_call => Unit, allowDebugger: Boolean): ScriptExecutor = {
+    val executor = ScriptExecutorFactory.createScriptExecutor(allowDebugger)
+    _script(executor.anchorNode)
+    executor.run
+  }
 
   def _codeFragmentKind [N<:N_atomic_action[N]](opSymbol: String, cf:  => Unit ): T_0_ary_code[N] = T_0_ary_code(opSymbol, () => (_here:N) => cf)
   def _codeFragmentKind1[N<:N_atomic_action[N]](opSymbol: String, cf: (N=>Unit)): T_0_ary_code[N] = T_0_ary_code(opSymbol, () =>              cf)

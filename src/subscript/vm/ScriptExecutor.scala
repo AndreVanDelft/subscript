@@ -27,11 +27,50 @@
 package subscript.vm
 import scala.collection.mutable._
 
+object ScriptExecutorFactory {
+  var scriptDebugger: ScriptDebugger = null; 
+  def createScriptExecutor(allowDebugger: Boolean) = {
+    val se = new CommonScriptExecutor; 
+    if (allowDebugger &&scriptDebugger!=null) scriptDebugger.attach(se); 
+    se
+  }
+}
+
 trait ScriptExecutor {
+  
+  def rootNode: N_launch_anchor
+  
   val anchorNode: N_call
   def hasSucces: Boolean
   def run: ScriptExecutor
   def insert(sga: CallGraphMessage[_ <: CallGraphNodeTrait[_<:TemplateNode]])
+  
+  val ScriptGraphMessageOrdering = 
+	  new Ordering[CallGraphMessage[_ <: CallGraphNodeTrait[_<:TemplateNode]]] {
+    def compare(x: CallGraphMessage[_ <: CallGraphNodeTrait[_<:TemplateNode]], 
+                y: CallGraphMessage[_ <: CallGraphNodeTrait[_<:TemplateNode]]): Int = {
+	        val p = x.priority - y.priority
+	        if (p != 0) {p} // highest priority first
+	        else        {- x.node.index + y.node.index}  // oldest nodes first
+        }
+	}
+  
+  // TBD: the scriptGraphMessages queue should probably become synchronized
+  // Also, it would become faster if it has internally separate queues for each priority level
+  val scriptGraphMessages = new PriorityQueue[CallGraphMessage[_ <: CallGraphNodeTrait[_<:TemplateNode]]]()(ScriptGraphMessageOrdering)
+  
+  var scriptDebugger: ScriptDebugger = null;
+  def messageHandled     (m: CallGraphMessage[_]                 ) = if (scriptDebugger!=null) scriptDebugger.messageHandled (m)
+  def messageQueued      (m: CallGraphMessage[_]                 ) = if (scriptDebugger!=null) scriptDebugger.messageQueued  (m)
+  def messageDequeued    (m: CallGraphMessage[_]                 ) = if (scriptDebugger!=null) scriptDebugger.messageDequeued(m)
+  def messageContinuation(m: CallGraphMessage[_], c: Continuation) = if (scriptDebugger!=null) scriptDebugger.messageContinuation(m, c)
+  def messageAwaiting                                              = if (scriptDebugger!=null) scriptDebugger.messageAwaiting
+  
+  var nMessages = 0
+  def nextMessageID = {nMessages+=1; nMessages}
+
+  var nNodes = 0
+  def nextNodeIndex() = {nNodes = nNodes+1; nNodes}
 }
 
 /*
@@ -55,48 +94,7 @@ trait ScriptExecutor {
 
 class CommonScriptExecutor extends ScriptExecutor {
   
-  // some tracing stuff
-  var nSteps = 0
-  var maxSteps = 0 // 0 means unlimited
-  var traceLevel = 2 // 0-no tracing; 1-message handling 2-message insertion+handling
-  def trace(level:Int,as: Any*) = {
-    if (traceLevel>=level) {
-      as.foreach {a=>print(a.toString)}; 
-      println
-      //traceMessages
-    }
-    if (maxSteps>0 && nSteps > maxSteps) {println("Exiting after "+nSteps+"steps"); System.exit(0)}
-    nSteps += 1
-  }
-  def traceTree: Unit = {
-    var j = 0;
-	  def traceTree[T <: TemplateNode](n: CallGraphNodeTrait[T], branches: List[Int], depth: Int): Unit = {
-	    for (i<-1 to 30) {
-	      print(if(i==depth)"*"else if (branches.contains(i)) "|" else if(j%5==0)"-"else" ")
-	    }
-	    j+=1
-	    println(n)
-	    n match {
-	      case p:CallGraphParentNodeTrait[_] => 
-	        val pcl=p.children.length
-	        p.children.foreach{ c =>
-	          var bs = if (c.template.indexAsChild<pcl-1) 
-	                    depth::branches 
-	                    else branches
-	          traceTree(c, bs, depth+1)}
-	      case _ =>
-	    }
-	  }
-	if (traceLevel >= 1) traceTree(rootNode, Nil, 0)
-  }
-  def traceMessages: Unit = {
-	if (traceLevel >= 1) {
-	  println("=== Messages ===")
-	  scriptGraphMessages.foreach(println(_))
-	  println("=== End ===")
-	}
-  }
-  
+ 
   // send out a success when in an And-like context
   def doNeutral(n: CallGraphNode[_<:TemplateNode]) =
     if (n.getLogicalKind_n_ary_op_ancestor==LogicalKind.And) {
@@ -133,23 +131,10 @@ class CommonScriptExecutor extends ScriptExecutor {
   }
  
 
-  val ScriptGraphMessageOrdering = 
-	  new Ordering[CallGraphMessage[_ <: CallGraphNodeTrait[_<:TemplateNode]]] {
-    def compare(x: CallGraphMessage[_ <: CallGraphNodeTrait[_<:TemplateNode]], 
-                y: CallGraphMessage[_ <: CallGraphNodeTrait[_<:TemplateNode]]): Int = {
-	        val p = x.priority - y.priority
-	        if (p != 0) {p} // highest priority first
-	        else        {- x.node.index + y.node.index}  // oldest nodes first
-        }
-	}
-  
-  // TBD: the scriptGraphMessages queue should probably become synchronized
-  // Also, it would become faster if it has internally separate queues for each priority level
-  val scriptGraphMessages = new PriorityQueue[CallGraphMessage[_ <: CallGraphNodeTrait[_<:TemplateNode]]]()(ScriptGraphMessageOrdering)
-  
   // insert a message in the queue
   def insert(m: CallGraphMessage[_ <: CallGraphNodeTrait[_<:TemplateNode]]) = {
-    trace(2,"<< ",m)
+    m.id = nextMessageID
+    messageQueued(m)
     scriptGraphMessages += m
     m match {
       case maa@AAToBeExecuted  (n: CallGraphNodeWithCodeTrait[_,_]) => n.asInstanceOf[N_atomic_action[_]].msgAAToBeExecuted = maa
@@ -159,7 +144,7 @@ class CommonScriptExecutor extends ScriptExecutor {
   }
   // remove a message from the queue
   def remove(m: CallGraphMessage[_ <: CallGraphNodeTrait[_<:TemplateNode]]) = {
-    trace(2,"-- ",m)
+    messageDequeued(m)
     //scriptGraphMessages -= m  is not allowed...FTTB we will ignore this message, by checking the canceled flag in the executor
     m match {
       case maa@AAToBeExecuted  (n: CallGraphNodeWithCodeTrait[_,_]) => n.asInstanceOf[N_atomic_action[_]].msgAAToBeExecuted = null
@@ -211,7 +196,7 @@ class CommonScriptExecutor extends ScriptExecutor {
        insert (c)
     }
     else {
-      trace (2,"** ",c)
+      messageContinuation(message, c)
     }
   }
   def insertContinuation1(message: CallGraphMessage[_<:CallGraphNodeTrait[_<:TemplateNode]]): Unit = {
@@ -485,7 +470,7 @@ class CommonScriptExecutor extends ScriptExecutor {
           }
           return true
         }
-	    var i = partners.length
+	    var i = partners.length // TBD: make it a List[List[N_call]]
         if (i == communication.communicatorRoles.length) {  
            val nc = N_communication(communication.template)
            // set nc.partners vv and make it activate
@@ -513,7 +498,8 @@ class CommonScriptExecutor extends ScriptExecutor {
 	      return false
 	    }
     }
-
+    
+    // TBD: first try comms that may still grow (having multipicities other than One)
     return tryCommunicationWithPartners(Nil)
  }
 	          
@@ -555,7 +541,7 @@ class CommonScriptExecutor extends ScriptExecutor {
 	          }
 	        }
 		    // do exclusions and suspensions
-		    if (nodesToBeExcluded !=null) nodesToBeExcluded .foreach((n) => insert(Exclude(n)))
+		    if (nodesToBeExcluded !=null) nodesToBeExcluded .foreach((n) => insert(Exclude(message.node, n)))
 		    if (nodesToBeSuspended!=null) nodesToBeSuspended.foreach((n) => insert(Suspend(n)))
        case _ =>	    
 	  }
@@ -610,10 +596,11 @@ class CommonScriptExecutor extends ScriptExecutor {
         }
         // TBD: also for caNodes!!
         insert(Deactivation(aa, null, excluded=true))
+      case _ =>
     }
     if (      n.isInstanceOf[CallGraphTreeParentNode[_<:TemplateNode]]) {
       val p = n.asInstanceOf[CallGraphTreeParentNode[_<:TemplateNode]]
-      p.forEachChild(c => insert(Exclude(c)))
+      p.forEachChild(c => insert(Exclude(n,c)))
       return
     }
   }
@@ -814,7 +801,7 @@ class CommonScriptExecutor extends ScriptExecutor {
       insert(Success(n)) // TBD: prevent multiple successes at same "time"
     }
     // do exclusions and suspensions
-    if (nodesToBeExcluded !=null) nodesToBeExcluded .foreach((n) => insert(Exclude(n)))
+    if (nodesToBeExcluded !=null) nodesToBeExcluded .foreach((n) => insert(Exclude(message.node,n)))
     if (nodesToBeSuspended!=null) nodesToBeSuspended.foreach((n) => insert(Suspend(n)))
 
     // do activation    
@@ -840,7 +827,7 @@ class CommonScriptExecutor extends ScriptExecutor {
       case a@Deactivation  (_,_, _) => handleDeactivation (a)
       case a@Suspend            (_) => {}
       case a@Resume             (_) => {}
-      case a@Exclude            (_) => handleExclude    (a)
+      case a@Exclude          (_,_) => handleExclude    (a)
       case a@Success          (_,_) => handleSuccess    (a)
       case a@Break        (_, _, _) => handleBreak      (a)
       case a@AAActivated      (_,_) => handleAAActivated(a)
@@ -863,21 +850,14 @@ class CommonScriptExecutor extends ScriptExecutor {
       
       if (!scriptGraphMessages.isEmpty) {
         val m = scriptGraphMessages.dequeue
-        trace(1,">> ",m)
-        m match {
-          case AAToBeExecuted(_) =>
-            traceTree
-            traceMessages
-          case _ =>  
-        }
+        messageHandled(m)
         handle(m)
       }
       else if (!rootNode.children.isEmpty) {
-        traceTree
-        traceMessages
+        messageAwaiting
         synchronized { // TBD: there should also be a synchronized call in the CodeExecutors
           if (scriptGraphMessages.isEmpty) // looks stupid, but event may have happened&notify() may have been called during tracing
-            synchronized {wait()} // for an event to happen 
+            synchronized {wait(1000)} // for an event to happen 
         }
         // note: there may also be deadlock because of unmatching communications
         // so there should preferably be a check for the existence of waiting eh actions

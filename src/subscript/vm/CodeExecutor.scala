@@ -47,6 +47,7 @@ trait CodeExecutorTrait {
 }
 case class TinyCodeExecutor(n: CallGraphNodeTrait[_ <: TemplateNode], scriptExecutor: ScriptExecutor) extends CodeExecutorTrait  { // TBD: for while, {!!}, @:, script call
   val asynchronousAllowed = false
+  override def interruptAA   : Unit  = {} // TBD: clean up class/trait hierarchy so that this def can be ditched
   override def doCodeExecution[R](code: ()=>R): R = super.doCodeExecution{
     n.hasSuccess = true; 
     code

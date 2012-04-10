@@ -48,11 +48,16 @@ trait CallGraphNodeTrait[+T<:TemplateNode] {
   def lowestSingleCommonAncestor: CallGraphParentNodeTrait[_<:TemplateNode]
   def forEachParent(n: CallGraphParentNodeTrait[_<:TemplateNode] => Unit): Unit
 
-  val index = CallGraphNode.nextIndex()
+  var index = -1
   var stamp = 0
   var aaStartedCount = 0
   var properties: Map[Any,Any] = new HashMap[Any,Any]
-  var scriptExecutor: ScriptExecutor = null
+  var _scriptExecutor: ScriptExecutor = null
+  def scriptExecutor = _scriptExecutor
+  def scriptExecutor_=(s: ScriptExecutor) = {
+    index = s.nextNodeIndex()
+    _scriptExecutor = s
+  }
   
   def getCodeProperty(key: Any): ()=>Unit = {
     properties.get(key) match {
@@ -238,7 +243,7 @@ case class N_n_ary_op      (template: T_n_ary, isLeftMerge: Boolean) extends Cal
 case class N_call(template: T_call) extends CallGraphTreeParentNode[T_call] with CallGraphNodeWithCodeTrait[T_call, N_call=>Unit]{
   var t_callee    : T_script     = null
   var t_commcallee: T_commscript = null
-  def communicator: Communicator = t_commcallee.communicator
+  def communicator: Communicator = if (t_commcallee==null) null else t_commcallee.communicator
   def stopPending {if (communicator!=null) {communicator.removePendingCall(this)}}
   var actualParameters: scala.collection.immutable.Seq[ActualParameter[_<:Any]] = Nil
   def calls(t: T_script, args: FormalParameter_withName[_]*): Unit = {
@@ -298,8 +303,6 @@ case class CommunicatorRole(communicator: Communicator) {
 object CallGraphNode {
   var currentStamp = 0; // used for searching common ancestors
   
-  var nCreated = 0
-  def nextIndex() = {nCreated = nCreated+1; nCreated}
   def nextStamp() = {currentStamp = currentStamp+1; currentStamp}
   
   // answer the stepsUp'th N_n_ary_op ancestor node

@@ -27,13 +27,9 @@
 package subscript.vm
 import scala.collection.mutable._
 
-  object CallGraphMessage {
-      var n = 0
-      def nextN = {n+=1; n}
-  }
   trait CallGraphMessage[N <: CallGraphNodeTrait[_<:TemplateNode]] {
       var priority = 0 // TBD: determine good priority levels
-      var id = CallGraphMessage.nextN
+      var id = -1
 	  def node: N
 
 	  val className = "%14s".format(getClass.getSimpleName)
@@ -74,7 +70,8 @@ import scala.collection.mutable._
 	                            child: CallGraphNodeTrait[_<:TemplateNode], excluded: Boolean) extends CallGraphMessageN {priority = 6}
 	case class Suspend          (node: CallGraphNodeTrait[_<:TemplateNode]) extends CallGraphMessageN {priority = 9}
 	case class Resume           (node: CallGraphNodeTrait[_<:TemplateNode]) extends CallGraphMessageN {priority = 10}
-	case class Exclude          (node: CallGraphNodeTrait[_<:TemplateNode]) extends CallGraphMessageN {priority = 11}
+	case class Exclude        (parent: CallGraphNodeTrait[_<:TemplateNode], 
+	                             node: CallGraphNodeTrait[_<:TemplateNode]) extends CallGraphMessageN {priority = 11}
 	case class Success          (node: CallGraphNodeTrait[_<:TemplateNode], 
 	                            child: CallGraphNodeTrait[_<:TemplateNode] = null) extends CallGraphMessageN {priority = 12}
 	case class Break            (node: CallGraphNodeTrait[_<:TemplateNode], 

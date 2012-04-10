@@ -13,32 +13,33 @@ import subscript.vm._
 //
 // Note: the main part of this source file has been manually compiled from Subscript code into plain Scala
 
-object AB extends ABApplication
+object ABX extends ABXApplication
 
-class ABApplication extends SimpleSubscriptApplication {
+class ABXApplication extends SimpleSubscriptApplication {
   
-  val A = new Button("A")           {enabled       = false}
-  val B = new Button("B")           {enabled       = false}
-  val X = new Button("Exit")        {enabled       = false}
-  val ABLabel  = new Label("A..;B") {preferredSize = new Dimension(45,26)}
-  val outputTA = new TextArea       {editable      = false}
+  val A = new Button("A")          {enabled       = false}
+  val B = new Button("B")          {enabled       = false}
+  val X = new Button("Exit")       {enabled       = false}
+  val ABLabel  = new Label("A..B") {preferredSize = new Dimension(45,26)}
+  val outputTA = new TextArea      {editable      = false}
   
   val top          = new MainFrame {
-    title          = "A..;B; exit - Subscript"
-    location       = new Point    (100,0)
-    preferredSize  = new Dimension(300,70)
+    title          = "A..B; exit - Subscript"
+    location       = new Point    (100,100)
+    preferredSize  = new Dimension(300,300)
     contents       = new BorderPanel {
       add(new FlowPanel(A, B, ABLabel, X), BorderPanel.Position.North) 
+      add(outputTA, BorderPanel.Position.Center) 
     }
   }
   
 /* the following subscript code has manually been compiled into Scala; see below
  script..
-  override live = A..B; exit
+  override live = A..;B; exit
            exit = X+Key.Excape
 */
 
-  override def _live = _script('live) {_seq(_seq(_clicked(A), _optionalBreak_loop), _clicked(B), _exit)}
+  override def _live = _script('live) {_seq(_seq(_clicked(A), _optionalBreak_loop, _clicked(B)), _exit)}
            def _exit = _script('exit) {_alt(_clicked(X), _vkey(top, Key.Escape))}
                
   // bridge methods; only the first one is actually used; implicit scripts do not get bridge methods   
