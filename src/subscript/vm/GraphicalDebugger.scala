@@ -10,18 +10,25 @@ import subscript.DSL._
 
 object GraphicalDebugger extends GraphicalDebuggerApp {
   override def main(args: Array[String]): Unit = {
-    if (args.isEmpty) return
+    var lArgs = args
+    if (lArgs.isEmpty) return
     ScriptExecutorFactory.scriptDebugger = this
     top.visible = true
+    
+    lArgs.head match {
+      case "-s" => lArgs = lArgs.tail; if (lArgs.isEmpty) return; descriptionLabel.text = lArgs.head
+                   lArgs = lArgs.tail; if (lArgs.isEmpty) return
+      case _ =>
+    }
     new Thread{override def run={
       live;
       quit
     }}.start()
     
     try {
-      val c = Class.forName(args.head) // TBD: should be a swing application
+      val c = Class.forName(lArgs.head) // TBD: should be a swing application
       val m = c.getMethod("main", classOf[Array[String]])
-      m.invoke(null, args.tail)
+      m.invoke(null, lArgs.tail)
     }
     catch {
       case e: ClassNotFoundException =>
@@ -41,26 +48,23 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
   // draw message lists
 
   var messageBeingHandled = false
-  
   var currentMessage: CallGraphMessage[_] = null
-  
-  var             myLock = new Object
-  var scriptExecuterLock = new Object
   
   val exitButton = new Button("Exit"  ) {enabled = false}
   val stepButton = new Button("Step"  ) {enabled = false}
   val drawingPanel = new Panel {
     background = AWTColor.white
-    preferredSize  = new Dimension(1000,1000)
+    preferredSize  = new Dimension(1000,2000)
     override def paint(g: Graphics2D) {
         g.setColor(AWTColor.white)
         g.fillRect(0, 0, size.width, size.height)
         onPaint(g)
     }
   }
-  val font = new Font("Arial", Font.BOLD, 16)
-  val normalStroke = new BasicStroke(1)
-  val    fatStroke = new BasicStroke(3)
+  val fixedWidthFont = new Font("Monaco", Font.BOLD, 11)
+  val     normalFont = new Font("Arial" , Font.BOLD, 16)
+  val   normalStroke = new BasicStroke(1)
+  val      fatStroke = new BasicStroke(3)
   
   def onPaint(g: Graphics2D) {
       val GRID_W  = 170
@@ -73,8 +77,8 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
       val hOffset = (GRID_W - BOX_W)/2
       val vOffset = (GRID_H - BOX_H)/2
       
-      val fontMetrics = g.getFontMetrics(font)
-      g.setFont(font)
+      val fontMetrics = g.getFontMetrics(normalFont)
+      g.setFont(normalFont)
 
       def emphasize(doIt: Boolean) {
         if (doIt) {
@@ -191,6 +195,10 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
         
         emphasize(isCurrentNode)
         g draw new Rectangle(boxLeft, boxTop, BOX_W, BOX_H)
+        if (isCurrentNode && currentMessage.isInstanceOf[Deactivation]) {
+          g.drawLine(boxLeft, boxTop      , boxLeft+BOX_W, boxTop+BOX_H)
+          g.drawLine(boxLeft, boxTop+BOX_H, boxLeft+BOX_W, boxTop      )
+        }
         emphasize(false)
         drawStringTopLeft (n.index.toString, boxLeft+2, boxTop+5)
         drawStringCentered(s, hCenter, vCenter)
@@ -210,16 +218,16 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
   val msgLogListModel = new javax.swing.DefaultListModel
   
   val currentMessageTF = new TextField {
-    preferredSize    = new Dimension(300,20)
+    preferredSize    = new Dimension(300,24)
     minimumSize      = preferredSize
     editable         = false
-    font             = this.font
+    font             = normalFont
   }
   val msgLogList     = new ListBuffer[String]
   val msgLogListView = new ListView(msgLogList) {
     preferredSize    = new Dimension(300,300)
     minimumSize      = preferredSize
-    font             = this.font
+    font             = fixedWidthFont
     peer.setModel(msgLogListModel)
   }
   val splitPane1     = new SplitPane(scala.swing.Orientation.Vertical, 
@@ -228,12 +236,16 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
     dividerLocation  = 240
   }
 
-  val top            = new Frame {
-    title            = "Subscript Graphical Debugger"
-    location         = new Point    (0,100)
-    preferredSize    = new Dimension(800,800)
-    contents         = new BorderPanel {
-      add(new FlowPanel(currentMessageTF, stepButton, exitButton), BorderPanel.Position.North) 
+  val descriptionLabel = new Label {
+    preferredSize      = new Dimension(300,24)
+    font               = normalFont
+  }
+  val top              = new Frame {
+    title              = "Subscript Graphical Debugger"
+    location           = new Point    (0,100)
+    preferredSize      = new Dimension(800,800)
+    contents           = new BorderPanel {
+      add(new FlowPanel(currentMessageTF, stepButton, exitButton, descriptionLabel), BorderPanel.Position.North) 
       add(splitPane1, BorderPanel.Position.Center)
       //add(new ScrollPane(drawingPanel), BorderPanel.Position.Center)
       //add(outputTA, BorderPanel.Position.Center) 
@@ -243,25 +255,13 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
   def sleep(duration_ms: Long) = try {Thread.sleep(duration_ms)} catch {case e: InterruptedException => println("sleep interrupted")}
   def confirmExit: Boolean = Dialog.showConfirmation(null, "Are you sure?", "About to exit")==Dialog.Result.Yes
   
-  // script live = {*awaitScriptExecuterPause, m:CallGraphMessage[_]?*}
-  //               display,m 
-  //               if (!shouldStep) (stepCommand + if(!needsStep(m)) waitSomeTime )
-  //               scriptExecuter.notify
-  //               ...
-  //            || exitDebugger
+  
   def awaitMessageBeingHandled(value: Boolean) = {
-    //println("awaitScriptExecuterPause START")
-    //if (!messageBeingHandled) {
-    //  myLock.synchronized{
-    //    myLock.wait
-    //  }
-    //}
     var sleeptime = 1
     while (messageBeingHandled!=value) {
       sleep(sleeptime)
       if (sleeptime<100) sleeptime *=2
     }
-    //println("awaitMessageBeingHandled END")
   }
   def shouldStep: Boolean =
     currentMessage match {
@@ -271,21 +271,26 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
   
   def logMessage(m: String, msg: CallGraphMessage[_]) {
     msgLogListModel.addElement(m + " " + msg)
-    //trace(1,m, msg)
   }
   def updateDisplay = {
     currentMessageTF.text = currentMessage.toString
     logMessage (">>", currentMessage)
     drawingPanel.repaint()
   }
+  // script live = {*awaitMessageBeingHandled*}
+  //               if (shouldStep) ( @gui: {!updateDisplay!}; stepCommand || if(!needsStep(m)) waitSomeTime )
+  //               {messageBeingHandled=false}
+  //               ...
+  //            || exitDebugger
+  
   override def _live  = _script('live) {_par_or2(_seq(_threaded{awaitMessageBeingHandled(true)}, 
-                                                      _if{shouldStep} (_seq(_tiny{updateDisplay}, _stepCommand)), 
+                                                      _if{shouldStep} (_seq(_at{gui} (_tiny{updateDisplay}), _stepCommand)), 
                                                       _normal{messageBeingHandled=false}, 
                                                       _loop
                                                      ), 
                                                   _exitDebugger
                                                 )}
-  def   _stepCommand  = _script('stepCommand ) {_clicked(stepButton)} // windowClosing
+  def   _stepCommand  = _script('stepCommand ) {_clicked(stepButton)}
   def   _exitCommand  = _script('exitCommand ) {_clicked(exitButton)} // windowClosing
   def   _exitDebugger = _script('exitDebugger) {_seq(  _exitCommand, _at{gui} (_while{!confirmExit}))}
   
@@ -294,14 +299,13 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
   def scriptGraphMessages = scriptExecutor.scriptGraphMessages
   def rootNode            = scriptExecutor.rootNode
   
-  
   def messageHandled(m: CallGraphMessage[_]): Unit = {
     currentMessage = m
     messageBeingHandled=true 
     awaitMessageBeingHandled(false)
   }
-  def messageQueued      (m: CallGraphMessage[_]                 ) = logMessage("++ ", m)
-  def messageDequeued    (m: CallGraphMessage[_]                 ) = logMessage("-- ", m)
-  def messageContinuation(m: CallGraphMessage[_], c: Continuation) = logMessage("** ", c)
-  def messageAwaiting: Unit = {}//traceTree; traceMessages}
+  def messageQueued      (m: CallGraphMessage[_]                 ) = logMessage("++", m)
+  def messageDequeued    (m: CallGraphMessage[_]                 ) = logMessage("--", m)
+  def messageContinuation(m: CallGraphMessage[_], c: Continuation) = logMessage("**", c)
+  def messageAwaiting: Unit = {}
 }

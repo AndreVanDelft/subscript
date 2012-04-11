@@ -1,4 +1,3 @@
-package subscript.test
 import scala.swing._
 import scala.swing.event._
 import subscript.Predef._
@@ -25,7 +24,7 @@ class ABApplication extends SimpleSubscriptApplication {
   
   val top          = new MainFrame {
     title          = "..A;B; exit - Subscript"
-    location       = new Point    (100,0)
+    location       = new Point    (0,0)
     preferredSize  = new Dimension(300,70)
     contents       = new BorderPanel {
       add(new FlowPanel(A, B, ABLabel), BorderPanel.Position.North) 

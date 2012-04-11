@@ -1,4 +1,3 @@
-package subscript.test
 import scala.swing._
 import scala.swing.event._
 import subscript.Predef._

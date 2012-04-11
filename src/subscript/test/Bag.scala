@@ -33,7 +33,7 @@ class BagApplication extends SimpleSubscriptApplication {
   
   val top          = new MainFrame {
     title          = "Bag - Subscript"
-    location       = new Point    (100,100)
+    location       = new Point    (0,0)
     preferredSize  = new Dimension(300,300)
     contents       = new BorderPanel {
       //add(new FlowPanel(bagLabel, X), BorderPanel.Position.North) 
