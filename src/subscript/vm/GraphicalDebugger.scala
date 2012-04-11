@@ -177,7 +177,7 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
 	        }
 	      case _ => resultW = 1
 	    }
-        val thisX   = x+resultW/2 
+        val thisX   = x+(resultW-1)/2 
         val boxLeft = (thisX*GRID_W).toInt+hOffset
         val boxTop  = y*GRID_H+vOffset
         val hCenter = boxLeft + BOX_W/2
@@ -230,8 +230,8 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
 
   val top            = new Frame {
     title            = "Subscript Graphical Debugger"
-    location         = new Point    (100,100)
-    preferredSize    = new Dimension(600,600)
+    location         = new Point    (0,100)
+    preferredSize    = new Dimension(800,800)
     contents         = new BorderPanel {
       add(new FlowPanel(currentMessageTF, stepButton, exitButton), BorderPanel.Position.North) 
       add(splitPane1, BorderPanel.Position.Center)
@@ -249,26 +249,20 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
   //               scriptExecuter.notify
   //               ...
   //            || exitDebugger
-  def awaitScriptExecuterPause1 = {sleep(1000)}
-  def awaitScriptExecuterPause = {
+  def awaitMessageBeingHandled(value: Boolean) = {
     //println("awaitScriptExecuterPause START")
     //if (!messageBeingHandled) {
     //  myLock.synchronized{
     //    myLock.wait
     //  }
     //}
-    while (!messageBeingHandled) {
-      sleep(100)
+    var sleeptime = 1
+    while (messageBeingHandled!=value) {
+      sleep(sleeptime)
+      if (sleeptime<100) sleeptime *=2
     }
-    //println("awaitScriptExecuterPause END")
+    //println("awaitMessageBeingHandled END")
   }
-  def notifyScriptExecuter = {
-    println("notifyScriptExecuter.synchronized START")
-    scriptExecuterLock.synchronized{
-      println("notifyScriptExecuter.synchronized.notify START")
-      scriptExecuterLock.notify}
-    println("notifyScriptExecuter END")
-  }  
   def shouldStep: Boolean =
     currentMessage match {
       case Activation(_) | Deactivation(_,_,_) | AAStarted(_,_) | Success(_,_)  | Break(_,_,_)  | Exclude(_,_) => true
@@ -283,15 +277,10 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
     currentMessageTF.text = currentMessage.toString
     logMessage (">>", currentMessage)
     drawingPanel.repaint()
-    currentMessage match {
-      case AAToBeExecuted(_) =>
-        traceMessages
-      case _ =>  
-    }
   }
-  override def _live  = _script('live) {_par_or2(_seq(_threaded{awaitScriptExecuterPause}, 
+  override def _live  = _script('live) {_par_or2(_seq(_threaded{awaitMessageBeingHandled(true)}, 
                                                       _if{shouldStep} (_seq(_tiny{updateDisplay}, _stepCommand)), 
-                                                      _normal{notifyScriptExecuter}, 
+                                                      _normal{messageBeingHandled=false}, 
                                                       _loop
                                                      ), 
                                                   _exitDebugger
@@ -300,71 +289,19 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
   def   _exitCommand  = _script('exitCommand ) {_clicked(exitButton)} // windowClosing
   def   _exitDebugger = _script('exitDebugger) {_seq(  _exitCommand, _at{gui} (_while{!confirmExit}))}
   
-  override def live = _execute(_live, false)
+  override def live = _execute(_live, new SimpleScriptDebugger)
   
   def scriptGraphMessages = scriptExecutor.scriptGraphMessages
   def rootNode            = scriptExecutor.rootNode
   
-  // some tracing stuff
-  var nSteps = 0
-  var maxSteps = 0 // 0 means unlimited
-  var traceLevel = 2 // 0-no tracing; 1-message handling 2-message insertion+handling
-  def trace(level:Int,as: Any*) = {
-    if (traceLevel>=level) {
-      as.foreach {a=>print(a.toString)}; 
-      println
-      //traceMessages
-    }
-    if (maxSteps>0 && nSteps > maxSteps) {println("Exiting after "+nSteps+"steps"); System.exit(0)}
-    nSteps += 1
-  }
-  def traceTree: Unit = {
-    var j = 0;
-	  def traceTree[T <: TemplateNode](n: CallGraphNodeTrait[T], branches: List[Int], depth: Int): Unit = {
-	    for (i<-1 to 30) {
-	      print(if(i==depth)"*"else if (branches.contains(i)) "|" else if(j%5==0)"-"else" ")
-	    }
-	    j+=1
-	    println(n)
-	    n match {
-	      case p:CallGraphParentNodeTrait[_] => 
-	        val pcl=p.children.length
-	        p.children.foreach{ c =>
-	          var bs = if (c.template.indexAsChild<pcl-1) 
-	                    depth::branches 
-	                    else branches
-	          traceTree(c, bs, depth+1)}
-	      case _ =>
-	    }
-	  }
-	if (traceLevel >= 1) traceTree(rootNode, Nil, 0)
-  }
-  def traceMessages: Unit = {
-	if (traceLevel >= 1) {
-	  println("=== Messages ===")
-	  scriptGraphMessages.foreach(println(_))
-	  println("=== End ===")
-	}
-  }
-  
   
   def messageHandled(m: CallGraphMessage[_]): Unit = {
     currentMessage = m
-    //println("myLock.notify START")
-    //myLock.synchronized{
-      messageBeingHandled=true; 
-    //  myLock.notify
-    //}
-    //println("myLock.notify END")
-    println("scriptExecuterLock.synchronized START")
-    scriptExecuterLock.synchronized{
-      println("scriptExecuterLock.synchronized.wait START")
-      scriptExecuterLock.wait; 
-    }
-    println("scriptExecuterLock.wait END")
+    messageBeingHandled=true 
+    awaitMessageBeingHandled(false)
   }
   def messageQueued      (m: CallGraphMessage[_]                 ) = logMessage("++ ", m)
   def messageDequeued    (m: CallGraphMessage[_]                 ) = logMessage("-- ", m)
   def messageContinuation(m: CallGraphMessage[_], c: Continuation) = logMessage("** ", c)
-  def messageAwaiting: Unit = {traceTree; traceMessages}
+  def messageAwaiting: Unit = {}//traceTree; traceMessages}
 }

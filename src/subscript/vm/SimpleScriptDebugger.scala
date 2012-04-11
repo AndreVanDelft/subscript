@@ -72,8 +72,8 @@ class SimpleScriptDebugger extends ScriptDebugger {
           case _ =>  
         }
   }
-  def messageQueued      (m: CallGraphMessage[_]                 ) = trace(2, "++", m)
-  def messageDequeued    (m: CallGraphMessage[_]                 ) = trace(2, "--", m)
-  def messageContinuation(m: CallGraphMessage[_], c: Continuation) = trace(2, "**", c)
+  def messageQueued      (m: CallGraphMessage[_]                 ) = trace(2, "++ ", m)
+  def messageDequeued    (m: CallGraphMessage[_]                 ) = trace(2, "-- ", m)
+  def messageContinuation(m: CallGraphMessage[_], c: Continuation) = trace(2, "** ", c)
   def messageAwaiting: Unit = {traceTree; traceMessages}
 }

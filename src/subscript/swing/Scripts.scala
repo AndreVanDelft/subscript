@@ -48,7 +48,7 @@ object Scripts {
   }             
 
   object ScriptReactor {
-    var consumedEvent: Event = null // event.consume not available for button clicks; this consumedEvent item is a workaround
+    var scriptExecutorThatConsumedEvent: ScriptExecutor = null // event.consume not available for button clicks; this consumedEvent item is a workaround
   }
   // an extension on scala.swing.Reactor that supports event handling scripts in Subscript
   abstract class ScriptReactor[N<:N_atomic_action_eh[N]] extends Reactor {
@@ -60,15 +60,15 @@ object Scripts {
     private var myEnabled = false
     def enabled = myEnabled
     def enabled_=(b:Boolean) = {myEnabled=b}
-    def acknowledgeEventHandled = {ScriptReactor.consumedEvent = null} // will be done when an Event Handling Code Fragment succeeds, performed by the ScriptExecutor
+    def acknowledgeEventHandled = {ScriptReactor.scriptExecutorThatConsumedEvent = null} // will be done when an Event Handling Code Fragment succeeds, performed by the ScriptExecutor
     
     val event: Event
     def reaction: PartialFunction[Event,Unit] = myReaction
     private val myReaction: PartialFunction[Event,Unit] = {
-      case event if (ScriptReactor.consumedEvent == null) => {
+      case event if (ScriptReactor.scriptExecutorThatConsumedEvent != executor.scriptExecutor) => {
                  execute
                  if (executor.n.hasSuccess) {
-                   ScriptReactor.consumedEvent = event
+                   ScriptReactor.scriptExecutorThatConsumedEvent = executor.scriptExecutor
                    consumeEvent
                  }
                }

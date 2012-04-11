@@ -47,9 +47,11 @@ object DSL {
 
   implicit def communicatorToCommunicatorRole(c: Communicator) = new CommunicatorRole(c)
   
-  def _execute(_script: N_call => Unit): ScriptExecutor = _execute(_script, true)
-  def _execute(_script: N_call => Unit, allowDebugger: Boolean): ScriptExecutor = {
-    val executor = ScriptExecutorFactory.createScriptExecutor(allowDebugger)
+  def _execute(_script: N_call => Unit): ScriptExecutor = _execute(_script, null, true)
+  def _execute(_script: N_call => Unit, debugger: ScriptDebugger): ScriptExecutor = _execute(_script, debugger, false)
+  def _execute(_script: N_call => Unit, debugger: ScriptDebugger, allowDebugger: Boolean): ScriptExecutor = {
+    val executor = ScriptExecutorFactory.createScriptExecutor(allowDebugger && debugger == null)
+    if (debugger!=null) debugger.attach(executor)
     _script(executor.anchorNode)
     executor.run
   }

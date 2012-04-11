@@ -208,7 +208,6 @@ class CommonScriptExecutor extends ScriptExecutor {
       scriptGraphMessages += c
     }
     scriptGraphMessages += Continuation1(n)
-    notify
   }
   
   def hasSucces      = rootNode.hasSuccess
@@ -857,7 +856,11 @@ class CommonScriptExecutor extends ScriptExecutor {
         messageAwaiting
         synchronized { // TBD: there should also be a synchronized call in the CodeExecutors
           if (scriptGraphMessages.isEmpty) // looks stupid, but event may have happened&notify() may have been called during tracing
-            synchronized {wait()} // for an event to happen 
+            synchronized {
+              println("wait start - scriptGraphMessages.length = "+scriptGraphMessages.length + "  "+anchorNode.t_callee.name.name+" "+(if(scriptDebugger==null)"" else scriptDebugger.toString))
+              wait() // for an event to happen 
+              println("wait end   - scriptGraphMessages.length = "+scriptGraphMessages.length + "  "+anchorNode.t_callee.name.name+" "+(if(scriptDebugger==null)"" else scriptDebugger.toString))
+            }
         }
         // note: there may also be deadlock because of unmatching communications
         // so there should preferably be a check for the existence of waiting eh actions
