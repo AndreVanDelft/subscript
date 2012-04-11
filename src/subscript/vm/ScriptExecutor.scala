@@ -857,7 +857,7 @@ class CommonScriptExecutor extends ScriptExecutor {
         messageAwaiting
         synchronized { // TBD: there should also be a synchronized call in the CodeExecutors
           if (scriptGraphMessages.isEmpty) // looks stupid, but event may have happened&notify() may have been called during tracing
-            synchronized {wait(1000)} // for an event to happen 
+            synchronized {wait()} // for an event to happen 
         }
         // note: there may also be deadlock because of unmatching communications
         // so there should preferably be a check for the existence of waiting eh actions

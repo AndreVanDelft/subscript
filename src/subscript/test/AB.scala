@@ -19,16 +19,16 @@ class ABApplication extends SimpleSubscriptApplication {
   
   val A = new Button("A")           {enabled       = false}
   val B = new Button("B")           {enabled       = false}
-  val X = new Button("Exit")        {enabled       = false}
-  val ABLabel  = new Label("A..;B") {preferredSize = new Dimension(45,26)}
+  //val X = new Button("Exit")        {enabled       = false}
+  val ABLabel  = new Label("..A;B") {preferredSize = new Dimension(45,26)}
   val outputTA = new TextArea       {editable      = false}
   
   val top          = new MainFrame {
-    title          = "A..;B; exit - Subscript"
+    title          = "..A;B; exit - Subscript"
     location       = new Point    (100,0)
     preferredSize  = new Dimension(300,70)
     contents       = new BorderPanel {
-      add(new FlowPanel(A, B, ABLabel, X), BorderPanel.Position.North) 
+      add(new FlowPanel(A, B, ABLabel), BorderPanel.Position.North) 
     }
   }
   
@@ -38,10 +38,10 @@ class ABApplication extends SimpleSubscriptApplication {
            exit = X+Key.Excape
 */
 
-  override def _live = _script('live) {_seq(_seq(_clicked(A), _optionalBreak_loop), _clicked(B), _exit)}
-           def _exit = _script('exit) {_alt(_clicked(X), _vkey(top, Key.Escape))}
+  override def _live = _script('live) {_seq(_seq(_optionalBreak_loop, _clicked(A)), _clicked(B))}
+        //def _exit = _script('exit) {_alt(_clicked(X), _vkey(top, Key.Escape))}
                
   // bridge methods; only the first one is actually used; implicit scripts do not get bridge methods   
   override def live = _execute(_live)
-           def exit = _execute(_exit)
+        //def exit = _execute(_exit)
 }
