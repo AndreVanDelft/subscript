@@ -50,6 +50,17 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
   var messageBeingHandled = false
   var currentMessage: CallGraphMessage[_] = null
   
+  def interestingContinuationInternals(c: Continuation): List[String] = {
+     var ss: List[String] = Nil
+     if (c != null) {
+          if (!c.aaStarteds   .isEmpty) ss ::= "AA Started"
+          if ( c.activation    != null) ss ::= "Activation"
+          if (!c.deactivations.isEmpty) ss ::= "Deactivations"
+          if ( c.success       != null) ss ::= "Success"
+     }
+     ss
+  }
+  
   val exitButton = new Button("Exit"  ) {enabled = false}
   val stepButton = new Button("Step"  ) {enabled = false}
   val drawingPanel = new Panel {
@@ -61,7 +72,7 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
         onPaint(g)
     }
   }
-  val fixedWidthFont = new Font("Monaco", Font.BOLD, 11)
+  val fixedWidthFont = new Font("Monaco", Font.BOLD, 12)
   val     normalFont = new Font("Arial" , Font.BOLD, 16)
   val   normalStroke = new BasicStroke(1)
   val      fatStroke = new BasicStroke(3)
@@ -160,7 +171,19 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
         g.setStroke(normalStroke)
         g.setColor (AWTColor.black)
       }
-      
+      def drawContinuationTexts(n: CallGraphNodeTrait[_], boxRight: Int, boxTop: Int) = {
+        val x = boxRight + 3
+        var y = boxTop
+        n match {
+          case nn: N_n_ary_op => 
+            interestingContinuationInternals(nn.continuation).foreach{s: String=>drawStringTopLeft(s, x, y); y += fontMetrics.getHeight+2}
+          case _ => if (currentMessage!=null&&currentMessage.node==n) currentMessage match {
+            case s: Success   if (s.child==null) => drawStringTopLeft("Success"  , x, y) 
+            case a: AAStarted if (a.child==null) => drawStringTopLeft("AAStarted", x, y) 
+            case _ => 
+          }
+        }
+      }
 	  def drawTree[T <: TemplateNode](n: CallGraphNodeTrait[T], x: Double, y: Int): (Double, Double) = {
         var resultW = 0d // drawn width of this subtree
         var childHCs = new ListBuffer[Double]
@@ -193,12 +216,24 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
           case _              => n .template.kind
         }
         
+        val r = new Rectangle(boxLeft, boxTop, BOX_W, BOX_H)
+        g.setColor(new AWTColor(230, 255, 230)) 
+        g fill r
         emphasize(isCurrentNode)
-        g draw new Rectangle(boxLeft, boxTop, BOX_W, BOX_H)
-        if (isCurrentNode && currentMessage.isInstanceOf[Deactivation]) {
-          g.drawLine(boxLeft, boxTop      , boxLeft+BOX_W, boxTop+BOX_H)
-          g.drawLine(boxLeft, boxTop+BOX_H, boxLeft+BOX_W, boxTop      )
+        g draw r 
+        if (isCurrentNode) {
+          currentMessage match {
+            case d: Deactivation =>
+              n match {
+                case pn: CallGraphParentNodeTrait[_] if (pn.children.length>0) =>
+                case _ =>
+                  g.drawLine(boxLeft, boxTop      , boxLeft+BOX_W, boxTop+BOX_H)
+                  g.drawLine(boxLeft, boxTop+BOX_H, boxLeft+BOX_W, boxTop      )
+              }
+            case _ =>
+          }
         }
+        drawContinuationTexts(n, boxLeft+BOX_W, boxTop)
         emphasize(false)
         drawStringTopLeft (n.index.toString, boxLeft+2, boxTop+5)
         drawStringCentered(s, hCenter, vCenter)
@@ -215,23 +250,43 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
       if (scriptExecutor!=null) drawTree(rootNode, 0, 0)
   }
   
-  val msgLogListModel = new javax.swing.DefaultListModel
+  val msgLogListModel   = new javax.swing.DefaultListModel
+  val msgQueueListModel = new javax.swing.DefaultListModel
   
-  val currentMessageTF = new TextField {
-    preferredSize    = new Dimension(300,24)
-    minimumSize      = preferredSize
-    editable         = false
-    font             = normalFont
+  val currentMessageTF  = new TextField {
+    preferredSize       = new Dimension(400,24)
+    minimumSize         = preferredSize
+    editable            = false
+    font                = normalFont
+    horizontalAlignment = scala.swing.Alignment.Left
   }
-  val msgLogList     = new ListBuffer[String]
-  val msgLogListView = new ListView(msgLogList) {
-    preferredSize    = new Dimension(300,300)
-    minimumSize      = preferredSize
-    font             = fixedWidthFont
+  val msgLogList        = new ListBuffer[String]
+  val msgQueueList      = new ListBuffer[String]
+  val msgLogListView    = new ListView(msgLogList) {
+    font                = fixedWidthFont
     peer.setModel(msgLogListModel)
   }
-  val splitPane1     = new SplitPane(scala.swing.Orientation.Vertical, 
-                                     new ScrollPane(msgLogListView)  , 
+  val msgQueueListView  = new ListView(msgQueueList) {
+    font                = fixedWidthFont
+    peer.setModel(msgQueueListModel)
+  }
+  val msgLogListViewScrollPane   = new ScrollPane
+  {
+  	contents                     = msgLogListView
+  	verticalScrollBarPolicy      = ScrollPane.BarPolicy.Always
+  }
+  val msgQueueListViewScrollPane = new ScrollPane
+  {
+  	contents                     = msgQueueListView
+  	verticalScrollBarPolicy      = ScrollPane.BarPolicy.Always
+  }
+  val splitPaneMsgs  = new SplitPane(scala.swing.Orientation.Horizontal, 
+                                     msgLogListViewScrollPane, 
+                                     msgQueueListViewScrollPane   ) {
+    dividerLocation  = 350
+  }
+  val splitPaneMain  = new SplitPane(scala.swing.Orientation.Vertical, 
+                                     splitPaneMsgs, 
                                      new ScrollPane(drawingPanel)    ) {
     dividerLocation  = 240
   }
@@ -246,9 +301,7 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
     preferredSize      = new Dimension(800,800)
     contents           = new BorderPanel {
       add(new FlowPanel(currentMessageTF, stepButton, exitButton, descriptionLabel), BorderPanel.Position.North) 
-      add(splitPane1, BorderPanel.Position.Center)
-      //add(new ScrollPane(drawingPanel), BorderPanel.Position.Center)
-      //add(outputTA, BorderPanel.Position.Center) 
+      add(splitPaneMain, BorderPanel.Position.Center)
     }
   }
   
@@ -266,14 +319,20 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
   def shouldStep: Boolean =
     currentMessage match {
       case Activation(_) | Deactivation(_,_,_) | AAStarted(_,_) | Success(_,_)  | Break(_,_,_)  | Exclude(_,_) => true
+      case c:Continuation if (!interestingContinuationInternals(c).isEmpty) => true
       case _ => false
     }
   
   def logMessage(m: String, msg: CallGraphMessage[_]) {
     msgLogListModel.addElement(m + " " + msg)
+    msgLogListViewScrollPane.verticalScrollBar.value = msgLogListViewScrollPane.verticalScrollBar.maximum
+    msgQueueListModel.clear
+    scriptExecutor.scriptGraphMessages.foreach(msgQueueListModel.addElement(_)) 
   }
   def updateDisplay = {
-    currentMessageTF.text = currentMessage.toString
+    var s = currentMessage.toString
+    if (s.length>50) s = s.substring(0, 50) + "..."
+    currentMessageTF.text = s
     logMessage (">>", currentMessage)
     drawingPanel.repaint()
   }
