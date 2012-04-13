@@ -87,7 +87,6 @@ abstract class AACodeFragmentExecutor[N<:N_atomic_action[N]](_n: N, _scriptExecu
 
   def notifyScriptExecutor = 
     scriptExecutor.synchronized {
-      println("notify")
       scriptExecutor.notify() // kick the scriptExecutor, just in case it was waiting
   }
 
@@ -129,7 +128,6 @@ trait CodeExecutorAdapter[CE<:CodeExecutorTrait] extends CodeExecutorTrait {
   def adapt[R](codeExecutor: CE) = {adaptee = codeExecutor}
   def asynchronousAllowed = adaptee.asynchronousAllowed
   def notifyScriptExecutor = adaptee.synchronized {
-        println("notify A")
         adaptee.notify() // kick the scriptExecutor, just in case it was waiting
   }
 }

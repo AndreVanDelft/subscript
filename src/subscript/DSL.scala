@@ -49,6 +49,7 @@ object DSL {
   
   def _execute(_script: N_call => Unit): ScriptExecutor = _execute(_script, null, true)
   def _execute(_script: N_call => Unit, debugger: ScriptDebugger): ScriptExecutor = _execute(_script, debugger, false)
+  def _execute(_script: N_call => Unit,                           allowDebugger: Boolean): ScriptExecutor = _execute(_script, null, allowDebugger)
   def _execute(_script: N_call => Unit, debugger: ScriptDebugger, allowDebugger: Boolean): ScriptExecutor = {
     val executor = ScriptExecutorFactory.createScriptExecutor(allowDebugger && debugger == null)
     if (debugger!=null) debugger.attach(executor)

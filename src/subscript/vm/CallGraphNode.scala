@@ -100,7 +100,7 @@ trait CallGraphParentNodeTrait[+T<:TemplateNode] extends CallGraphNodeTrait[T] {
   }
 }
 // a node having code; probably to be dropped since @annotations: may attach code to any kind of node
-trait CallGraphNodeWithCodeTrait[T<:TemplateNodeWithCode[_,R],R] extends CallGraphNodeTrait[T] {
+trait CallGraphNodeWithCodeTrait[T<:TemplateNode with CallGraphNodeCode[_,R],R] extends CallGraphNodeTrait[T] {
   // var codeExecutor: AACodeFragmentExecutor    overriding not possible?
 }
 

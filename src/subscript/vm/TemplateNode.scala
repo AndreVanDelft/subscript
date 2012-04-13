@@ -28,52 +28,60 @@ package subscript.vm
 
 // Template Nodes are used to describe abstract syntax trees of the compiled scripts
 
-abstract class TemplateNode {
+trait TemplateNode { 
   def kind: String
   var indexAsChild: Int = 0
   override def toString = kind
-}
+  def children: Iterable[TemplateNode]}
+trait TemplateNode_0_Trait extends TemplateNode         {                          override def children: Iterable[TemplateNode] = Nil}
+trait TemplateNode_1_Trait extends TemplateNode_0_Trait {def child0: TemplateNode; override def children: Iterable[TemplateNode] = child0::Nil}
+trait TemplateNode_2_Trait extends TemplateNode_1_Trait {def child1: TemplateNode; override def children: Iterable[TemplateNode] = child0::child1::Nil}
+trait TemplateNode_3_Trait extends TemplateNode_2_Trait {def child2: TemplateNode; override def children: Iterable[TemplateNode] = child0::child1::child2::Nil}
+trait TemplateNode_n_Trait extends TemplateNode   {}
 
 // something having code that accepts a specific kind of Call Graph Node
 trait CallGraphNodeCode[N<:CallGraphNodeTrait[TemplateNode], +R] {
   val code: () => N => R;
   def execute(here: N): R = code().apply(here)
 }
-abstract class TemplateNodeWithCode[N<:CallGraphNodeTrait[TemplateNode], R] extends TemplateNode with CallGraphNodeCode[N, R]
+trait TemplateNodeWithCode   [N<:CallGraphNodeTrait[TemplateNode], R] extends TemplateNode with CallGraphNodeCode[N, R]
+trait TemplateNode_0_WithCode[N<:CallGraphNodeTrait[TemplateNode], R] extends TemplateNodeWithCode[N, R] with TemplateNode_0_Trait
+trait TemplateNode_1_WithCode[N<:CallGraphNodeTrait[TemplateNode], R] extends TemplateNodeWithCode[N, R] with TemplateNode_1_Trait
+trait TemplateNode_2_WithCode[N<:CallGraphNodeTrait[TemplateNode], R] extends TemplateNodeWithCode[N, R] with TemplateNode_2_Trait
 
 // all concrete template node case classes 
 
-case class T_script (kind: String, name: Symbol, child0: TemplateNode) extends TemplateNode {
-  override def toString = super.toString+" "+name
+case class T_script (kind: String, name: Symbol, child0: TemplateNode) extends TemplateNode_1_Trait {
+  override def toString = super.toString+" "+name.name
 }
-case class T_commscript(kind: String, communicator: Communicator) extends TemplateNode {
-  override def toString = super.toString+" "+communicator.name
+case class T_commscript(kind: String, communicator: Communicator) extends TemplateNode_0_Trait {
+  override def toString = super.toString+" "+communicator.name.name
 }
-case class T_communication(kind: String, names: Seq[Symbol]) extends TemplateNode {
+case class T_communication(kind: String, names: Seq[Symbol]) extends TemplateNode_0_Trait {
   override def toString = super.toString+" "+names.mkString(",")
 }
 
-case class T_0_ary (kind: String)                                                                           extends TemplateNode
-case class T_1_ary (kind: String, child0: TemplateNode)                                                     extends TemplateNode
-case class T_2_ary (kind: String, child0: TemplateNode, var child1: TemplateNode)                           extends TemplateNode {child1.indexAsChild = 1}
-case class T_3_ary (kind: String, child0: TemplateNode, var child1: TemplateNode, var child2: TemplateNode) extends TemplateNode {child1.indexAsChild = 1; child1.indexAsChild = 2}
-case class T_n_ary (kind: String, children: TemplateNode*)                                                  extends TemplateNode {
+case class T_0_ary (kind: String)                                                                           extends TemplateNode_0_Trait
+case class T_1_ary (kind: String, child0: TemplateNode)                                                     extends TemplateNode_1_Trait
+case class T_2_ary (kind: String, child0: TemplateNode, var child1: TemplateNode)                           extends TemplateNode_2_Trait {child1.indexAsChild = 1}
+case class T_3_ary (kind: String, child0: TemplateNode, var child1: TemplateNode, var child2: TemplateNode) extends TemplateNode_3_Trait {child1.indexAsChild = 1; child1.indexAsChild = 2}
+case class T_n_ary (kind: String, override val children: TemplateNode*)                                     extends TemplateNode_n_Trait {
   {
     var i = 0; children.foreach{c=>c.indexAsChild = i; i=i+1}
   }
 }
-case class T_annotation[CN<:CallGraphNodeTrait[CT],CT<:TemplateNode](code: () => N_annotation[CN,CT] => Unit, child0: TemplateNode) extends TemplateNodeWithCode[N_annotation[CN,CT], Unit] {def kind = "@:"}
-case class T_call                                                   (code: () => N_call    => N_call => Unit                      ) extends TemplateNodeWithCode[N_call   , N_call => Unit] {def kind = "call"}
+case class T_annotation[CN<:CallGraphNodeTrait[CT],CT<:TemplateNode](code: () => N_annotation[CN,CT] => Unit, child0: TemplateNode) extends TemplateNode_1_WithCode[N_annotation[CN,CT], Unit] {def kind = "@:"}
+case class T_call                                                   (code: () => N_call    => N_call => Unit                      ) extends TemplateNode_0_WithCode[N_call   , N_call => Unit] {def kind = "call"}
 
-case class T_0_ary_name           [N<:CallGraphNodeTrait[TemplateNode]] (kind: String, name: Symbol)                                        extends TemplateNode
-case class T_0_ary_local_valueCode[V<:Any] (kind: String, localVariable: LocalVariable[V], code: () => N_localvar[_]=>V)                          extends TemplateNodeWithCode[N_localvar[_], V]
-case class T_0_ary_code[N<:CallGraphNodeTrait[TemplateNode]] (kind: String, code: () => N => Unit)                                                extends TemplateNodeWithCode[N, Unit]
-case class T_1_ary_code[N<:CallGraphNodeTrait[TemplateNode]] (kind: String, code: () => N => Unit, child0: TemplateNode)                          extends TemplateNodeWithCode[N, Unit]
-case class T_2_ary_code[N<:CallGraphNodeTrait[TemplateNode]] (kind: String, code: () => N => Unit, child0: TemplateNode, child1: TemplateNode)    extends TemplateNodeWithCode[N, Unit]  {child1.indexAsChild = 1}
+case class T_0_ary_name           [N<:CallGraphNodeTrait[TemplateNode]] (kind: String, name: Symbol)                                              extends TemplateNode_0_Trait
+case class T_0_ary_local_valueCode[V<:Any] (kind: String, localVariable: LocalVariable[V], code: () => N_localvar[_]=>V)                          extends TemplateNode_0_WithCode[N_localvar[_], V]
+case class T_0_ary_code[N<:CallGraphNodeTrait[TemplateNode]] (kind: String, code: () => N => Unit)                                                extends TemplateNode_0_WithCode[N, Unit]
+case class T_1_ary_code[N<:CallGraphNodeTrait[TemplateNode]] (kind: String, code: () => N => Unit, child0: TemplateNode)                          extends TemplateNode_1_WithCode[N, Unit]
+case class T_2_ary_code[N<:CallGraphNodeTrait[TemplateNode]] (kind: String, code: () => N => Unit, child0: TemplateNode, child1: TemplateNode)    extends TemplateNode_2_WithCode[N, Unit]  {child1.indexAsChild = 1}
 
-case class T_0_ary_test[N<:CallGraphNodeTrait[TemplateNode]] (kind: String, code: () => N => Boolean)                                             extends TemplateNodeWithCode[N, Boolean]
-case class T_1_ary_test[N<:CallGraphNodeTrait[TemplateNode]] (kind: String, code: () => N => Boolean, child0: TemplateNode)                       extends TemplateNodeWithCode[N, Boolean]
-case class T_2_ary_test[N<:CallGraphNodeTrait[TemplateNode]] (kind: String, code: () => N => Boolean, child0: TemplateNode, child1: TemplateNode) extends TemplateNodeWithCode[N, Boolean]  {child1.indexAsChild = 1}
+case class T_0_ary_test[N<:CallGraphNodeTrait[TemplateNode]] (kind: String, code: () => N => Boolean)                                             extends TemplateNode_0_WithCode[N, Boolean]
+case class T_1_ary_test[N<:CallGraphNodeTrait[TemplateNode]] (kind: String, code: () => N => Boolean, child0: TemplateNode)                       extends TemplateNode_1_WithCode[N, Boolean]
+case class T_2_ary_test[N<:CallGraphNodeTrait[TemplateNode]] (kind: String, code: () => N => Boolean, child0: TemplateNode, child1: TemplateNode) extends TemplateNode_2_WithCode[N, Boolean]  {child1.indexAsChild = 1}
 
 // TBD: case class T_match    (code: ScriptNode => Unit, caseParts)    extends TemplateNode;
 // TBD: case class T_exception(?)    extends TemplateNode;

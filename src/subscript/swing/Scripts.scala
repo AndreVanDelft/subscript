@@ -91,7 +91,7 @@ object Scripts {
   // a ScriptReactor that has a Component as a Publisher. Automatically enables and disables the component
   abstract class ComponentScriptReactor[N<:N_atomic_action_eh[N]](publisher:Publisher with Component, autoEnableComponent: Boolean = true) extends ScriptReactor[N] {
     override def enabled_=(b:Boolean) = {
-      super.enabled_=(b); 
+      super.enabled_=(b)
       if (autoEnableComponent) publisher.enabled = b
     }
   }
@@ -106,10 +106,16 @@ object Scripts {
   
   // a ComponentScriptReactor for clicked events on a button
   // TBD: a way to consume clicked events on the button
-  case class ClickedScriptReactor[N<:N_atomic_action_eh[N]](b:AbstractButton) extends ComponentScriptReactor[N](b) {
-    def publisher = b
+  case class ClickedScriptReactor[N<:N_atomic_action_eh[N]](button:AbstractButton) extends ComponentScriptReactor[N](button) {
+    val wasFocusable = button.focusable
+    override def enabled_=(b:Boolean) = {
+      super.enabled_=(b)
+      button.focusable = wasFocusable
+      if (b && wasFocusable) button.requestFocus
+    }
+    def publisher = button
     //b.peer.addActionListener(new ActionListener {})
-    val event: Event = ButtonClicked(b)
+    val event: Event = ButtonClicked(button)
     override def consumeEvent = {
       event match {
         case ie: InputEvent => ie.consume // unfortunately, this is not applicable
@@ -177,8 +183,8 @@ object Scripts {
  to make it easy enforceable that "there" and even "there.there" would be of the proper type
 */
   
-  def _handleEventOn(_r:FormalInputParameter[ScriptReactor[N_code_eh]])  = {
-   _script('handleEventOn, _r~'r) {
+  def _event(_r:FormalInputParameter[ScriptReactor[N_code_eh]])  = {
+   _script('event, _r~'r) {
        _at{gui} (_at{(there:N_code_eh) => {_r.value.subscribe(there); 
                           there.onDeactivate{_r.value.unsubscribe}; 
                           there.onSuccess   {_r.value.acknowledgeEventHandled}}}
@@ -186,12 +192,34 @@ object Scripts {
        )
    } 
   }
-               
-  implicit def  _key(_p: FormalInputParameter[Publisher], _k: FormalConstrainedParameter[Char     ])  = {_script( 'key, _p~'p, _k~??'k) {_handleEventOn( KeyPressScriptReactor[N_code_eh](_p.value, _k))}}
-  implicit def _vkey(_p: FormalInputParameter[Publisher], _k: FormalConstrainedParameter[Key.Value])  = {_script('vkey, _p~'p, _k~??'k) {_handleEventOn(VKeyPressScriptReactor[N_code_eh](_p.value, _k))}}
+  // in principle, _key could call _event, but that is one call level deeper, which is unhandy for the GraphicalScriptDebugger
+  // _key0 is a version that calls _event
+  // likewise for _clicked and _clicked0
+  implicit def  _key(_p: FormalInputParameter[Publisher], _k: FormalConstrainedParameter[Char     ])  = {
+     _script( 'key, _p~'p, _k~??'k) { 
+       _at{gui} (_at{(there:N_code_eh) => {val _r = KeyPressScriptReactor[N_code_eh](_p.value, _k) 
+                                             _r.value.subscribe(there); 
+                          there.onDeactivate{_r.value.unsubscribe}; 
+                          there.onSuccess   {_r.value.acknowledgeEventHandled}}}
+         (_eventhandling{})
+      )
+    }
+  }           
+  implicit def  _clicked(_b: FormalInputParameter[Button])  = {
+     _script( 'clicked, _b~'b) { 
+       _at{gui} (_at{(there:N_code_eh) => {val _r = ClickedScriptReactor[N_code_eh](_b.value) 
+                                             _r.value.subscribe(there); 
+                          there.onDeactivate{_r.value.unsubscribe}; 
+                          there.onSuccess   {_r.value.acknowledgeEventHandled}}}
+         (_eventhandling{})
+      )
+    }
+  }           
+  implicit def  _key0(_p: FormalInputParameter[Publisher], _k: FormalConstrainedParameter[Char     ])  = {_script( 'key, _p~'p, _k~??'k) {_event( KeyPressScriptReactor[N_code_eh](_p.value, _k))}}
+  implicit def _vkey(_p: FormalInputParameter[Publisher], _k: FormalConstrainedParameter[Key.Value])  = {_script('vkey, _p~'p, _k~??'k) {_event(VKeyPressScriptReactor[N_code_eh](_p.value, _k))}}
                 
-  implicit def _clicked (_b: FormalInputParameter[Button   ])  = {_script( 'clicked, _b~'b) {_handleEventOn( ClickedScriptReactor[N_code_eh](_b.value))} }
-           def _anyEvent(_c: FormalInputParameter[Component])  = {_script('anyEvent, _c~'c) {_handleEventOn(AnyEventScriptReactor[N_code_eh](_c.value))} }
+  implicit def _clicked0 (_b: FormalInputParameter[Button   ])  = {_script( 'clicked, _b~'b) {_event( ClickedScriptReactor[N_code_eh](_b.value))} }
+           def _anyEvent(_c: FormalInputParameter[Component])  = {_script('anyEvent, _c~'c) {_event(AnyEventScriptReactor[N_code_eh](_c.value))} }
 
   // TBD: work in progress
   //       def _anyEvent(_c: FormalInputParameter[Component], _t: FormalInputParameter[() => Boolean]) = {_script('anyEvent, _c~'c, _t~'t) {_handleEventOn(AnyEventScriptReactor[N_code_eh](_c.value, _t))} }

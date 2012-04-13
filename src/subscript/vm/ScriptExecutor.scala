@@ -857,9 +857,7 @@ class CommonScriptExecutor extends ScriptExecutor {
         synchronized { // TBD: there should also be a synchronized call in the CodeExecutors
           if (scriptGraphMessages.isEmpty) // looks stupid, but event may have happened&notify() may have been called during tracing
             synchronized {
-              println("wait start - scriptGraphMessages.length = "+scriptGraphMessages.length + "  "+anchorNode.t_callee.name.name+" "+(if(scriptDebugger==null)"" else scriptDebugger.toString))
               wait() // for an event to happen 
-              println("wait end   - scriptGraphMessages.length = "+scriptGraphMessages.length + "  "+anchorNode.t_callee.name.name+" "+(if(scriptDebugger==null)"" else scriptDebugger.toString))
             }
         }
         // note: there may also be deadlock because of unmatching communications

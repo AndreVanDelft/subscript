@@ -23,8 +23,8 @@ class Bag_AB_Application extends SimpleSubscriptApplication {
   
   val top          = new MainFrame {
     title          = "Bag = A (Bag&a) + B (Bag&b)"
-    location       = new Point    (0,0)
-    preferredSize  = new Dimension(600,70)
+    location       = new Point    (800,0)
+    preferredSize  = new Dimension(400,70)
     contents       = new BorderPanel {
       add(new FlowPanel(A, B, a, b), BorderPanel.Position.North) 
     }
