@@ -90,16 +90,6 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
   val   normalStroke = new BasicStroke(1)
   val      fatStroke = new BasicStroke(3)
   
-  val GRID_W  =  90
-  val GRID_H  =  43
-  val RATIO_W = 0.75
-  val RATIO_H = 0.6
-  val BOX_W   = (GRID_W * RATIO_W).toInt
-  val BOX_H   = (GRID_H * RATIO_H).toInt
-  
-  val hOffset = (GRID_W - BOX_W)/2
-  val vOffset = (GRID_H - BOX_H)/2
-
   val lightOrange = new AWTColor(255, 238, 220)
   val lightGreen  = new AWTColor(220, 255, 220)
   val lightBlue   = new AWTColor(220, 220, 255)
@@ -132,6 +122,15 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
     }
   }
   def onPaintTemplateTrees(g: Graphics2D) {
+    val GRID_W  =  50
+	val GRID_H  =  33
+	val RATIO_W = 0.8
+	val RATIO_H = 0.67
+	val BOX_W   = (GRID_W * RATIO_W).toInt
+	val BOX_H   = (GRID_H * RATIO_H).toInt
+    val hOffset = (GRID_W - BOX_W)/2
+    val vOffset = (GRID_H - BOX_H)/2
+  
     def emphasize(doIt: Boolean) {emphasize_g(g, doIt)}
 
     def getScriptTemplates: List[T_script] = {
@@ -170,20 +169,25 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
               }
 	    }
         val thisX   = xGrid+(resultW-1)/2 
-        val boxLeft = (thisX*GRID_W).toInt+hOffset
-        val boxTop  = yGrid*GRID_H+vOffset
-        val hCenter = boxLeft + BOX_W/2
-        val vCenter = boxTop  + BOX_H/2
         
-        val r = new Rectangle(boxLeft, boxTop, BOX_W, BOX_H)
+        val s        = t.toString()
+        val sw       = g.getFontMetrics.stringWidth(s)
+        val boxWidth = math.max(sw + 4, BOX_W) // ensure the box fits the string
+        val hOffset1 = (GRID_W - boxWidth)/2
+        val boxLeft  = (thisX*GRID_W).toInt+hOffset1
+        val boxTop   = yGrid*GRID_H+vOffset
+        val hCenter  = boxLeft + boxWidth/2
+        val vCenter  = boxTop  + BOX_H/2
+
+        val r = new Rectangle(boxLeft, boxTop, boxWidth, BOX_H)
         val n = if (currentMessage==null) null else currentMessage.node.asInstanceOf[CallGraphNode[_<:TemplateNode]]
-        val isCurrentTemplate = currentMessage != null && n != null && n.template == t
+        val isCurrentTemplate = currentMessage != null && n != null && n.template != null && n.template == t && n.template.name == t.name
         g.setColor(fillColor(n, lightOrange, isCurrentTemplate)) 
         g fill r
         emphasize(isCurrentTemplate)
         g draw r
         emphasize(false)
-        drawStringCentered(g, t.toString(), hCenter, vCenter)
+        drawStringCentered(g, s, hCenter, vCenter-3)
         (t.children zip childHCs).foreach{ c_hc: (TemplateNode, Double) =>
           drawEdge(t, thisX, yGrid, c_hc._1, c_hc._2, yGrid+1)
         }
@@ -196,6 +200,15 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
     getScriptTemplates.foreach { t => currentXGrid += drawTemplateTree(t, currentXGrid, 0)._1}
   }
   def onPaintCallGraph(g: Graphics2D) {
+    val GRID_W  =  90
+	val GRID_H  =  43
+	val RATIO_W = 0.75
+	val RATIO_H = 0.6
+	val BOX_W   = (GRID_W * RATIO_W).toInt
+	val BOX_H   = (GRID_H * RATIO_H).toInt
+    val hOffset = (GRID_W - BOX_W)/2
+    val vOffset = (GRID_H - BOX_H)/2
+
       def emphasize(doIt: Boolean) {emphasize_g(g, doIt)}
       
       g.setFont(normalFont)
@@ -392,11 +405,21 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
     add(msgLogListViewScrollPane, BorderPanel.Position.Center)
     add(currentMessageTF        , BorderPanel.Position.South)
   }
-  val splitPaneGraphs = new SplitPane(scala.swing.Orientation.Horizontal, new ScrollPane(templateTreesPanel), 
-                                                                          new ScrollPane(callGraphPanel)              ) {dividerLocation  = 178}
-  val splitPaneMsgs   = new SplitPane(scala.swing.Orientation.Horizontal, borderPanelMsgs,  msgQueueListViewScrollPane) {dividerLocation  = 350}
-  val splitPaneMain   = new SplitPane(scala.swing.Orientation.Vertical,     splitPaneMsgs,             splitPaneGraphs) {dividerLocation  = 240}
-
+  
+  var splitPaneMain: SplitPane = null
+  val doTemplateTreeTopLeft = true
+  
+  if (doTemplateTreeTopLeft) {  
+    val splitPaneMsgs   = new SplitPane(scala.swing.Orientation.Horizontal, borderPanelMsgs,       msgQueueListViewScrollPane) {dividerLocation  = 250}
+    val splitPaneLeft   = new SplitPane(scala.swing.Orientation.Horizontal, new ScrollPane(templateTreesPanel), splitPaneMsgs) {dividerLocation  = 250}
+    splitPaneMain       = new SplitPane(scala.swing.Orientation.Vertical,   splitPaneLeft,     new ScrollPane(callGraphPanel)) {dividerLocation  = 400}
+  }
+  else {  
+    val splitPaneGraphs = new SplitPane(scala.swing.Orientation.Horizontal, new ScrollPane(templateTreesPanel), 
+                                                                            new ScrollPane(callGraphPanel)              ) {dividerLocation  = 178}
+    val splitPaneMsgs   = new SplitPane(scala.swing.Orientation.Horizontal, borderPanelMsgs,  msgQueueListViewScrollPane) {dividerLocation  = 350}
+    splitPaneMain       = new SplitPane(scala.swing.Orientation.Vertical,     splitPaneMsgs,             splitPaneGraphs) {dividerLocation  = 240}
+  } 
   val descriptionTF    = new TextField {
     preferredSize      = new Dimension(400,24)
     editable           = false
@@ -409,13 +432,13 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
   val speedSlider      = new Slider {
     min                =   0
     max                =  10
-    value              =   9
+    value              =   5
   }
   
   val top              = new Frame {
     title              = "Subscript Graphical Debugger"
     location           = new Point    (0,00)
-    preferredSize      = new Dimension(800,600)
+    preferredSize      = new Dimension(900,700)
     contents           = new BorderPanel {
       add(new FlowPanel(stepButton, autoCheckBox, speedSlider, exitButton, descriptionTF), BorderPanel.Position.North) 
       add(splitPaneMain, BorderPanel.Position.Center)
@@ -478,14 +501,17 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
   }
   // script..
   //   live       = {*awaitMessageBeingHandled*}
-  //                if (shouldStep) ( @gui: {!updateDisplay!}; stepCommand || if(autoCheckBox.isChecked) waitForStep )
+  //                if (shouldStep) ( @gui: {!updateDisplay!} stepCommand 
+  //                               || if(autoCheckBox.isChecked) waitForStep )
   //                {messageBeingHandled=false}
   //                ...
   //             || exitDebugger
   //
   // stepCommand  = stepButton
   // exitCommand  = exitButton
-  // exitDebugger = exitCommand @gui: while(!confirmExit)
+  // exitDebugger = exitCommand @gui:{exitConfirmed=confirmExit} while(!exitConfirmed)
+  
+  var exitConfirmed = false
   
   override def _live  = _script('live) {_par_or2(_seq(_threaded{awaitMessageBeingHandled(true)}, 
                                                       _if{shouldStep} (_par_or(_seq(_at{gui} (_tiny{updateDisplay}), _stepCommand), 
@@ -497,7 +523,8 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
                                                 )}
   def   _stepCommand  = _script('stepCommand ) {_clicked(stepButton)}
   def   _exitCommand  = _script('exitCommand ) {_clicked(exitButton)} // windowClosing
-  def   _exitDebugger = _script('exitDebugger) {_seq(  _exitCommand, _at{gui} (_while{!confirmExit}))}
+  def   _exitDebugger = _script('exitDebugger) {_seq(  _exitCommand, _at{gui}(_normal{exitConfirmed=confirmExit}), _while{!exitConfirmed})}
+//def   _exitDebugger = _script('exitDebugger) {_seq(  _exitCommand, _at{gui} (_while{!confirmExit}))}
   
   override def live = _execute(_live, false) //), new SimpleScriptDebugger)
   
