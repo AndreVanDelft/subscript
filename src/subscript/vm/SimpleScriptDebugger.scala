@@ -17,7 +17,7 @@ object SimpleScriptDebuggerObject extends SimpleScriptDebugger {
 
 class SimpleScriptDebugger extends ScriptDebugger {
 
-  def scriptGraphMessages = scriptExecutor.scriptGraphMessages
+  def callGraphMessages = scriptExecutor.callGraphMessages
   def rootNode            = scriptExecutor.rootNode
   
   // some tracing stuff
@@ -57,7 +57,7 @@ class SimpleScriptDebugger extends ScriptDebugger {
   def traceMessages: Unit = {
 	if (traceLevel >= 1) {
 	  println("=== Messages ===")
-	  scriptGraphMessages.foreach(println(_))
+	  callGraphMessages.foreach(println(_))
 	  println("=== End ===")
 	}
   }

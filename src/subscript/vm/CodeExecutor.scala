@@ -69,13 +69,14 @@ abstract class AACodeFragmentExecutor[N<:N_atomic_action[N]](_n: N, _scriptExecu
   override def cancelAA = super.cancelAA; interruptAA
   def naa = n.asInstanceOf[N]
   def doCodeExecution(lowLevelCodeExecutor: CodeExecutorTrait): Unit = lowLevelCodeExecutor.doCodeExecution{
-    ()=>n.hasSuccess = true; 
-    naa.template.code.apply.apply(naa); 
+    ()=>n.hasSuccess = true
+    n.isExecuting = true
+    try {naa.template.code.apply.apply(naa)} finally {n.isExecuting = false}
     executionFinished
   }
   def aaStarted = scriptExecutor.insert(AAStarted(n,null))
-  def aaEnded   = scriptExecutor.insert(AAEnded(n,null)) 
-  def succeeded = scriptExecutor.insert(Success(n,null)) 
+  def aaEnded   = scriptExecutor.insert(AAEnded  (n,null)) 
+  def succeeded = scriptExecutor.insert(Success  (n,null)) 
   override def executeAA: Unit = executeAA(this) // for Atomic Action execution...should ensure that executionFinished is called
   def executeAA(lowLevelCodeExecutor: CodeExecutorTrait): Unit // for Atomic Action execution...should ensure that executionFinished is called
   def afterExecuteAA             // to be called by executor, asynchronously, in reaction to executionFinished (through a message queue, not through a call inside a call)

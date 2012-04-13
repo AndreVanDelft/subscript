@@ -141,6 +141,6 @@ object DSL {
   def _while  (_cond:N_while  =>Boolean)   = T_0_ary_test("while", () =>                     _cond)
   def _if     (_cond:         =>Boolean)(c0: TemplateNode) = T_1_ary_test("if", () => (here: N_if) => _cond, c0)
   def _if     (_cond:N_if     =>Boolean)(c0: TemplateNode) = T_1_ary_test("if", () =>                 _cond, c0)
-  def _if_else(_cond:         =>Boolean)(c0: TemplateNode, c1: TemplateNode) = T_2_ary_test("if_else", () => (here: N_if) => _cond, c0, c1)
-  def _if_else(_cond:N_if_else=>Boolean)(c0: TemplateNode, c1: TemplateNode) = T_2_ary_test("if_else", () =>                 _cond, c0, c1)
+  def _if_else(_cond:         =>Boolean)(c0: TemplateNode, c1: TemplateNode) = T_2_ary_test("if_else", () => (here: N_if_else) => _cond, c0, c1)
+  def _if_else(_cond:N_if_else=>Boolean)(c0: TemplateNode, c1: TemplateNode) = T_2_ary_test("if_else", () =>                      _cond, c0, c1)
  }

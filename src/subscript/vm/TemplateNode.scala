@@ -52,7 +52,7 @@ trait TemplateNode_2_WithCode[N<:CallGraphNodeTrait[TemplateNode], R] extends Te
 // all concrete template node case classes 
 
 case class T_script (kind: String, name: Symbol, child0: TemplateNode) extends TemplateNode_1_Trait {
-  override def toString = super.toString+" "+name.name
+  override def toString = name.name
 }
 case class T_commscript(kind: String, communicator: Communicator) extends TemplateNode_0_Trait {
   override def toString = super.toString+" "+communicator.name.name

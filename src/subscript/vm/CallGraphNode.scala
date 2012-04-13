@@ -47,6 +47,9 @@ trait CallGraphNodeTrait[+T<:TemplateNode] {
   def n_ary_op_else_ancestor: N_n_ary_op
   def lowestSingleCommonAncestor: CallGraphParentNodeTrait[_<:TemplateNode]
   def forEachParent(n: CallGraphParentNodeTrait[_<:TemplateNode] => Unit): Unit
+  def isExecuting  = false
+  var numberOfBusyActions = 0
+  def isActionBusy = numberOfBusyActions>0
 
   var index = -1
   var stamp = 0
@@ -101,6 +104,9 @@ trait CallGraphParentNodeTrait[+T<:TemplateNode] extends CallGraphNodeTrait[T] {
 }
 // a node having code; probably to be dropped since @annotations: may attach code to any kind of node
 trait CallGraphNodeWithCodeTrait[T<:TemplateNode with CallGraphNodeCode[_,R],R] extends CallGraphNodeTrait[T] {
+  private var _isExecuting = false
+  override def isExecuting = _isExecuting
+           def isExecuting_=(value: Boolean) = _isExecuting=value
   // var codeExecutor: AACodeFragmentExecutor    overriding not possible?
 }
 
@@ -234,7 +240,7 @@ case class N_n_ary_op      (template: T_n_ary, isLeftMerge: Boolean) extends Cal
   val mapNamePassToVariableHolder = new HashMap[(Symbol,Int), VariableHolder[_]]
   def    initLocalVariable[V<:Any](name: Symbol, fromPass: Int, value: V)         = mapNamePassToVariableHolder += ((name,fromPass)->new VariableHolder(value))
   def    getVariableHolder[V<:Any](name: Symbol, fromPass: Int):VariableHolder[V] = mapNamePassToVariableHolder.get((name,fromPass)) match {case None=>null case Some(v:VariableHolder[_]) => v}
-  override def toString = super.toString+children.length+(if(isIteration)"..."else"")
+  override def toString = super.toString+/*" "+children.length+*/(if(isIteration)" ..."else"")
 }
 
 // only one class for normal script calls and communicator-script calls

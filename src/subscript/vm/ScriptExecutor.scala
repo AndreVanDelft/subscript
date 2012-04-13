@@ -51,13 +51,34 @@ trait ScriptExecutor {
                 y: CallGraphMessage[_ <: CallGraphNodeTrait[_<:TemplateNode]]): Int = {
 	        val p = x.priority - y.priority
 	        if (p != 0) {p} // highest priority first
-	        else        {- x.node.index + y.node.index}  // oldest nodes first
+	        else if (x.isInstanceOf[Continuation]) {  x.node.index - y.node.index}  // newest nodes first
+	        else                                   {- x.node.index + y.node.index}  // oldest nodes first
         }
 	}
   
-  // TBD: the scriptGraphMessages queue should probably become synchronized
+  // TBD: the callGraphMessages queue should become synchronized
   // Also, it would become faster if it has internally separate queues for each priority level
-  val scriptGraphMessages = new PriorityQueue[CallGraphMessage[_ <: CallGraphNodeTrait[_<:TemplateNode]]]()(ScriptGraphMessageOrdering)
+  var callGraphMessageCount = 0
+  val callGraphMessages = new PriorityQueue[CallGraphMessage[_ <: CallGraphNodeTrait[_<:TemplateNode]]]()(ScriptGraphMessageOrdering)
+  def queueCallGraphMessage(m: CallGraphMessage[_ <: CallGraphNodeTrait[_<:TemplateNode]]) = {
+    callGraphMessages.synchronized {
+      callGraphMessages += m
+      callGraphMessageCount += 1
+      if (callGraphMessageCount != callGraphMessages.length) {
+        println("queue: "+callGraphMessageCount+" != " + callGraphMessages.length)
+      }
+    }
+  }
+  def dequeueCallGraphMessage: CallGraphMessage[_ <: CallGraphNodeTrait[_<:TemplateNode]] = {
+    callGraphMessages.synchronized {
+      callGraphMessageCount -= 1
+      val result = callGraphMessages.dequeue
+      if (callGraphMessageCount != callGraphMessages.length) {
+        println("dequeue: "+callGraphMessageCount+" != " + callGraphMessages.length)
+      }
+      result
+    }
+  }
   
   var scriptDebugger: ScriptDebugger = null;
   def messageHandled     (m: CallGraphMessage[_]                 ) = if (scriptDebugger!=null) scriptDebugger.messageHandled (m)
@@ -135,7 +156,7 @@ class CommonScriptExecutor extends ScriptExecutor {
   def insert(m: CallGraphMessage[_ <: CallGraphNodeTrait[_<:TemplateNode]]) = {
     m.id = nextMessageID
     messageQueued(m)
-    scriptGraphMessages += m
+    queueCallGraphMessage(m)
     m match {
       case maa@AAToBeExecuted  (n: CallGraphNodeWithCodeTrait[_,_]) => n.asInstanceOf[N_atomic_action[_]].msgAAToBeExecuted = maa
       case maa@AAToBeReexecuted(n: CallGraphNodeWithCodeTrait[_,_]) => n.asInstanceOf[N_atomic_action[_]].msgAAToBeExecuted = maa
@@ -205,9 +226,9 @@ class CommonScriptExecutor extends ScriptExecutor {
     if (c==null) {
       c = new Continuation1(n)
       n.continuation = c
-      scriptGraphMessages += c
+      queueCallGraphMessage(c)
     }
-    scriptGraphMessages += Continuation1(n)
+    queueCallGraphMessage(Continuation1(n))
   }
   
   def hasSucces      = rootNode.hasSuccess
@@ -505,8 +526,9 @@ class CommonScriptExecutor extends ScriptExecutor {
  
   // TBD: ensure that an n-ary node gets only 1 AAStarted msg after an AA started in a communication reachable from multiple child nodes (*)
   def handleAAStarted(message: AAStarted): Unit = {
-    message.node.hasSuccess = false
-	  message.node match {
+    message.node.hasSuccess   = false
+    message.node.numberOfBusyActions += 1; 
+    message.node match {
        case n@N_1_ary_op(t: T_1_ary)    => insertContinuation1(message) //don't return; just put the continuations in place
        case n@N_n_ary_op(_: T_n_ary, _) => insertContinuation (message) //don't return; just put the continuations in place, mainly used for left merge operators
 	                                                                   
@@ -548,6 +570,7 @@ class CommonScriptExecutor extends ScriptExecutor {
       message.node.forEachParent(p => insert(AAStarted(p, message.node)))
   }
   def handleAAEnded(message: AAEnded): Unit = {
+    message.node.numberOfBusyActions -= 1; 
     message.node.hasSuccess = false
 	  message.node match {
                case n@  N_1_ary_op      (t: T_1_ary        )  => if(message.child!=null) {
@@ -703,11 +726,11 @@ class CommonScriptExecutor extends ScriptExecutor {
                            childNode = n.lastActivatedChild
                          }
                          
-      case _          => if (message.activation!=null || message.success!=null || message.deactivations != Nil) {
+      case _          => if (message.activation!=null || message.aaStarteds!=Nil || message.success!=null || message.deactivations != Nil) {
                            val b  = message.break
                            val as = message.aaStarteds
                            n.aaStartedSinceLastOptionalBreak = n.aaStartedSinceLastOptionalBreak || as!=Nil
-                           if (b==null) {
+                           if (b==null||b.activationMode==ActivationMode.Optional) {
                              if (n.activationMode==ActivationMode.Optional) {
                                  activateNextOrEnded = n.aaStartedSinceLastOptionalBreak
                                  if (activateNextOrEnded) {
@@ -716,7 +739,7 @@ class CommonScriptExecutor extends ScriptExecutor {
                                    childNode = n.lastActivatedChild
                                  }
                              }
-                             else {
+                             else if (message.activation!=null) {
                                activateNextOrEnded = true
                                childNode = n.lastActivatedChild
                              }
@@ -847,15 +870,15 @@ class CommonScriptExecutor extends ScriptExecutor {
     var isActive = true
     while (isActive) { // main execution loop
       
-      if (!scriptGraphMessages.isEmpty) {
-        val m = scriptGraphMessages.dequeue
+      if (callGraphMessageCount > 0) {
+        val m = dequeueCallGraphMessage
         messageHandled(m)
         handle(m)
       }
       else if (!rootNode.children.isEmpty) {
         messageAwaiting
         synchronized { // TBD: there should also be a synchronized call in the CodeExecutors
-          if (scriptGraphMessages.isEmpty) // looks stupid, but event may have happened&notify() may have been called during tracing
+          if (callGraphMessageCount==0) // looks stupid, but event may have happened&notify() may have been called during tracing
             synchronized {
               wait() // for an event to happen 
             }

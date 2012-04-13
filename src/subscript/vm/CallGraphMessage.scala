@@ -54,13 +54,13 @@ import scala.collection.mutable._
 	  override def toString = {
 	    var result = super.toString
 	    if (activation   !=null) result += " "+activation
-	    if (deactivations!=Nil ) result += " "+deactivations
+	    if (deactivations!=Nil ) result += " "+deactivations.mkString
 	    if (success      !=null) result += " "+success
 	    if (break        !=null) result += " "+break
 	    if (aaActivated  !=null) result += " "+aaActivated
 	    if (caActivated  !=null) result += " "+caActivated
-	    if (aaStarteds   !=Nil ) result += " "+aaStarteds
-	    if (aaEndeds     !=Nil ) result += " "+aaEndeds
+	    if (aaStarteds   !=Nil ) result += " "+aaStarteds.mkString
+	    if (aaEndeds     !=Nil ) result += " "+aaEndeds.mkString
 	    if (childNode    !=null) result += " "+childNode
 	    result
 	  }

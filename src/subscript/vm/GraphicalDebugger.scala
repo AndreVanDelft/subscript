@@ -16,7 +16,7 @@ object GraphicalDebugger extends GraphicalDebuggerApp {
     top.visible = true
     
     lArgs.head match {
-      case "-s" => lArgs = lArgs.tail; if (lArgs.isEmpty) return; descriptionLabel.text = lArgs.head
+      case "-s" => lArgs = lArgs.tail; if (lArgs.isEmpty) return; descriptionTF.text = lArgs.head
                    lArgs = lArgs.tail; if (lArgs.isEmpty) return
       case _ =>
     }
@@ -75,21 +75,24 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
   }
   val templateTreesPanel = new Panel {
     background = AWTColor.white
-    preferredSize  = new Dimension(500,500)
+    preferredSize  = new Dimension(800,800)
     override def paint(g: Graphics2D) {
         g.setColor(AWTColor.white)
         g.fillRect(0, 0, size.width, size.height)
         onPaintTemplateTrees(g)
     }
   }
-  val fixedWidthFont = new Font("Monaco", Font.BOLD, 12)
+  val fixedWidthFont = new Font("Monaco", Font.PLAIN, 14)
+  val currentMsgFont = new Font("Monaco", Font.BOLD , 14)
+ 
   val     normalFont = new Font("Arial" , Font.BOLD, 16)
+  val      smallFont = new Font("Arial" , Font.BOLD, 13)
   val   normalStroke = new BasicStroke(1)
   val      fatStroke = new BasicStroke(3)
   
-  val GRID_W  = 120
+  val GRID_W  =  90
   val GRID_H  =  43
-  val RATIO_W = 0.8
+  val RATIO_W = 0.75
   val RATIO_H = 0.6
   val BOX_W   = (GRID_W * RATIO_W).toInt
   val BOX_H   = (GRID_H * RATIO_H).toInt
@@ -97,16 +100,25 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
   val hOffset = (GRID_W - BOX_W)/2
   val vOffset = (GRID_H - BOX_H)/2
 
+  val lightOrange = new AWTColor(255, 238, 220)
+  val lightGreen  = new AWTColor(220, 255, 220)
+  val lightBlue   = new AWTColor(220, 220, 255)
+  val lightRed    = new AWTColor(255, 220, 220)
+  val lightPurple = new AWTColor(255, 220, 255)
+  
+  def fillColor(n: CallGraphNodeTrait[_], defaultColor: AWTColor, allowOverride: Boolean) = 
+         if (allowOverride && n.isExecuting ) lightPurple  
+    else if (allowOverride && n.isActionBusy) lightRed 
+    else                                      defaultColor
+
   
   def drawStringCentered(g: Graphics2D, s: String, cx: Int, cy: Int) {
-    val normalFontMetrics = g.getFontMetrics(normalFont)
-    val sw = normalFontMetrics.stringWidth(s)
-    val sh = normalFontMetrics.getHeight
+    val sw = g.getFontMetrics.stringWidth(s)
+    val sh = g.getFontMetrics.getHeight
     g.drawString(s, cx-sw/2, cy+sh/2)
   }
   def drawStringTopLeft(g: Graphics2D, s: String, x: Int, y: Int) {
-    val normalFontMetrics = g.getFontMetrics(normalFont)
-    val sh = normalFontMetrics.getHeight
+    val sh = g.getFontMetrics.getHeight
     g.drawString(s, x, y+sh/2)
   }
   def emphasize_g(g: Graphics2D, doIt: Boolean) {
@@ -125,7 +137,7 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
     def getScriptTemplates: List[T_script] = {
       val lb = new ListBuffer[T_script]
       def getScriptTemplates(n: CallGraphNodeTrait[_]): Unit = {
-        n match {case ns: N_script                    => if (!lb.contains(ns.template)) lb += ns.template case _ =>}
+        n match {case ns: N_script                    => if (!lb.exists(_.name.name==ns.template.name.name)) lb += ns.template case _ =>}
         n match {case pn: CallGraphParentNodeTrait[_] =>pn.forEachChild{getScriptTemplates(_)} case _ =>}
       } 
       getScriptTemplates(rootNode)
@@ -164,10 +176,10 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
         val vCenter = boxTop  + BOX_H/2
         
         val r = new Rectangle(boxLeft, boxTop, BOX_W, BOX_H)
-        g.setColor(new AWTColor(255, 242, 230)) 
+        val n = if (currentMessage==null) null else currentMessage.node.asInstanceOf[CallGraphNode[_<:TemplateNode]]
+        val isCurrentTemplate = currentMessage != null && n != null && n.template == t
+        g.setColor(fillColor(n, lightOrange, isCurrentTemplate)) 
         g fill r
-        val n = currentMessage.node.asInstanceOf[CallGraphNode[_<:TemplateNode]]
-        val isCurrentTemplate = currentMessage != null && n.template == t
         emphasize(isCurrentTemplate)
         g draw r
         emphasize(false)
@@ -198,6 +210,7 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
         
         emphasize(s != null)
         if (s != null) {
+          g.setFont(normalFont)
           drawStringTopLeft(g, s, x1 + dx/2 + 9, y1 + dy/2 - 2)
         }
         val oldTransform = g.getTransform()
@@ -255,13 +268,13 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
         val x = boxRight + 3
         var y = boxTop
         n match {
-          case nn: N_n_ary_op =>     
-            val normalFontMetrics = g.getFontMetrics(normalFont)
-            interestingContinuationInternals(nn.continuation).foreach{s: String=>drawStringTopLeft(g, s, x, y); y += normalFontMetrics.getHeight+2}
+          case nn: N_n_ary_op if (nn.continuation != null) =>     
+            val fontMetrics = g.getFontMetrics
+            interestingContinuationInternals(nn.continuation).foreach{s: String=>drawStringTopLeft(g, s, x, y); y += fontMetrics.getHeight - 2}
           case _ => if (currentMessage!=null&&currentMessage.node==n) currentMessage match {
             case s: Success   if (s.child==null) => drawStringTopLeft(g, "Success"  , x, y) 
-            case a: AAStarted if (a.child==null) => drawStringTopLeft(g, "AAStarted", x, y) 
-            case a: AAEnded   if (a.child==null) => drawStringTopLeft(g, "AAEnded"  , x, y) 
+            case a: AAStarted if (a.child==null) => drawStringTopLeft(g, "AA Started", x, y) 
+            case a: AAEnded   if (a.child==null) => drawStringTopLeft(g, "AA Ended"  , x, y) 
             case _ => 
           }
         }
@@ -286,11 +299,13 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
 	        }
 	      case _ => resultW = 1
 	    }
-        val thisX   = xGrid+(resultW-1)/2 
-        val boxLeft = (thisX*GRID_W).toInt+hOffset
-        val boxTop  = yGrid*GRID_H+vOffset
-        val hCenter = boxLeft + BOX_W/2
-        val vCenter = boxTop  + BOX_H/2
+        val thisX     = xGrid+(resultW-1)/2 
+        val boxLeft   = (thisX*GRID_W).toInt+hOffset
+        val boxTop    = yGrid*GRID_H+vOffset
+        val boxRight  = boxLeft + BOX_W
+        val boxBottom = boxTop  + BOX_H
+        val hCenter   = boxLeft + BOX_W/2
+        val vCenter   = boxTop  + BOX_H/2
         
         val s: String = n match {
           case ns: N_script   => ns.template.name.name
@@ -299,27 +314,38 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
         }
         
         val r = new Rectangle(boxLeft, boxTop, BOX_W, BOX_H)
-        g.setColor(new AWTColor(230, 255, 230)) 
+        g.setColor(fillColor(n, lightGreen, true)) 
         g fill r
         emphasize(isCurrentNode)
         g draw r 
         if (isCurrentNode) {
           currentMessage match {
-            case d: Deactivation =>
+            case dm: Deactivation =>
               n match {
+                case nn: N_n_ary_op if(dm.child!=null) => // will get Continuation
                 case pn: CallGraphParentNodeTrait[_] if (pn.children.length>0) =>
-                case _ =>
-                  g.drawLine(boxLeft, boxTop      , boxLeft+BOX_W, boxTop+BOX_H)
-                  g.drawLine(boxLeft, boxTop+BOX_H, boxLeft+BOX_W, boxTop      )
+                case _ => // strike through with an "X"
+                  g.drawLine(boxLeft, boxTop   , boxRight, boxBottom)
+                  g.drawLine(boxLeft, boxBottom, boxRight, boxTop   )
               }
             case _ =>
           }
         }
-        drawContinuationTexts(n, boxLeft+BOX_W, boxTop)
         emphasize(false)
+        g.setFont(smallFont)
+        drawContinuationTexts(n, boxRight, boxTop)
         drawStringTopLeft (g, n.index.toString, boxLeft+2, boxTop+5)
+        g.setFont(normalFont)
         drawStringCentered(g, s, hCenter, vCenter)
-        
+	    n match {
+          case nn: CallGraphTreeNode_n_ary => 
+            if (nn.activationMode!=ActivationMode.Active) {
+              val s = if (nn.activationMode!=ActivationMode.Inactive) "-" else "."
+              g.setFont(smallFont)
+              drawStringTopLeft (g, s, boxRight-7, boxTop+5)
+            }
+	      case _ =>
+        }
 	    n match {
 	      case p:CallGraphParentNodeTrait[_] => 
 	        (p.children zip childHCs).foreach{ c_hc: (CallGraphNodeTrait[_], Double) =>
@@ -334,12 +360,12 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
   
   val msgLogListModel   = new javax.swing.DefaultListModel
   val msgQueueListModel = new javax.swing.DefaultListModel
-  
   val currentMessageTF  = new TextField {
-    preferredSize       = new Dimension(400,24)
-    minimumSize         = preferredSize
+    //preferredSize       = new Dimension(400,24)
+    //minimumSize         = preferredSize
     editable            = false
-    font                = normalFont
+    font                = currentMsgFont
+    background          = lightBlue
     horizontalAlignment = scala.swing.Alignment.Left
   }
   val msgLogList        = new ListBuffer[String]
@@ -362,27 +388,42 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
   	contents                     = msgQueueListView
   	verticalScrollBarPolicy      = ScrollPane.BarPolicy.Always
   }
+  val borderPanelMsgs = new BorderPanel {
+    add(msgLogListViewScrollPane, BorderPanel.Position.Center)
+    add(currentMessageTF        , BorderPanel.Position.South)
+  }
   val splitPaneGraphs = new SplitPane(scala.swing.Orientation.Horizontal, new ScrollPane(templateTreesPanel), 
-                                                                          new ScrollPane(callGraphPanel)                       ) {dividerLocation  = 150}
-  val splitPaneMsgs   = new SplitPane(scala.swing.Orientation.Horizontal, msgLogListViewScrollPane,  msgQueueListViewScrollPane) {dividerLocation  = 350}
-  val splitPaneMain   = new SplitPane(scala.swing.Orientation.Vertical,   splitPaneMsgs,             splitPaneGraphs           ) {dividerLocation  = 240}
+                                                                          new ScrollPane(callGraphPanel)              ) {dividerLocation  = 178}
+  val splitPaneMsgs   = new SplitPane(scala.swing.Orientation.Horizontal, borderPanelMsgs,  msgQueueListViewScrollPane) {dividerLocation  = 350}
+  val splitPaneMain   = new SplitPane(scala.swing.Orientation.Vertical,     splitPaneMsgs,             splitPaneGraphs) {dividerLocation  = 240}
 
-  val descriptionLabel = new Label {
-    preferredSize      = new Dimension(300,24)
+  val descriptionTF    = new TextField {
+    preferredSize      = new Dimension(400,24)
+    editable           = false
     font               = normalFont
   }
+  val autoCheckBox     = new CheckBox {
+    text               = "Auto"
+  }
+  //val delaySlider      = new javax.swing.SpinnerNumberModel
+  val speedSlider      = new Slider {
+    min                =   0
+    max                =  10
+    value              =   9
+  }
+  
   val top              = new Frame {
     title              = "Subscript Graphical Debugger"
     location           = new Point    (0,00)
     preferredSize      = new Dimension(800,600)
     contents           = new BorderPanel {
-      add(new FlowPanel(currentMessageTF, stepButton, exitButton, descriptionLabel), BorderPanel.Position.North) 
+      add(new FlowPanel(stepButton, autoCheckBox, speedSlider, exitButton, descriptionTF), BorderPanel.Position.North) 
       add(splitPaneMain, BorderPanel.Position.Center)
     }
   }
   
   def sleep(duration_ms: Long) = try {Thread.sleep(duration_ms)} catch {case e: InterruptedException => println("sleep interrupted")}
-  def confirmExit: Boolean = Dialog.showConfirmation(null, "Are you sure?", "About to exit")==Dialog.Result.Yes
+  def confirmExit: Boolean = Dialog.showConfirmation(exitButton, "Are you sure?", "About to exit")==Dialog.Result.Yes
   
   
   def awaitMessageBeingHandled(value: Boolean) = {
@@ -399,6 +440,22 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
       case _ => false
     }
   
+  def MIN_STEP_DELAY_SEC = 0
+  def MAX_STEP_DELAY_SEC = 5
+  //def stepSleep_ms = math.pow(2, 12-speedSlider.value) // logarithmic scale
+  def stepSleep_ms = (math.pow((speedSlider.max-speedSlider.value) / speedSlider.max.toDouble, 3) * MAX_STEP_DELAY_SEC * 1000).intValue
+    
+  def waitForStepTimeout = {
+    try {
+      val sleepPart_ms = 10
+      var slept_ms     = 0
+      while(slept_ms<stepSleep_ms) {
+          Thread.sleep(sleepPart_ms);
+          slept_ms += sleepPart_ms
+      }
+    }
+    catch {case e: InterruptedException => }
+  }
   def logMessage_GUIThread(m: String, msg: CallGraphMessage[_]) {
       var runnable = new Runnable {
         def run(): Unit = {logMessage(m, msg)}
@@ -409,7 +466,7 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
     msgLogListModel.addElement(m + " " + msg)
     msgLogListViewScrollPane.verticalScrollBar.value = msgLogListViewScrollPane.verticalScrollBar.maximum
     msgQueueListModel.clear
-    scriptExecutor.scriptGraphMessages.foreach(msgQueueListModel.addElement(_)) 
+    callGraphMessages.foreach(msgQueueListModel.addElement(_)) 
   }
   def updateDisplay = {
     var s = currentMessage.toString
@@ -421,7 +478,7 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
   }
   // script..
   //   live       = {*awaitMessageBeingHandled*}
-  //                if (shouldStep) ( @gui: {!updateDisplay!}; stepCommand || if(!needsStep(m)) waitSomeTime )
+  //                if (shouldStep) ( @gui: {!updateDisplay!}; stepCommand || if(autoCheckBox.isChecked) waitForStep )
   //                {messageBeingHandled=false}
   //                ...
   //             || exitDebugger
@@ -431,7 +488,8 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
   // exitDebugger = exitCommand @gui: while(!confirmExit)
   
   override def _live  = _script('live) {_par_or2(_seq(_threaded{awaitMessageBeingHandled(true)}, 
-                                                      _if{shouldStep} (_seq(_at{gui} (_tiny{updateDisplay}), _stepCommand)), 
+                                                      _if{shouldStep} (_par_or(_seq(_at{gui} (_tiny{updateDisplay}), _stepCommand), 
+                                                                               _if_else{autoCheckBox.selected}(_threaded{waitForStepTimeout}, _deadlock))), 
                                                       _normal{messageBeingHandled=false}, 
                                                       _loop
                                                      ), 
@@ -443,8 +501,8 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
   
   override def live = _execute(_live, false) //), new SimpleScriptDebugger)
   
-  def scriptGraphMessages = scriptExecutor.scriptGraphMessages
-  def rootNode            = scriptExecutor.rootNode
+  def callGraphMessages = scriptExecutor.callGraphMessages
+  def rootNode          = scriptExecutor.rootNode
   
   def messageHandled(m: CallGraphMessage[_]): Unit = {
     currentMessage = m
