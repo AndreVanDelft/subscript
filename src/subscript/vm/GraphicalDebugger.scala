@@ -420,27 +420,26 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
     val splitPaneMsgs   = new SplitPane(scala.swing.Orientation.Horizontal, borderPanelMsgs,  msgQueueListViewScrollPane) {dividerLocation  = 350}
     splitPaneMain       = new SplitPane(scala.swing.Orientation.Vertical,     splitPaneMsgs,             splitPaneGraphs) {dividerLocation  = 240}
   } 
-  val descriptionTF    = new TextField {
-    preferredSize      = new Dimension(400,24)
-    editable           = false
-    font               = normalFont
+  val descriptionTF     = new TextField {
+    preferredSize       = new Dimension(400,24)
+    editable            = false
+    font                = fixedWidthFont //normalFont
   }
-  val autoCheckBox     = new CheckBox {
-    text               = "Auto"
+  val autoCheckBox      = new CheckBox {
+    text                = "Auto"
   }
-  //val delaySlider      = new javax.swing.SpinnerNumberModel
-  val speedSlider      = new Slider {
-    min                =   0
-    max                =  10
-    value              =   5
+  val speedSlider       = new Slider {
+    min                 =   0
+    max                 =  10
+    value               =   5
   }
   
-  val top              = new Frame {
-    title              = "Subscript Graphical Debugger"
-    location           = new Point    (0,00)
-    preferredSize      = new Dimension(900,700)
-    contents           = new BorderPanel {
-      add(new FlowPanel(stepButton, autoCheckBox, speedSlider, exitButton, descriptionTF), BorderPanel.Position.North) 
+  val top               = new Frame {
+    title               = "Subscript Graphical Debugger"
+    location            = new Point    (0,00)
+    preferredSize       = new Dimension(900,700)
+    contents            = new BorderPanel {
+      add(new FlowPanel(descriptionTF, stepButton, autoCheckBox, speedSlider, exitButton), BorderPanel.Position.North) 
       add(splitPaneMain, BorderPanel.Position.Center)
     }
   }
@@ -463,9 +462,8 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
       case _ => false
     }
   
-  def MIN_STEP_DELAY_SEC = 0
   def MAX_STEP_DELAY_SEC = 5
-  //def stepSleep_ms = math.pow(2, 12-speedSlider.value) // logarithmic scale
+
   def stepSleep_ms = (math.pow((speedSlider.max-speedSlider.value) / speedSlider.max.toDouble, 3) * MAX_STEP_DELAY_SEC * 1000).intValue
     
   def waitForStepTimeout = {
@@ -523,8 +521,8 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
                                                 )}
   def   _stepCommand  = _script('stepCommand ) {_clicked(stepButton)}
   def   _exitCommand  = _script('exitCommand ) {_clicked(exitButton)} // windowClosing
-  def   _exitDebugger = _script('exitDebugger) {_seq(  _exitCommand, _at{gui}(_normal{exitConfirmed=confirmExit}), _while{!exitConfirmed})}
-//def   _exitDebugger = _script('exitDebugger) {_seq(  _exitCommand, _at{gui} (_while{!confirmExit}))}
+  def   _exitDebugger = _script('exitDebugger) {_seq(  _exitCommand, _at{gui}(_while{!confirmExit}))}
+//def   _exitDebugger = _script('exitDebugger) {_seq(  _exitCommand, _at{gui}(_normal{exitConfirmed=confirmExit}), _while{!exitConfirmed})}
   
   override def live = _execute(_live, false) //), new SimpleScriptDebugger)
   
