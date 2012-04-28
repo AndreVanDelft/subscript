@@ -85,9 +85,9 @@ import scala.collection.mutable._
 	                            child: CallGraphNodeTrait[_<:TemplateNode]) extends CallGraphMessageN {priority = 17}
 	case class AAEnded          (node: CallGraphNodeTrait[_<:TemplateNode], 
 	                            child: CallGraphNodeTrait[_<:TemplateNode]) extends CallGraphMessageN {priority = 16}
-	case class AAToBeExecuted     [T<:TemplateNodeWithCode[_,R],R](node: CallGraphNodeWithCodeTrait[T,R]) extends CallGraphMessage[CallGraphNodeWithCodeTrait[T,R]] {priority = 1}
-	case class AAToBeReexecuted   [T<:TemplateNodeWithCode[_,R],R](node: CallGraphNodeWithCodeTrait[T,R]) extends CallGraphMessage[CallGraphNodeWithCodeTrait[T,R]] {priority = 0}
-	case class AAExecutionFinished[T<:TemplateNodeWithCode[_,R],R](node: CallGraphNodeWithCodeTrait[T,R]) extends CallGraphMessage[CallGraphNodeWithCodeTrait[T,R]] {priority = 6}
+	case class AAToBeExecuted     [T<:TemplateChildNodeWithCode[_,R],R](node: CallGraphNodeWithCodeTrait[T,R]) extends CallGraphMessage[CallGraphNodeWithCodeTrait[T,R]] {priority = 1}
+	case class AAToBeReexecuted   [T<:TemplateChildNodeWithCode[_,R],R](node: CallGraphNodeWithCodeTrait[T,R]) extends CallGraphMessage[CallGraphNodeWithCodeTrait[T,R]] {priority = 0}
+	case class AAExecutionFinished[T<:TemplateChildNodeWithCode[_,R],R](node: CallGraphNodeWithCodeTrait[T,R]) extends CallGraphMessage[CallGraphNodeWithCodeTrait[T,R]] {priority = 6}
 	case object CommunicationMatchingMessage extends CallGraphMessage[CallGraphNodeTrait[TemplateNode]] {
 	  priority = 3 
 	  def node:CallGraphNodeTrait[TemplateNode] = null

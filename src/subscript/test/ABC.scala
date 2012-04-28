@@ -34,10 +34,10 @@ object ABC  {
   
   _relate(__a_b, __a~'p0, __b~'p1)
     
-  def _a(_p0: FormalInputParameter[String]) = _comscript(__a, _p0~'p0)
-  def _b(_p1: FormalInputParameter[String]) = _comscript(__b, _p1~'p1)
+  def _a(_p0: FormalInputParameter[String]) = _comscript(this, __a, _p0~'p0)
+  def _b(_p1: FormalInputParameter[String]) = _comscript(this, __b, _p1~'p1)
   
-  def _main(_args: FormalInputParameter[Array[String]]) = _script('main, _args~'args) {_par(_call{_a("Hello ")}, _call{_b("world!")})}
+  def _main(_args: FormalInputParameter[Array[String]]) = _script(this, 'main, _args~'args) {_par(_call{_a("Hello ")}, _call{_b("world!")})}
 
   def  main( args: Array[String]): Unit = _execute(_main(args))
 }

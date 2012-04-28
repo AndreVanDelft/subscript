@@ -229,7 +229,7 @@ case class N_if            (template: T_1_ary_test[N_if        ]) extends CallGr
 case class N_if_else       (template: T_2_ary_test[N_if_else   ]) extends CallGraphTreeParentNode[T_2_ary_test[N_if_else   ]] with CallGraphNodeWithCodeTrait[T_2_ary_test[N_if_else   ], Boolean]
 case class N_launch        (template: T_1_ary     ) extends CallGraphLeafNode      [T_1_ary]
 
-case class N_annotation[CN<:CallGraphNodeTrait[CT],CT<:TemplateNode] (template: T_annotation[CN,CT]) extends 
+case class N_annotation[CN<:CallGraphNodeTrait[CT],CT<:TemplateChildNode] (template: T_annotation[CN,CT]) extends 
    CallGraphTreeParentNode[T_annotation[CN,CT]] with CallGraphNodeWithCodeTrait[T_annotation[CN,CT], Unit] {def there:CN=children.head.asInstanceOf[CN]}
 
 // the following 4 types may have multiple children active synchronously
@@ -289,7 +289,7 @@ case class Communication(_body: N_communication => TemplateNode) {
       cr.communicator.roles += cr
       names += cr.communicator.name
     }
-    template = T_communication("comm", names)
+    template = T_communication(null, "comm", names)
   }
 }
 case class Communicator(name: Symbol) {

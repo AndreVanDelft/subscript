@@ -36,7 +36,7 @@ class Bag_AB_loops_Application extends SimpleSubscriptApplication {
                 + B (live&b)
 */
 
-  override def _live = _script('live) {_par(_seq(_clicked(A),_clicked(a)), _optionalBreak_loop)}
+  override def _live = _script(this, 'live) {_par(_seq(_clicked(A),_clicked(a)), _optionalBreak_loop)}
   //override def _live = _script('live) {_par(_par(_seq(_clicked(A),_clicked(a)), _optionalBreak_loop), 
   //                                          _par(_seq(_clicked(B),_clicked(b)), _optionalBreak_loop))}
                

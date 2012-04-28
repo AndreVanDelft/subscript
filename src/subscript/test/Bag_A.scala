@@ -33,7 +33,7 @@ class Bag_A_Application extends SimpleSubscriptApplication {
   override live = A (live&a) 
 */
 
-  override def _live = _script('live) {_seq(_clicked(A), _par(_live, _clicked(a)))}
+  override def _live = _script(this, 'live) {_seq(_clicked(A), _par(_live, _clicked(a)))}
                
   // bridge methods; only the first one is actually used; implicit scripts do not get bridge methods   
   override def live = _execute(_live)

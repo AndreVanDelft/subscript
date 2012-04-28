@@ -20,8 +20,8 @@ object TestHelloWorld_withCall {
 // script methods, to be called from bridge-to-Scala method or from other scripts
 // Note: the DSL cannot take advantage of the "implicit" _printlnScript, since the parameters "hello" and "world!" 
 // would first need to be boxed to a ActualValueParameter, before _printlnScript would apply 
-         def _main (_args: FormalInputParameter[Array[String]]) = _script('main, _args~'args)    {_seq(_call{_printlnScript("hello")}, _printlnScript("world!"))}
-implicit def _printlnScript(_s:  FormalInputParameter[String] ) = {_script('printlnScript, _s~'s) { {println(_s.value)} }}
+         def _main (_args: FormalInputParameter[Array[String]]) = _script(this, 'main, _args~'args)    {_seq(_call{_printlnScript("hello")}, _printlnScript("world!"))}
+implicit def _printlnScript(_s:  FormalInputParameter[String] ) = {_script(this, 'printlnScript, _s~'s) { {println(_s.value)} }}
 
 // bridge methods. Most return a ScriptExecuter; 
 // only a "main" method with the proper parameter type has return type Unit, to serve as a program entry point 

@@ -64,32 +64,32 @@ class LookupFrame2Application extends SimpleSubscriptApplication {
 	
 	implicit vkey(k: Key.Value??) = vkey(top, k??)
 */
-  override def _live     = _script('live             ) {_par_or2(_seq(_loop, _searchSequence), _exit)}
-  def _searchCommand     = _script('searchCommand    ) {_alt(_clicked(searchButton), _vkey(Key.Enter))} 
-  def _cancelCommand     = _script('cancelCommand    ) {_alt(_clicked(cancelButton), _vkey(Key.Escape))}
-  def   _exitCommand     = _script('exitCommand      ) {_clicked(exitButton)} // windowClosing
-  def   _exit            = _script('exit             ) {_seq(  _exitCommand, _at{gui} (_while{!confirmExit}))}
-  def _cancelSearch      = _script('cancelSearch     ) {_seq(_cancelCommand, _at{gui} (_call{_showCanceledText}))}
-  def _searchSequence    = _script('searchSequence   ) {_seq(/*_guard(searchTF, ()=> !(searchTF.text.isEmpty)),  TBD get guard working correctly*/
+  override def _live     = _script(this, 'live             ) {_par_or2(_seq(_loop, _searchSequence), _exit)}
+  def _searchCommand     = _script(this, 'searchCommand    ) {_alt(_clicked(searchButton), _vkey(Key.Enter))} 
+  def _cancelCommand     = _script(this, 'cancelCommand    ) {_alt(_clicked(cancelButton), _vkey(Key.Escape))}
+  def   _exitCommand     = _script(this, 'exitCommand      ) {_clicked(exitButton)} // windowClosing
+  def   _exit            = _script(this, 'exit             ) {_seq(  _exitCommand, _at{gui} (_while{!confirmExit}))}
+  def _cancelSearch      = _script(this, 'cancelSearch     ) {_seq(_cancelCommand, _at{gui} (_call{_showCanceledText}))}
+  def _searchSequence    = _script(this, 'searchSequence   ) {_seq(/*_guard(searchTF, ()=> !(searchTF.text.isEmpty)),  TBD get guard working correctly*/
                                                              _searchCommand, 
      	                                                     _disrupt(_seq(_showSearchingText, _searchInDatabase, _showSearchResults),
                                                                       _cancelSearch ))}
-  def _showSearchingText = _script('showSearchingText) {_at{gui} (_normal {            
+  def _showSearchingText = _script(this, 'showSearchingText) {_at{gui} (_normal {            
     outputTA.text = 
       "Searching: "+searchTF.text
       })}
-  def _showSearchResults = _script('showSearchResults) {_at{gui} (_normal1{(here: N_code_normal) => 
+  def _showSearchResults = _script(this, 'showSearchResults) {_at{gui} (_normal1{(here: N_code_normal) => 
     outputTA.text = "Found: "+here.index+" items"})}
-  def _showCanceledText  = _script('showCanceledText ) {_at{gui} (_normal {                         outputTA.text = "Searching Canceled"})}
-  def _searchInDatabase  = _script('searchInDatabase ) {_threaded{sleep(2000)}} // {_par_or2(_threaded{Thread.sleep(5000)}, _progressMonitor)} TBD...
-  def _progressMonitor   = _script('progressMonitor  ) {
+  def _showCanceledText  = _script(this, 'showCanceledText ) {_at{gui} (_normal {                         outputTA.text = "Searching Canceled"})}
+  def _searchInDatabase  = _script(this, 'searchInDatabase ) {_threaded{sleep(2000)}} // {_par_or2(_threaded{Thread.sleep(5000)}, _progressMonitor)} TBD...
+  def _progressMonitor   = _script(this, 'progressMonitor  ) {
   _seq(_loop, 
       _at{gui} (
           _normal{
             (here: N_code_normal) => outputTA.text+=" "+(10-pass(here))}), 
       _threaded{Thread.sleep(200)})}
  
-  def _vkey(_k:FormalConstrainedParameter[Key.Value]) = _script('vkey, _k~??'k) {subscript.swing.Scripts._vkey(top, _k~??)}
+  def _vkey(_k:FormalConstrainedParameter[Key.Value]) = _script(this, 'vkey, _k~??'k) {subscript.swing.Scripts._vkey(top, _k~??)}
                
 // bridge method   
 override def live = _execute(_live)

@@ -31,8 +31,8 @@ import subscript.vm._
 
 object DSL {
   type _scriptType = N_call=>Unit
-  def _script   (name        : Symbol      , p: FormalParameter_withName[_]*)(_t: TemplateNode): N_call => Unit = {(_c: N_call) => _c.calls(T_script    ("script"       , name,     _t), p:_*)}
-  def _comscript(communicator: Communicator, p: FormalParameter_withName[_]*)                  : N_call => Unit = {(_c: N_call) => _c.calls(T_commscript("communicator" , communicator), p:_*)}
+  def _script   (owner : AnyRef, name        : Symbol      , p: FormalParameter_withName[_]*)(_t: TemplateChildNode): N_call => Unit = {(_c: N_call) => _c.calls(T_script    (owner, "script"       , name,     _t), p:_*)}
+  def _comscript(owner : AnyRef, communicator: Communicator, p: FormalParameter_withName[_]*)                       : N_call => Unit = {(_c: N_call) => _c.calls(T_commscript(owner, "communicator" , communicator), p:_*)}
   
 //  def _communication(owner: Any, names: Symbol*): N_communication => TemplateNode = {
 //    (_c: N_communication) => _c.inits(T_communication("communication", names.toList.map(_.asInstanceOf[Symbol])), owner)
@@ -80,7 +80,7 @@ object DSL {
   
   implicit def valueToActualValueParameter[T<:Any](value: T) = new ActualValueParameter(value)
 
-  def _at[N<:CallGraphNodeTrait[T],T<:TemplateNode](_cf:N=>Unit)  
+  def _at[N<:CallGraphNodeTrait[T],T<:TemplateChildNode](_cf:N=>Unit)  
   = (_child: T) => T_annotation(() => (here:N_annotation[N,T]) => _cf(here.there), _child)
  
   def _declare[T](name: Symbol) = new LocalVariable[T](name)
@@ -103,11 +103,11 @@ object DSL {
   def _var_loop[T<:Any](v: LocalVariable[T], valueCode: => N_localvar[_]=>T) = T_0_ary_local_valueCode("var..." , v, () => valueCode)
   def _val_loop[T<:Any](v: LocalVariable[T], valueCode: => N_localvar[_]=>T) = T_0_ary_local_valueCode("val..." , v, () => valueCode)
   
-  def _op0(opSymbol: String)                                                       = T_0_ary(opSymbol)
-  def _op1(opSymbol: String)(c0: TemplateNode)                                     = T_1_ary(opSymbol, c0)
-  def _op2(opSymbol: String)(c0: TemplateNode, c1: TemplateNode)                   = T_2_ary(opSymbol, c0, c1)
-  def _op3(opSymbol: String)(c0: TemplateNode, c1: TemplateNode, c2: TemplateNode) = T_3_ary(opSymbol, c0, c1, c2)
-  def _op (opSymbol: String)(children: TemplateNode*)                              = T_n_ary(opSymbol, children:_*)
+  def _op0(opSymbol: String)                                                                      = T_0_ary(opSymbol)
+  def _op1(opSymbol: String)(c0: TemplateChildNode)                                               = T_1_ary(opSymbol, c0)
+  def _op2(opSymbol: String)(c0: TemplateChildNode, c1: TemplateChildNode)                        = T_2_ary(opSymbol, c0, c1)
+  def _op3(opSymbol: String)(c0: TemplateChildNode, c1: TemplateChildNode, c2: TemplateChildNode) = T_3_ary(opSymbol, c0, c1, c2)
+  def _op (opSymbol: String)(children: TemplateChildNode*)                                        = T_n_ary(opSymbol, children:_*)
   
   def _seq               = _op (";")_
   def _alt               = _op ("+")_
@@ -139,8 +139,8 @@ object DSL {
   def _if_else_inline                      = _op3("?:")_
   def _while  (_cond:         =>Boolean)   = T_0_ary_test("while", () => (here: N_while ) => _cond)
   def _while  (_cond:N_while  =>Boolean)   = T_0_ary_test("while", () =>                     _cond)
-  def _if     (_cond:         =>Boolean)(c0: TemplateNode) = T_1_ary_test("if", () => (here: N_if) => _cond, c0)
-  def _if     (_cond:N_if     =>Boolean)(c0: TemplateNode) = T_1_ary_test("if", () =>                 _cond, c0)
-  def _if_else(_cond:         =>Boolean)(c0: TemplateNode, c1: TemplateNode) = T_2_ary_test("if_else", () => (here: N_if_else) => _cond, c0, c1)
-  def _if_else(_cond:N_if_else=>Boolean)(c0: TemplateNode, c1: TemplateNode) = T_2_ary_test("if_else", () =>                      _cond, c0, c1)
+  def _if     (_cond:         =>Boolean)(c0: TemplateChildNode) = T_1_ary_test("if", () => (here: N_if) => _cond, c0)
+  def _if     (_cond:N_if     =>Boolean)(c0: TemplateChildNode) = T_1_ary_test("if", () =>                 _cond, c0)
+  def _if_else(_cond:         =>Boolean)(c0: TemplateChildNode, c1: TemplateChildNode) = T_2_ary_test("if_else", () => (here: N_if_else) => _cond, c0, c1)
+  def _if_else(_cond:N_if_else=>Boolean)(c0: TemplateChildNode, c1: TemplateChildNode) = T_2_ary_test("if_else", () =>                      _cond, c0, c1)
  }

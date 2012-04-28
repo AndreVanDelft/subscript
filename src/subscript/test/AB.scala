@@ -37,7 +37,7 @@ class ABApplication extends SimpleSubscriptApplication {
            exit = X+Key.Excape
 */
 
-  override def _live = _script('live) {_seq(_seq(_optionalBreak_loop, _clicked(A)), _clicked(B))}
+  override def _live = _script(this, 'live) {_seq(_seq(_optionalBreak_loop, _clicked(A)), _clicked(B))}
         //def _exit = _script('exit) {_alt(_clicked(X), _vkey(top, Key.Escape))}
                
   // bridge methods; only the first one is actually used; implicit scripts do not get bridge methods   

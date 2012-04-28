@@ -235,9 +235,11 @@ class CommonScriptExecutor extends ScriptExecutor {
   
   var aaStartedCount = 0; // TBD: use for determining success
   val anchorTemplate = new T_call(null)
-  val rootTemplate   = new T_1_ary("**", anchorTemplate)
+  val rootTemplate   = new T_1_ary("**", anchorTemplate) {override def root=this; override def owner=CommonScriptExecutor.this}
   val rootNode       = new N_launch_anchor(rootTemplate)
   val anchorNode     = new N_call(anchorTemplate)
+  anchorTemplate.parent = rootTemplate
+  
   rootNode.scriptExecutor = this 
   connect(parentNode = rootNode, childNode = anchorNode)
   //insert(Activation(anchorNode)) 
@@ -282,7 +284,7 @@ class CommonScriptExecutor extends ScriptExecutor {
       case t @ T_2_ary     ("?"         , _, _   ) => N_inline_if     (t)
       case t @ T_3_ary     ("?:"        , _, _, _) => N_inline_if_else(t)
       case t @ T_n_ary(kind: String, children@ _*) => N_n_ary_op      (t, T_n_ary.isLeftMerge(kind))
-      case t @ T_script(kind: String, name: Symbol, 
+      case t @ T_script(_, kind: String, name: Symbol, 
                         child0: TemplateNode     ) => N_script        (t.asInstanceOf[T_script    ])
       case _ => null 
     }
@@ -302,9 +304,9 @@ class CommonScriptExecutor extends ScriptExecutor {
     var v = executeTemplateCode[N_call,T_call, N_call=>Unit](n)
     v(n)
   }
-  def executeCode_annotation[CN<:CallGraphNodeTrait[CT],CT<:TemplateNode](n: N_annotation[CN,CT]) = executeTemplateCode[N_annotation[CN,CT], T_annotation[CN,CT],Unit](n)
+  def executeCode_annotation[CN<:CallGraphNodeTrait[CT],CT<:TemplateChildNode](n: N_annotation[CN,CT]) = executeTemplateCode[N_annotation[CN,CT], T_annotation[CN,CT],Unit](n)
   
-  def executeTemplateCode[N<:CallGraphNodeWithCodeTrait[T,R],T<:TemplateNodeWithCode[N,R],R](n: N): R = {
+  def executeTemplateCode[N<:CallGraphNodeWithCodeTrait[T,R],T<:TemplateChildNodeWithCode[N,R],R](n: N): R = {
     executeCode(n, 
         ()=>n.template.code.apply.apply(n))
   }
@@ -633,17 +635,17 @@ class CommonScriptExecutor extends ScriptExecutor {
     // TBD
   }
   
-  def handleAAToBeExecuted[T<:TemplateNodeWithCode[_,R],R](message: AAToBeExecuted[T,R]) {
+  def handleAAToBeExecuted[T<:TemplateChildNodeWithCode[_,R],R](message: AAToBeExecuted[T,R]) {
     val e = message.node.codeExecutor
     if (!e.canceled)  // temporary fix, since the message queue does not yet allow for removals
          e.executeAA
   }
-  def handleAAToBeReexecuted[T<:TemplateNodeWithCode[_,R],R](message: AAToBeReexecuted[T,R]) {
+  def handleAAToBeReexecuted[T<:TemplateChildNodeWithCode[_,R],R](message: AAToBeReexecuted[T,R]) {
     val e = message.node.codeExecutor
     if (!e.canceled) // temporary fix, since the message queue does not yet allow for removals
        insert(AAToBeExecuted(message.node)) // this way, failed {??} code ends up at the back of the queue
   }
-  def handleAAExecutionFinished[T<:TemplateNodeWithCode[_,R],R](message: AAExecutionFinished[T,R]) {
+  def handleAAExecutionFinished[T<:TemplateChildNodeWithCode[_,R],R](message: AAExecutionFinished[T,R]) {
      message.node.codeExecutor.afterExecuteAA
   }
   

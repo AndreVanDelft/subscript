@@ -181,7 +181,15 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
 
         val r = new Rectangle(boxLeft, boxTop, boxWidth, BOX_H)
         val n = if (currentMessage==null) null else currentMessage.node.asInstanceOf[CallGraphNode[_<:TemplateNode]]
-        val isCurrentTemplate = currentMessage != null && n != null && n.template != null && n.template == t && n.template.name == t.name
+        
+        val isCurrentTemplate = currentMessage            != null    && 
+                                n                         != null    && 
+                                n.template                != null    && 
+                                n.template.root.name      == t.root.name      && 
+                                n.template.owner          != null             &&
+                                n.template.owner.getClass == t.owner.getClass && 
+                                n.template.indexInScript  == t.indexInScript
+                                
         g.setColor(fillColor(n, lightOrange, isCurrentTemplate)) 
         g fill r
         emphasize(isCurrentTemplate)
@@ -511,7 +519,7 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
   
   var exitConfirmed = false
   
-  override def _live  = _script('live) {_par_or2(_seq(_threaded{awaitMessageBeingHandled(true)}, 
+  override def _live  = _script(this, 'live) {_par_or2(_seq(_threaded{awaitMessageBeingHandled(true)}, 
                                                       _if{shouldStep} (_par_or(_seq(_at{gui} (_tiny{updateDisplay}), _stepCommand), 
                                                                                _if_else{autoCheckBox.selected}(_threaded{waitForStepTimeout}, _deadlock))), 
                                                       _normal{messageBeingHandled=false}, 
@@ -519,9 +527,9 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
                                                      ), 
                                                   _exitDebugger
                                                 )}
-  def   _stepCommand  = _script('stepCommand ) {_clicked(stepButton)}
-  def   _exitCommand  = _script('exitCommand ) {_clicked(exitButton)} // windowClosing
-  def   _exitDebugger = _script('exitDebugger) {_seq(  _exitCommand, _at{gui}(_while{!confirmExit}))}
+  def   _stepCommand  = _script(this, 'stepCommand ) {_clicked(stepButton)}
+  def   _exitCommand  = _script(this, 'exitCommand ) {_clicked(exitButton)} // windowClosing
+  def   _exitDebugger = _script(this, 'exitDebugger) {_seq(  _exitCommand, _at{gui}(_while{!confirmExit}))}
 //def   _exitDebugger = _script('exitDebugger) {_seq(  _exitCommand, _at{gui}(_normal{exitConfirmed=confirmExit}), _while{!exitConfirmed})}
   
   override def live = _execute(_live, false) //), new SimpleScriptDebugger)

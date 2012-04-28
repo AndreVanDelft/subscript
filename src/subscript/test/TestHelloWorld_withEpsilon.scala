@@ -14,7 +14,7 @@ object TestHelloWorld_withEpsilon {
 //  main(args: Array[String]) = (+) + print("Hello "); println("world!")
   def sleep(duration_ms: Long) = try {Thread.sleep(duration_ms)} catch {case e: InterruptedException => println("sleep interrupted")}
 
-  def _main(_args: FormalInputParameter[Array[String]]) = _script('main, _args~'args) {_seq(_alt(_empty, _threaded{sleep(25000);println("Hello ")}), {println("world!")})}
+  def _main(_args: FormalInputParameter[Array[String]]) = _script(this, 'main, _args~'args) {_seq(_alt(_empty, _threaded{sleep(25000);println("Hello ")}), {println("world!")})}
 
   def  main( args: Array[String]): Unit = _execute(_main(args))
 }

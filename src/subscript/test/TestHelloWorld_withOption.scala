@@ -15,7 +15,7 @@ object TestHelloWorld_withOption {
 // script..
 //  main(args: Array[String]) = . print("Hello "); println("world!")
 
-  def _main(_args: FormalInputParameter[Array[String]]) = _script('main, _args~'args) {_seq(_seq(_optionalBreak, {println("Hello ")}), {println("world!")})}
+  def _main(_args: FormalInputParameter[Array[String]]) = _script(this, 'main, _args~'args) {_seq(_seq(_optionalBreak, {println("Hello ")}), {println("world!")})}
 
   def  main( args: Array[String]): Unit = _execute(_main(args))
 }
