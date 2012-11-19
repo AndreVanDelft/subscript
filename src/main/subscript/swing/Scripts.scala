@@ -188,7 +188,7 @@ object Scripts {
        _at{gui} (_at{(there:N_code_eh) => {_r.value.subscribe(there); 
                           there.onDeactivate{_r.value.unsubscribe}; 
                           there.onSuccess   {_r.value.acknowledgeEventHandled}}}
-         (_eventhandling{})
+         (_eventhandling0{})
        )
    } 
   }
@@ -201,7 +201,7 @@ object Scripts {
                                              _r.value.subscribe(there); 
                           there.onDeactivate{_r.value.unsubscribe}; 
                           there.onSuccess   {_r.value.acknowledgeEventHandled}}}
-         (_eventhandling{})
+         (_eventhandling0{})
       )
     }
   }           
@@ -211,7 +211,7 @@ object Scripts {
                                              _r.value.subscribe(there); 
                           there.onDeactivate{_r.value.unsubscribe}; 
                           there.onSuccess   {_r.value.acknowledgeEventHandled}}}
-         (_eventhandling{})
+         (_eventhandling0{})
       )
     }
   }           

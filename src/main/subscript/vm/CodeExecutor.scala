@@ -34,8 +34,9 @@ trait CodeExecutorTrait {
   var canceled = false // TBD(?) inspect this flag before execution
   def asynchronousAllowed: Boolean
   
-  def doCodeExecution[R](code: ()=>R): R = code.apply // for Atomic Actions, if, while, tiny, script calls etc, and also for onActivate etc
-  
+  def doCodeExecution[R](code: ()=>R): R = {
+    code.apply // for Atomic Actions, if, while, tiny, script calls etc, and also for onActivate etc
+  }
   private def shouldNotBeCalledHere = throw new Exception("Illegal Call")
   def executeAA     : Unit                                      = shouldNotBeCalledHere // TBD: clean up class/trait hierarchy so that this def can be ditched
   def executeAA(lowLevelCodeExecutor: CodeExecutorTrait): Unit  = shouldNotBeCalledHere // TBD: clean up class/trait hierarchy so that this def can be ditched
@@ -69,14 +70,17 @@ abstract class AACodeFragmentExecutor[N<:N_atomic_action[N]](_n: N, _scriptExecu
   override def cancelAA = super.cancelAA; interruptAA
   def naa = n.asInstanceOf[N]
   def doCodeExecution(lowLevelCodeExecutor: CodeExecutorTrait): Unit = lowLevelCodeExecutor.doCodeExecution{
-    ()=>n.hasSuccess = true
-    n.isExecuting = true
-    try {naa.template.code.apply.apply(naa)} finally {n.isExecuting = false}
-    executionFinished
+    ()=>
+      n.hasSuccess = true
+      n.isExecuting = true
+      try {naa.template.code.apply.apply(naa)} finally {n.isExecuting = false}
+      executionFinished
   }
   def aaStarted = scriptExecutor.insert(AAStarted(n,null))
   def aaEnded   = scriptExecutor.insert(AAEnded  (n,null)) 
-  def succeeded = scriptExecutor.insert(Success  (n,null)) 
+  def succeeded = {
+    scriptExecutor.insert(Success  (n,null)) 
+  }
   override def executeAA: Unit = executeAA(this) // for Atomic Action execution...should ensure that executionFinished is called
   def executeAA(lowLevelCodeExecutor: CodeExecutorTrait): Unit // for Atomic Action execution...should ensure that executionFinished is called
   def afterExecuteAA             // to be called by executor, asynchronously, in reaction to executionFinished (through a message queue, not through a call inside a call)
@@ -112,13 +116,18 @@ class NormalCodeFragmentExecutor[N<:N_atomic_action[N]](n: N, scriptExecutor: Sc
   }
 }
 class UnsureCodeFragmentExecutor(n: N_code_unsure, scriptExecutor: ScriptExecutor) extends AACodeFragmentExecutor(n, scriptExecutor)  {
-  override def executeAA(lowLevelCodeExecutor: CodeExecutorTrait): Unit = doCodeExecution(lowLevelCodeExecutor)
+  override def executeAA(lowLevelCodeExecutor: CodeExecutorTrait): Unit = {
+    doCodeExecution(lowLevelCodeExecutor)
+  }
   override def afterExecuteAA = {
     if (n.hasSuccess) {
        aaStarted; aaEnded; succeeded; deactivate
     }
-    else { // TBD: allow for deactivating result
+    else if (n.result==UnsureExecutionResult.Ignore){ // allow for deactivating result
       toBeReexecuted
+    }
+    else { 
+      deactivate
     }
   }
 }

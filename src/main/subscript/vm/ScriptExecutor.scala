@@ -41,7 +41,7 @@ trait ScriptExecutor {
   def rootNode: N_launch_anchor
   
   val anchorNode: N_call
-  def hasSucces: Boolean
+  def hasSuccess: Boolean
   def run: ScriptExecutor
   def insert(sga: CallGraphMessage[_ <: CallGraphNodeTrait[_<:TemplateNode]])
   
@@ -118,7 +118,7 @@ class CommonScriptExecutor extends ScriptExecutor {
  
   // send out a success when in an And-like context
   def doNeutral(n: CallGraphNode[_<:TemplateNode]) =
-    if (n.getLogicalKind_n_ary_op_ancestor==LogicalKind.And) {
+    if (n.getLogicalKind_n_ary_op_ancestor!=LogicalKind.Or) {
          insert(Success(n))
     }
   // .. ... for and while operate on the closest ancestor node that has an n_ary operator
@@ -231,7 +231,7 @@ class CommonScriptExecutor extends ScriptExecutor {
     queueCallGraphMessage(Continuation1(n))
   }
   
-  def hasSucces      = rootNode.hasSuccess
+  def hasSuccess     = rootNode.hasSuccess
   
   var aaStartedCount = 0; // TBD: use for determining success
   val anchorTemplate = new T_call(null)
@@ -389,6 +389,7 @@ class CommonScriptExecutor extends ScriptExecutor {
   }
   
   def handleSuccess(message: Success): Unit = {
+println("handleSuccess: "+message.node+" message.child: "+message.child)    
           message.node match {
                case n@  N_annotation    (_: T_1_ary_code[_]) => {} // onSuccess?
                case n@  N_inline_if     (t: T_2_ary        )  => if (message.child.template==t.child0) {

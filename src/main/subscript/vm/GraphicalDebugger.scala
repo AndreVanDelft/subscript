@@ -519,10 +519,10 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
   
   var exitConfirmed = false
   
-  override def _live  = _script(this, 'live) {_par_or2(_seq(_threaded{awaitMessageBeingHandled(true)}, 
-                                                      _if{shouldStep} (_par_or(_seq(_at{gui} (_tiny{updateDisplay}), _stepCommand), 
-                                                                               _if_else{autoCheckBox.selected}(_threaded{waitForStepTimeout}, _deadlock))), 
-                                                      _normal{messageBeingHandled=false}, 
+  override def _live  = _script(this, 'live) {_par_or2(_seq(_threaded0{awaitMessageBeingHandled(true)}, 
+                                                      _if{shouldStep} (_par_or(_seq(_at{gui} (_tiny0{updateDisplay}), _stepCommand), 
+                                                                               _if_else{autoCheckBox.selected}(_threaded0{waitForStepTimeout}, _deadlock))), 
+                                                      _normal0{messageBeingHandled=false}, 
                                                       _loop
                                                      ), 
                                                   _exitDebugger

@@ -33,12 +33,22 @@ object ActivationMode extends Enumeration {
   val Active, Optional, Inactive = Value
 }
 
+object UnsureExecutionResult extends Enumeration {
+  type UnsureExecutionResultType = Value
+  val Success, Failure, Ignore = Value
+}
+
+object LoopingExecutionResult extends Enumeration {
+  type LoopingExecutionResultType = Value
+  val Success, Failure, Break, OptionalBreak = Value
+}
+
 object OnActivate
 object OnActivateOrResume
 object OnDeactivate
 object OnDeactivateOrSuspend
 object OnSuccess
-
+ 
 trait CallGraphNodeTrait[+T<:TemplateNode] {
   var hasSuccess = false
   var isExcluded = false
@@ -134,7 +144,7 @@ trait CallGraphNode[+T<:TemplateNode] extends CallGraphNodeTrait[T] {
 trait CallGraphTreeNode[+T<:TemplateNode] extends CallGraphNode[T] {
   var parent: CallGraphParentNodeTrait[_<:TemplateNode] = null
   // answer the n_ary_op ancestor in case there is one and the path leading thereto does not branch
-  def n_ary_op_ancestor = parent.n_ary_op_else_ancestor
+  def n_ary_op_ancestor = if (parent==null) null else parent.n_ary_op_else_ancestor
   def lowestSingleCommonAncestor = parent
   def forEachParent(task: CallGraphParentNodeTrait[_<:TemplateNode] => Unit): Unit = {
     if (parent!=null) {
@@ -204,7 +214,14 @@ abstract class CallGraphTreeNode_n_ary extends CallGraphTreeParentNode[T_n_ary] 
 case class N_code_normal     (template: T_0_ary_code[N_code_normal  ]) extends N_atomic_action   [N_code_normal  ](template)
 case class N_code_tiny       (template: T_0_ary_code[N_code_tiny    ]) extends N_atomic_action   [N_code_tiny    ](template) // not 100% appropriate
 case class N_code_threaded   (template: T_0_ary_code[N_code_threaded]) extends N_atomic_action   [N_code_threaded](template)
-case class N_code_unsure     (template: T_0_ary_code[N_code_unsure  ]) extends N_atomic_action   [N_code_unsure  ](template)
+case class N_code_unsure     (template: T_0_ary_code[N_code_unsure  ]) extends N_atomic_action   [N_code_unsure  ](template) {
+  private var _result = UnsureExecutionResult.Success; 
+  def result = _result
+  def result_=(value: UnsureExecutionResult.UnsureExecutionResultType): Unit = {
+    _result = value
+    hasSuccess = value==UnsureExecutionResult.Success
+  }
+}
 case class N_code_eh         (template: T_0_ary_code[N_code_eh      ]) extends N_atomic_action_eh[N_code_eh      ](template)
 case class N_code_eh_loop    (template: T_0_ary_code[N_code_eh_loop ]) extends N_atomic_action_eh[N_code_eh_loop ](template)
 case class N_localvar     [V](template: T_0_ary_local_valueCode[V], isLoop: Boolean) 

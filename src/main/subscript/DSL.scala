@@ -31,8 +31,8 @@ import subscript.vm._
 
 object DSL {
   type _scriptType = N_call=>Unit
-  def _script   (owner : AnyRef, name        : Symbol      , p: FormalParameter_withName[_]*)(_t: TemplateChildNode): N_call => Unit = {(_c: N_call) => _c.calls(T_script    (owner, "script"       , name,     _t), p:_*)}
-  def _comscript(owner : AnyRef, communicator: Communicator, p: FormalParameter_withName[_]*)                       : N_call => Unit = {(_c: N_call) => _c.calls(T_commscript(owner, "communicator" , communicator), p:_*)}
+  def _script   (owner : AnyRef, name        : Symbol      , p: FormalParameter_withName[_]*)(_t: TemplateChildNode): _scriptType = {(_c: N_call) => _c.calls(T_script    (owner, "script"       , name,     _t), p:_*)}
+  def _comscript(owner : AnyRef, communicator: Communicator, p: FormalParameter_withName[_]*)                       : _scriptType = {(_c: N_call) => _c.calls(T_commscript(owner, "communicator" , communicator), p:_*)}
   
 //  def _communication(owner: Any, names: Symbol*): N_communication => TemplateNode = {
 //    (_c: N_communication) => _c.inits(T_communication("communication", names.toList.map(_.asInstanceOf[Symbol])), owner)
@@ -60,21 +60,21 @@ object DSL {
   def _codeFragmentKind [N<:N_atomic_action[N]](opSymbol: String, cf:  => Unit ): T_0_ary_code[N] = T_0_ary_code(opSymbol, () => (_here:N) => cf)
   def _codeFragmentKind1[N<:N_atomic_action[N]](opSymbol: String, cf: (N=>Unit)): T_0_ary_code[N] = T_0_ary_code(opSymbol, () =>              cf)
 
-  implicit 
-  def _normal            (cf: => Unit) = _codeFragmentKind("{}",cf)
-  def _threaded          (cf: => Unit) = _codeFragmentKind("{**}",cf)
-  def _unsure            (cf: => Unit) = _codeFragmentKind("{??}",cf)
-  def _tiny              (cf: => Unit) = _codeFragmentKind("{!!}",cf)
-  def _eventhandling     (cf: => Unit) = _codeFragmentKind("{..}",cf)
-  def _eventhandling_loop(cf: => Unit) = _codeFragmentKind("{......}",cf)
+  implicit // these code fragment variations require the "here" parameter explicitly
+  def _normal            (cf: => (N_code_normal  =>Unit)) = _codeFragmentKind1("{}",cf)
+  def _threaded          (cf: => (N_code_threaded=>Unit)) = _codeFragmentKind1("{**}",cf)
+  def _unsure            (cf: => (N_code_unsure  =>Unit)) = _codeFragmentKind1("{??}",cf)
+  def _tiny              (cf: => (N_code_tiny    =>Unit)) = _codeFragmentKind1("{!!}",cf)
+  def _eventhandling     (cf: => (N_code_eh      =>Unit)) = _codeFragmentKind1("{..}",cf)
+  def _eventhandling_loop(cf: => (N_code_eh_loop =>Unit)) = _codeFragmentKind1("{......}",cf)
 
-  implicit 
-  def _normal1            (cf: => (N_code_normal  =>Unit)) = _codeFragmentKind1("{}",cf)
-  def _threaded1          (cf: => (N_code_threaded=>Unit)) = _codeFragmentKind1("{**}",cf)
-  def _unsure1            (cf: => (N_code_unsure  =>Unit)) = _codeFragmentKind1("{??}",cf)
-  def _tiny1              (cf: => (N_code_tiny    =>Unit)) = _codeFragmentKind1("{!!}",cf)
-  def _eventhandling1     (cf: => (N_code_eh      =>Unit)) = _codeFragmentKind1("{..}",cf)
-  def _eventhandling_loop1(cf: => (N_code_eh_loop =>Unit)) = _codeFragmentKind1("{......}",cf)
+  implicit // alternative code fragment variations that have no "here" parameter
+  def _normal0            (cf: => Unit) = _codeFragmentKind("{}",cf)
+  def _threaded0          (cf: => Unit) = _codeFragmentKind("{**}",cf)
+  def _unsure0            (cf: => Unit) = _codeFragmentKind("{??}",cf)
+  def _tiny0              (cf: => Unit) = _codeFragmentKind("{!!}",cf)
+  def _eventhandling0     (cf: => Unit) = _codeFragmentKind("{..}",cf)
+  def _eventhandling_loop0(cf: => Unit) = _codeFragmentKind("{......}",cf)
 
   implicit def _call      (cf: => (N_call         =>Unit)) = T_call(()=>n=>cf)
   
