@@ -92,6 +92,8 @@ trait ScriptExecutor {
 
   var nNodes = 0
   def nextNodeIndex() = {nNodes = nNodes+1; nNodes}
+  
+  def trace(s: String) = if(scriptDebugger==null) println(s)
 }
 
 /*
@@ -296,7 +298,8 @@ class CommonScriptExecutor extends ScriptExecutor {
       case n@N_code_normal  (_) => new   NormalCodeFragmentExecutor(n, this)
       case n@N_code_unsure  (_) => new   UnsureCodeFragmentExecutor(n, this)
       case n@N_code_threaded(_) => new ThreadedCodeFragmentExecutor(n, this)
-      case _                    => new     TinyCodeExecutor(node, this)
+      case n@N_annotation   (_) => new       AnnotationCodeExecutor(n, this)
+      case _                    => new          TinyCodeExecutor(node, this)
     }
   }
   def executeCode_localvar      (n: N_localvar[_]   ) = executeCode(n, ()=>n.template.code.apply.apply(n))
@@ -389,7 +392,7 @@ class CommonScriptExecutor extends ScriptExecutor {
   }
   
   def handleSuccess(message: Success): Unit = {
-println("handleSuccess: "+message.node+" message.child: "+message.child)    
+trace("handleSuccess: "+message.node+" message.child: "+message.child)    
           message.node match {
                case n@  N_annotation    (_: T_1_ary_code[_]) => {} // onSuccess?
                case n@  N_inline_if     (t: T_2_ary        )  => if (message.child.template==t.child0) {
@@ -795,9 +798,11 @@ println("handleSuccess: "+message.node+" message.child: "+message.child)
          | "&&:" | "||:" => val isLogicalOr = T_n_ary.getLogicalKind(n.template.kind)==LogicalKind.Or
                             val consideredNodes = message.deactivations.map(_.child).filter(
                                (c: CallGraphNodeTrait[_ <:TemplateNode]) => c.hasSuccess==isLogicalOr)
-                            if (consideredNodes!=Nil) {
+                            if (!consideredNodes.isEmpty) {
                               nodesToBeExcluded = n.children -- consideredNodes
+                              activateNext = false
                             }
+trace(n+" children: "+n.children+" deactivations: "+message.deactivations+" considered: "+consideredNodes+" toBeExcluded: "+nodesToBeExcluded)        
       case _ =>          
     }
     var shouldSucceed = false    
@@ -810,8 +815,10 @@ println("handleSuccess: "+message.node+" message.child: "+message.child)
         if (message.success != null || message.aaEndeds != Nil) {
           T_n_ary.getLogicalKind(n.template.kind) match {
             case LogicalKind.None =>
-            case LogicalKind.And  => shouldSucceed = (isSequential || !n.aChildEndedInFailure) &&
+            case LogicalKind.And  => shouldSucceed = (isSequential || !n.aChildEndedInFailure && !activateNext) &&
                                                      n.children.forall((e:CallGraphNodeTrait[_])=>e.hasSuccess)
+for (c<-n.children) {trace("child: "+c+" hasSuccess="+c.hasSuccess)}    
+trace(n+" shouldSucceed="+shouldSucceed)          
             case LogicalKind.Or   => shouldSucceed = n.aChildEndedInSuccess || 
                                                      n.children.find((e:CallGraphNodeTrait[_])=>e.hasSuccess).isDefined
           }

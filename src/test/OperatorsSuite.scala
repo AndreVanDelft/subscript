@@ -6,7 +6,7 @@ import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 
 import subscript.DSL._
-import subscript.vm.{TemplateChildNode, N_code_unsure, CallGraphNodeTrait, UnsureExecutionResult}
+import subscript.vm.{TemplateChildNode, N_code_unsure, CallGraphNodeTrait, UnsureExecutionResult, ScriptExecutor, CommonScriptExecutor}
 
 /**
  * This class is a test suite for the script operators as implemented in the SubScript VM. 
@@ -114,6 +114,10 @@ import subscript.vm.{TemplateChildNode, N_code_unsure, CallGraphNodeTrait, Unsur
  * In case this is the last phase2, this version of expectedAtomsAtEndOfInput will be used in testScriptBehaviour
  * to compare with the specified result.
  * 
+ * Likewise, the variable "scriptSuccessAtEndOfInput" should contain the contain the success state of the script
+ * as valid just after input processing. Both this variable and expectedAtomsAtEndOfInput are only set in case there 
+ * is any atom expected; for other scripts such as "(-)" and "(+)" the end value of executor.hasSuccess will do. 
+ * 
  * With a given (input,result) specification, the script execution can come to an end in the following ways:
  * 1 - all input has been accepted
  *     the specified result should match expectedAtomsAtEndOfInput and match executor.hasSuccess 
@@ -179,8 +183,10 @@ class OperatorsSuite extends FunSuite {
   var inputStream   : Stream[Char] = null
   var expectedAtoms :   List[Char] = null
   
-  var expectedAtomsAtEndOfInput: List[Char] = null
+  var expectedAtomsAtEndOfInput: Option[List[Char]] = None
+  var scriptSuccessAtEndOfInput: Option[Boolean]    = None
   var textIndex = 0
+  var executor: ScriptExecutor = null
   
   def testScriptBehaviour(scriptString: String, scriptDef: _scriptType, input: String, expectedResult: String) {
     //println("testScript("+scriptString+", "+input+" -> "+expectedResult+")")
@@ -191,7 +197,8 @@ class OperatorsSuite extends FunSuite {
 	  acceptedAtoms         = ""
 	  inputStream           = scala.io.Source.fromString(input).toStream
 	  expectedAtoms         = Nil
-	  expectedAtomsAtEndOfInput = null
+	  expectedAtomsAtEndOfInput = None
+	  scriptSuccessAtEndOfInput = None
 	   
 	  val expectedResultFailure = expectedResult(0)=='0'
 	  val expectedResultSuccess = expectedResult(0)=='1'
@@ -199,20 +206,21 @@ class OperatorsSuite extends FunSuite {
 	                              .sortWith(_<_).mkString
       assert(!expectedResultFailure || expectedResultAtoms.isEmpty, "test specification error: no atoms expected after failure (0)")
 	
-      val executor = _execute(scriptDef)
+	  executor = new CommonScriptExecutor
+      _execute(scriptDef, executor)
       
-      if (expectedResultSuccess) {
-        assert(executor.hasSuccess, "success; accepted="+acceptedAtoms)
+      val executionSuccess = scriptSuccessAtEndOfInput.getOrElse(executor.hasSuccess)
+      
+      if (!expectedResultSuccess) {
+        assert(!executionSuccess, "script execution should have no success; accepted="+acceptedAtoms)
       }
-      else {
-        assert(!executor.hasSuccess, "no success; accepted="+acceptedAtoms)
+      else { // note: only check for expectedAtoms here (in else branch); otherwise (-)&&a would raise false alarm
+        assert(executionSuccess, "script execution should have success; accepted="+acceptedAtoms)
+        val    expectedAtomsAtEndOfInputString = expectedAtomsAtEndOfInput.getOrElse(Nil).sortWith(_<_).mkString
+        assert(expectedAtomsAtEndOfInputString===expectedResultAtoms, 
+              "expectedAtomsAtEndOfInput=" + expectedAtomsAtEndOfInputString + " required=" + expectedResultAtoms) 
       }
-      val expectedAtomsAtEndOfInputString = if  (expectedAtomsAtEndOfInput==null) "" 
-                                            else expectedAtomsAtEndOfInput.sortWith(_<_).mkString
-      assert(expectedAtomsAtEndOfInputString===expectedResultAtoms, 
-            "expectedAtomsAtEndOfInput=" + expectedAtomsAtEndOfInputString + " required=" + expectedResultAtoms) 
-
-      assert(acceptedAtoms===input, "acceptedAtoms=" + acceptedAtoms + " required=" + input) 
+      assert(acceptedAtoms===input, "acceptedAtoms='" + acceptedAtoms + "' required='" + input+"'") 
     }   
   }
   
@@ -221,7 +229,7 @@ class OperatorsSuite extends FunSuite {
   
   // add expectation of the given atom; also prepares for the symmetric to unexpect during the inevitable deactivation
   def expect   (where: N_code_unsure, atom: Char) {where.onDeactivate(unexpect(where, atom)); expectedAtoms ::= atom
-                                                                                              expectedAtomsAtEndOfInput=null}
+                                                                                              expectedAtomsAtEndOfInput=None}
   // remove expectation of the given atom
   def unexpect (where: N_code_unsure, atom: Char) {expectedAtoms = remove1Element(expectedAtoms, atom)}
   
@@ -229,7 +237,11 @@ class OperatorsSuite extends FunSuite {
   def tryAccept(where: N_code_unsure, atom: Char) {
     if (inputStream.isEmpty || !expectedAtoms.contains(inputStream.head)) {
        where.result = UnsureExecutionResult.Failure; 
-       if (expectedAtomsAtEndOfInput==null) expectedAtomsAtEndOfInput = expectedAtoms
+       if (expectedAtomsAtEndOfInput== None) {
+           expectedAtomsAtEndOfInput = Some(expectedAtoms)
+           scriptSuccessAtEndOfInput = Some(executor.hasSuccess)
+  println("scriptSuccessAtEndOfInput = " + scriptSuccessAtEndOfInput)         
+       }
     }
     else if (inputStream.head==atom) {inputStream = inputStream.drop(1); acceptedAtoms += atom}
     else                             {where.result = UnsureExecutionResult.Ignore}
@@ -301,6 +313,8 @@ class OperatorsSuite extends FunSuite {
    , "(+)||a" -> ""
   )
   val scriptBehaviourList = List( // list, not a map, to remain ordered
+      
+   // simple terms
      "(-)"    -> "->0"
    , "(+)"    -> ""
    , "(+-)"   -> ""
@@ -311,6 +325,7 @@ class OperatorsSuite extends FunSuite {
     
    , "a"      -> "->a a"
     
+   //  a op b 
    , "a;b"    -> "->a a->b ab"
    , "a+b"    -> "->ab a b"
    , "a&b"    -> "->ab a->b  b->a  ab ba"
@@ -318,7 +333,8 @@ class OperatorsSuite extends FunSuite {
    , "a|b"    -> "->ab a->1b b->1a ab ba"
    , "a||b"   -> "->ab a b"
    , "a/b"    -> "->ab a b"
-    
+   
+   // a op antineutral
    , "a;(-)"  -> "->a a->0"
    , "(-);a"  -> "=(-)"
    , "a&(-)"  -> "->a a->0"
@@ -335,6 +351,7 @@ class OperatorsSuite extends FunSuite {
    , "a/(+)"  -> "->1a a"
    , "(+)/a"  -> "->1a a"
    
+   // 2 operand sequences with iterator or break or optional break, 
    , "break;a" -> ""
    , ".;a"     -> "->1a a"
    , "..;a"    -> "->1a a->1a aa->1a"
@@ -345,10 +362,32 @@ class OperatorsSuite extends FunSuite {
    , "a;.."    -> "->a  a->1a aa->1a"
    , "a;..."   -> "->a  a->a  aa->a"
    
+   // 3 operand sequences with iterator or break or optional break, 
+   , "a;b;break"   -> "=a;b"
+   , "a;b;."       -> "=a;b"
+   , "a;b;.."      -> "->a  a->b ab->1a aba->b abab->1a"
+   , "a;b;..."     -> "->a  a->b ab->a  aba->b abab->a"
+   
    , "a;break;b"   -> "->a  a"
    , "a;.;b"       -> "->a  a->1b ab"
    , "a;..;b"      -> "->a  a->1b ab->a aba->1b"
    , "a;...;b"     -> "->a  a->b  ab->a aba->b"
+   
+   , "break;a;b"   -> "->1"
+   , ".;a;b"       -> "->1a a->b ab"
+   , "..;a;b"      -> "->1a a->b ab->1a aba->b"
+   , "...;a;b"     -> "->a  a->b  ab->a aba->b"
+   
+   // 2 level nested 2 operand sequences with iterator or break or optional break, 
+   , "a;(b;break)" -> "->a  a->b ab"
+   , "a;(b;.)"     -> "->a  a->b ab"
+   , "a;(b;..)"    -> "->a  a->b ab->1b abb->1b"
+   , "a;(b;...)"   -> "->a  a->b  ab->b"
+   
+   , "(a;b);break" -> "=a;b"
+   , "(a;b);."     -> "=a;b"
+   , "(a;b);.."    -> "->a  a->b ab->1a aba->b abab->1a"
+   , "(a;b);..."   -> "->a  a->b ab->a  aba->b abab->a"
    
    , "a;(break;b)" -> "->a  a"
    , "a;(.;b)"     -> "->a  a->1b ab"
@@ -360,11 +399,27 @@ class OperatorsSuite extends FunSuite {
    , "(a;..);b"    -> "->a  a->ab aa->ab ab aab"
    , "(a;...);b"   -> "->a  a->a  aa->a"
    
+   , "break;(a;b)" -> "->1"
+   , ".;(a;b)"     -> "->1a a->b ab"
+   , "..;(a;b)"    -> "->1a a->b ab->1a aba->b"
+   , "...;(a;b)"   -> "->a  a->b  ab->a aba->b"
+   
    , "(break;a);b" -> "b"
    , "(.;a);b"     -> "->ab  a->b ab b"
    , "(..;a);b"    -> "->ab  a->ab aa->ab b ab aab"
    , "(...;a);b"   -> "->a  a->a  aa->a"
-  )
+
+   // parallel composition
+   , "(...;a)&b"   -> "->ab  a->ab  aa->ab  b->a  ba->a  ab->a  aba->a"
+   , "(...;a)|b"   -> "->ab  a->ab  aa->ab  b->1a  ba->1a  ab->1a  aba->1a"
+   , "b&(...;a)"   -> "=(...;a)&b"  // commutative
+   , "b|(...;a)"   -> "=(...;a)|b"  // commutative
+
+   // disruption with compound left hand operand
+   , "(a|b)/c"     -> "->abc a->1bc b->1ac c ac bc ab ba"
+   , "(a;b)/c"     -> "->ac a->bc ab c ac" 
+   , "(a;b)/(+)"   -> "->1a a->1b ab"
+ )
   val scriptBehaviourMap = scriptBehaviourList.toMap
   
   /*

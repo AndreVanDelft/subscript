@@ -54,6 +54,13 @@ case class TinyCodeExecutor(n: CallGraphNodeTrait[_ <: TemplateNode], scriptExec
     code
     }
 }
+case class AnnotationCodeExecutor(n: CallGraphNodeTrait[_ <: TemplateNode], scriptExecutor: ScriptExecutor) extends CodeExecutorTrait  { // TBD: for while, {!!}, @:, script call
+  val asynchronousAllowed = false
+  override def interruptAA   : Unit  = {} // TBD: clean up class/trait hierarchy so that this def can be ditched
+  override def doCodeExecution[R](code: ()=>R): R = super.doCodeExecution{
+    code
+  }
+}
 abstract class AACodeFragmentExecutor[N<:N_atomic_action[N]](_n: N, _scriptExecutor: ScriptExecutor) extends CodeExecutorTrait  {
   
   // Executor for Atomic Actions. These require some communication with the ScriptExecutor, to make sure that 

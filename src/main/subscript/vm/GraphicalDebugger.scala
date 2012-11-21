@@ -25,13 +25,15 @@ object GraphicalDebugger extends GraphicalDebuggerApp {
       quit
     }}.start()
     
+    val className = lArgs.head
     try {
-      val c = Class.forName(lArgs.head) // TBD: should be a swing application
+      val c = Class.forName(className) // TBD: should be a swing application
       val m = c.getMethod("main", classOf[Array[String]])
       m.invoke(null, lArgs.tail)
     }
     catch {
-      case e: ClassNotFoundException =>
+      case e: ClassNotFoundException => println("Could not find class "+className)
+      case other => println(other)
     }
   }
 }
@@ -110,6 +112,11 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
   def drawStringTopLeft(g: Graphics2D, s: String, x: Int, y: Int) {
     val sh = g.getFontMetrics.getHeight
     g.drawString(s, x, y+sh/2)
+  }
+  def drawStringTopRight(g: Graphics2D, s: String, x: Int, y: Int) {
+    val sw = g.getFontMetrics.stringWidth(s)
+    val sh = g.getFontMetrics.getHeight
+    g.drawString(s, x-sw, y+sh/2)
   }
   def emphasize_g(g: Graphics2D, doIt: Boolean) {
     if (doIt) {
@@ -194,7 +201,7 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
         g fill r
         emphasize(isCurrentTemplate)
         g draw r
-        emphasize(false)
+        emphasize (false)
         drawStringCentered(g, s, hCenter, vCenter-3)
         (t.children zip childHCs).foreach{ c_hc: (TemplateNode, Double) =>
           drawEdge(t, thisX, yGrid, c_hc._1, c_hc._2, yGrid+1)
@@ -356,6 +363,7 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
         g.setFont(smallFont)
         drawContinuationTexts(n, boxRight, boxTop)
         drawStringTopLeft (g, n.index.toString, boxLeft+2, boxTop+5)
+        if (n.hasSuccess) drawStringTopRight(g, "S", boxRight-1, boxTop+5)
         g.setFont(normalFont)
         drawStringCentered(g, s, hCenter, vCenter)
 	    n match {
