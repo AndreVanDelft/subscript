@@ -96,7 +96,11 @@ trait CallGraphNodeTrait[+T<:TemplateNode] {
   var codeExecutor: CodeExecutorTrait = null
   def adaptExecutor(ca: CodeExecutorAdapter[CodeExecutorTrait]): Unit = {ca.adapt(codeExecutor); codeExecutor=ca}
   var aChildEndedInFailure = false
-  var aChildEndedInSuccess = false
+  def aChildEndedInSuccess = rightmostChildThatEndedInSuccess_index>=0
+  def childThatEndedInSuccess_index(i: Int) = rightmostChildThatEndedInSuccess_index = 
+             if (rightmostChildThatEndedInSuccess_index== -1) i else scala.math.max(rightmostChildThatEndedInSuccess_index, i)
+                                  
+  var rightmostChildThatEndedInSuccess_index = -1
 
   override def toString = index+" "+template
 

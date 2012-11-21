@@ -4,13 +4,15 @@ object SimpleScriptDebuggerObject extends SimpleScriptDebugger {
   def main(args: Array[String]): Unit = {
     if (args.isEmpty) return
     ScriptExecutorFactory.scriptDebugger = this
+    val className = args.head
     try {
-      val c = Class.forName(args.head)
+      val c = Class.forName(className)
       val m = c.getMethod("main", classOf[Array[String]])
       m.invoke(null, args.tail)
     }
     catch {
-      case e: ClassNotFoundException =>
+      case e: ClassNotFoundException => println("Could not find class "+className)
+      case other => println(other)
     }
   }
 }

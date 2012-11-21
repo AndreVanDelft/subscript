@@ -323,7 +323,7 @@ class CommonScriptExecutor extends ScriptExecutor {
        message.node match {
            case n@N_n_ary_op (_: T_n_ary, _  )  => if(message.child!=null) {
                                                      if (message.child.hasSuccess) {
-                                                        n.aChildEndedInSuccess = true
+                                                        n.childThatEndedInSuccess_index(message.child.index)
                                                      }
                                                      else {
                                                         n.aChildEndedInFailure = true
@@ -810,17 +810,23 @@ trace(n+" children: "+n.children+" deactivations: "+message.deactivations+" cons
     if (!shouldSucceed) { // could already have been set for .. as child of ;
       
       // TBD: improve
-      if (activateNextOrEnded || message.success != null) {
+      if (activateNextOrEnded || message.success != null || message.aaEndeds != Nil) {
         var nodesToBeResumed: Buffer[CallGraphNodeTrait[_ <:TemplateNode]] = null
         if (message.success != null || message.aaEndeds != Nil) {
-          T_n_ary.getLogicalKind(n.template.kind) match {
-            case LogicalKind.None =>
-            case LogicalKind.And  => shouldSucceed = (isSequential || !n.aChildEndedInFailure && !activateNext) &&
-                                                     n.children.forall((e:CallGraphNodeTrait[_])=>e.hasSuccess)
-for (c<-n.children) {trace("child: "+c+" hasSuccess="+c.hasSuccess)}    
-trace(n+" shouldSucceed="+shouldSucceed)          
-            case LogicalKind.Or   => shouldSucceed = n.aChildEndedInSuccess || 
-                                                     n.children.find((e:CallGraphNodeTrait[_])=>e.hasSuccess).isDefined
+          n.template.kind match {
+            case "/" => shouldSucceed = message.success != null ||
+                                        message.aaEndeds.exists(_.child.index<n.rightmostChildThatEndedInSuccess_index) || 
+		                                n.children.exists((e:CallGraphNodeTrait[_])=>e.hasSuccess)
+            case _ =>
+		          T_n_ary.getLogicalKind(n.template.kind) match {
+		            case LogicalKind.None =>
+		            case LogicalKind.And  => shouldSucceed = (isSequential || !n.aChildEndedInFailure && !activateNext) &&
+		                                                     n.children.forall((e:CallGraphNodeTrait[_])=>e.hasSuccess)
+		                     //for (c<-n.children) {trace("child: "+c+" hasSuccess="+c.hasSuccess)}    
+		                     //trace(n+" shouldSucceed="+shouldSucceed)          
+		            case LogicalKind.Or   => shouldSucceed = n.aChildEndedInSuccess || 
+		                                                     n.children.exists((e:CallGraphNodeTrait[_])=>e.hasSuccess)
+                  }
           }
         }
       }
