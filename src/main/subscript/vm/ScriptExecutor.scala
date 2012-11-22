@@ -156,7 +156,7 @@ class CommonScriptExecutor extends ScriptExecutor {
 
   // insert a message in the queue
   def insert(m: CallGraphMessage[_ <: CallGraphNodeTrait[_<:TemplateNode]]) = {
-    m.id = nextMessageID
+    m.index = nextMessageID
     messageQueued(m)
     queueCallGraphMessage(m)
     m match {
@@ -298,7 +298,6 @@ class CommonScriptExecutor extends ScriptExecutor {
       case n@N_code_normal  (_) => new   NormalCodeFragmentExecutor(n, this)
       case n@N_code_unsure  (_) => new   UnsureCodeFragmentExecutor(n, this)
       case n@N_code_threaded(_) => new ThreadedCodeFragmentExecutor(n, this)
-      case n@N_annotation   (_) => new       AnnotationCodeExecutor(n, this)
       case _                    => new          TinyCodeExecutor(node, this)
     }
   }
@@ -343,7 +342,7 @@ class CommonScriptExecutor extends ScriptExecutor {
       executeCodeIfDefined(message.node, message.node.onActivateOrResume)
       message.node match {
            //case n@N_root            (t: T_1_ary     ) => activateFrom(n, t.child0)
-           case n@N_code_tiny       (t: T_0_ary_code[_])  =>                                    executeTemplateCode[N_code_tiny, T_0_ary_code[N_code_tiny], Unit](n); if (n.hasSuccess) doNeutral(n); insertDeactivation(n,null)
+           case n@N_code_tiny       (t: T_0_ary_code[_])  => n.hasSuccess = true; executeTemplateCode[N_code_tiny, T_0_ary_code[N_code_tiny], Unit](n); if (n.hasSuccess) doNeutral(n); insertDeactivation(n,null)
            case n@N_localvar        (t: T_0_ary_local_valueCode[_], isLoop)  => if (isLoop) setIteration_n_ary_op_ancestor(n); 
             val v = executeCode_localvar(n);n.n_ary_op_ancestor.initLocalVariable(t.localVariable.name, n.pass, v); doNeutral(n); insertDeactivation(n,null)
            case n@N_privatevar      (t: T_0_ary_name[_]) => n.n_ary_op_ancestor.initLocalVariable(t.name, n.pass, n.getLocalVariableHolder(t.name).value)
@@ -664,7 +663,7 @@ trace("handleSuccess: "+message.node+" message.child: "+message.child)
     val n = message.node.asInstanceOf[CallGraphTreeNode_n_ary]
     n.continuation = null
     
-    if (message.id>400)
+    if (message.index>400)
     {
       //println // to ease setting a break point
       //traceTree

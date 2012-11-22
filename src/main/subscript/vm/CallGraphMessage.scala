@@ -29,11 +29,11 @@ import scala.collection.mutable._
 
   trait CallGraphMessage[N <: CallGraphNodeTrait[_<:TemplateNode]] {
       var priority = 0 // TBD: determine good priority levels
-      var id = -1
+      var index = -1
 	  def node: N
 
 	  val className = "%14s".format(getClass.getSimpleName)
-      override def toString = id+" "+className+" "+node
+      override def toString = index+" "+className+" "+node
   }
   // various kinds of messages sent around in the script call graph
   abstract class CallGraphMessageN extends CallGraphMessage[CallGraphNodeTrait[_<:TemplateNode]]

@@ -25,13 +25,15 @@ class SimpleScriptDebugger extends ScriptDebugger {
   // some tracing stuff
   var nSteps = 0
   var maxSteps = 0 // 0 means unlimited
-  var traceLevel = 2 // 0-no tracing; 1-message handling 2-message insertion+handling
+  val highTraceLevel = 10
+  var traceLevel = 2 // 0-no tracing; 1-message handling; 2-message insertion+handling; highTraceLevel-every step a tree 
   def trace(level:Int,as: Any*) = {
     if (traceLevel>=level) {
       as.foreach {a=>print(a.toString)}; 
       println
       //traceMessages
     }
+    if (traceLevel >= highTraceLevel) traceTree
     if (maxSteps>0 && nSteps > maxSteps) {println("Exiting after "+nSteps+"steps"); System.exit(0)}
     nSteps += 1
   }

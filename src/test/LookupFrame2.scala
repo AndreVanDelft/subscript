@@ -97,7 +97,7 @@ class LookupFrame2Application extends SimpleSubscriptApplication {
   def _showSearchResults = _script(this, 'showSearchResults) {_at{gui} (_normal{(here: N_code_normal) => 
     outputTA.text = "Found: "+here.index+" items"})}
   def _showCanceledText  = _script(this, 'showCanceledText ) {_at{gui} (_normal0 {outputTA.text = "Searching Canceled"})}
-  def _searchInDatabase  = _script(this, 'searchInDatabase ) {_threaded0{sleep(4000)}}//{_par_or2(_threaded0{sleep(5000)}, _progressMonitor)} 
+  def _searchInDatabase  = _script(this, 'searchInDatabase ) {_par_or2(_threaded0{sleep(5000)}, _progressMonitor)} 
   def _progressMonitor   = _script(this, 'progressMonitor  ) {
   _seq(_loop, 
       _at{gui} (
