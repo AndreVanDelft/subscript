@@ -159,4 +159,4 @@ case class ActualAdaptingParameter[T<:Any](adaptee: FormalConstrainedParameter[T
 case class LocalVariable[V](name: Symbol) {
   def at(implicit node: CallGraphTreeNode[_]): VariableHolder[V] = node.getLocalVariableHolder(name)
 }
-case class VariableHolder[V](value: V)
+case class VariableHolder[V](var value: V)

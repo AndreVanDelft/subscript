@@ -93,7 +93,7 @@ trait ScriptExecutor {
   var nNodes = 0
   def nextNodeIndex() = {nNodes = nNodes+1; nNodes}
   
-  def trace(s: String) = if(scriptDebugger==null) println(s)
+  def trace(s: String) = {}//if(scriptDebugger==null) println(s)
 }
 
 /*
@@ -245,9 +245,9 @@ class CommonScriptExecutor extends ScriptExecutor {
   rootNode.scriptExecutor = this 
   connect(parentNode = rootNode, childNode = anchorNode)
   //insert(Activation(anchorNode)) 
-  def activateFrom(parent: CallGraphParentNodeTrait[_<:TemplateNode], template: TemplateNode, pass: Int = 0): CallGraphTreeNode[_<:TemplateNode] = {
+  def activateFrom(parent: CallGraphParentNodeTrait[_<:TemplateNode], template: TemplateNode, pass: Option[Int] = None): CallGraphTreeNode[_<:TemplateNode] = {
     val n = createNode(template)
-    n.pass = pass
+    n.pass = pass.getOrElse(parent.pass)
     connect(parentNode = parent, childNode = n)
     if (n.isInstanceOf[N_script]) {
       val ns = n.asInstanceOf[N_script]
@@ -370,8 +370,8 @@ class CommonScriptExecutor extends ScriptExecutor {
                                                             }
                                                             insertDeactivation(n,null)
                                                             
-           case n@N_launch          (t: T_1_ary        ) => activateFrom(CallGraphNode.getLowestLaunchAnchorAncestor(n), t.child0); insertDeactivation(n,null)
-           case n@N_launch_anchor   (t: T_1_ary        ) => activateFrom(n, t.child0)
+           case n@N_launch          (t: T_1_ary        ) => activateFrom(CallGraphNode.getLowestLaunchAnchorAncestor(n), t.child0, Some(0)); insertDeactivation(n,null)
+           case n@N_launch_anchor   (t: T_1_ary        ) => activateFrom(n, t.child0, Some(0))
            case n@N_1_ary_op        (t: T_1_ary        ) => activateFrom(n, t.child0); insertContinuation1(message)
            case n@N_annotation      (t: T_annotation[_,_]) => activateFrom(n, t.child0); executeCode_annotation(n)
            case n@N_if              (t: T_1_ary_test[_]) => if (executeTemplateCode[N_if     , T_1_ary_test[N_if     ], Boolean](n)) activateFrom(n, t.child0) else {doNeutral(n); insertDeactivation(n,null)}
@@ -674,9 +674,10 @@ trace("handleSuccess: "+message.node+" message.child: "+message.child)
     
     // decide on activate next operand
     
-    var activateNextOrEnded = false
-    var activateNext        = false
-    var activationEnded     = false
+    var activateNextOrEnded       = false
+    var activateNext              = false
+    var activationEnded           = false
+    var activationEndedOptionally = false
     var childNode: CallGraphNodeTrait[_<:TemplateNode] = null // may indicate node from which the a message came
 
     val isSequential = 
@@ -704,7 +705,8 @@ trace("handleSuccess: "+message.node+" message.child: "+message.child)
                            childNode = s.child
                          }
                          else if (b!=null) {
-                           activateNextOrEnded = true // && b.activationMode==ActivationMode.Optional -- not needed because of "if" before the "match"
+                           activateNextOrEnded = true
+                           activationEndedOptionally = b.activationMode==ActivationMode.Optional 
                            childNode = b.child
                          }
       
@@ -758,7 +760,7 @@ trace("handleSuccess: "+message.node+" message.child: "+message.child)
 	if (activateNextOrEnded) {
 	  // old: childNode = if (T_n_ary.isLeftMerge(n.template.kind)) n.lastActivatedChild else message.childNode ; now done before
 	  nextActivationTemplateIndex = childNode.template.indexAsChild+1
-	  var nextActivationPass = childNode.pass 
+	  nextActivationPass = childNode.pass 
 	  
 	  message.node.activationMode = ActivationMode.Active
 	  if (nextActivationTemplateIndex==message.node.template.children.size) {
@@ -774,9 +776,6 @@ trace("handleSuccess: "+message.node+" message.child: "+message.child)
 	  else {
 	    activateNext = true
 	  }  
-	  if (activationEnded) {
-	    n.activationMode = ActivationMode.Inactive
-	  }
     }
     
     // decide on exclusions and suspensions; deciding on exclusions must be done before activating next operands, of course
@@ -846,7 +845,7 @@ trace(n+" children: "+n.children+" deactivations: "+message.deactivations+" cons
     
     if (activateNext) {
       val t = message.node.template.children(nextActivationTemplateIndex)
-      activateFrom(message.node, t, nextActivationPass)
+      activateFrom(message.node, t, Some(nextActivationPass))
     }
     else if (n.children.isEmpty) {
       insertDeactivation(n, null)

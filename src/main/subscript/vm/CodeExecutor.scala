@@ -144,8 +144,8 @@ trait CodeExecutorAdapter[CE<:CodeExecutorTrait] extends CodeExecutorTrait {
   var adaptee: CE = _
   def adapt[R](codeExecutor: CE) = {adaptee = codeExecutor}
   def asynchronousAllowed = adaptee.asynchronousAllowed
-  def notifyScriptExecutor = adaptee.synchronized {
-        adaptee.notify() // kick the scriptExecutor, just in case it was waiting
+  def notifyScriptExecutor = adaptee.scriptExecutor.synchronized {
+        adaptee.scriptExecutor.notify() // kick the scriptExecutor, just in case it was waiting
   }
 }
 class ThreadedCodeFragmentExecutor(n: N_code_threaded, scriptExecutor: ScriptExecutor) extends NormalCodeFragmentExecutor(n, scriptExecutor)  {

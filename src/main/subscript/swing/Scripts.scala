@@ -82,9 +82,10 @@ object Scripts {
       publisher.reactions += reaction;
       if (!wasAlreadyEnabled) {enabled=true}
     }
+    def canDisableOnUnsubscribe = true
     def unsubscribe: Unit = {
       publisher.reactions -= reaction
-      if (!publisher.reactions.isDefinedAt(event)) {enabled=false}
+      if (canDisableOnUnsubscribe && !publisher.reactions.isDefinedAt(event)) {enabled=false}
     }
   }
   
@@ -100,6 +101,7 @@ object Scripts {
   case class AnyEventScriptReactor[N<:N_atomic_action_eh[N]](comp:Component) extends ComponentScriptReactor[N](comp) {
     def publisher = comp
     val event: Event = null
+    override def canDisableOnUnsubscribe = false
     private var myReaction: PartialFunction[Event,Unit] = {case _ => execute}
     override def reaction: PartialFunction[Event,Unit] = myReaction
   }
@@ -111,7 +113,7 @@ object Scripts {
     override def enabled_=(b:Boolean) = {
       super.enabled_=(b)
       button.focusable = wasFocusable
-      if (b && wasFocusable) button.requestFocus
+      //if (b && wasFocusable) button.requestFocus
     }
     def publisher = button
     //b.peer.addActionListener(new ActionListener {})
@@ -224,8 +226,9 @@ object Scripts {
   // TBD: work in progress
   //       def _anyEvent(_c: FormalInputParameter[Component], _t: FormalInputParameter[() => Boolean]) = {_script('anyEvent, _c~'c, _t~'t) {_handleEventOn(AnyEventScriptReactor[N_code_eh](_c.value, _t))} }
   def _guard(_comp: FormalInputParameter[Component], _test: FormalInputParameter[()=> Boolean]) = { 
+    // ... if(test) (. anyEvent) else anyEvent
     _script(this, 'guard, _comp~'comp, _test~'test) {
-      _seq(_loop, _if_else((n:N_if_else) => _test.value.apply) (_seq(_optionalBreak_loop, _anyEvent(_comp.value/*,!test*/)), _anyEvent(_comp.value/*,test*/)))
+      _seq(_if_else((n:N_if_else) => _test.value.apply) (_optionalBreak_loop, _loop), _anyEvent(_comp.value))
     }
   }
 }

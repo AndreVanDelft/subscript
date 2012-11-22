@@ -132,19 +132,19 @@ object DSL {
   def _launch            = _op1("*")_
   def _launch_anchor     = _op1("**")_
 
-  def _empty                               = _op0("(+)")
-  def _deadlock                            = _op0("(-)")
-  def _neutral                             = _op0("(+-)")
-  def _break                               = _op0("break")
-  def _optionalBreak                       = _op0(".")
-  def _optionalBreak_loop                  = _op0("..")
-  def _loop                                = _op0("...")
-  def _if_inline                           = _op2("?")_
-  def _if_else_inline                      = _op3("?:")_
-  def _while  (_cond:         =>Boolean)   = T_0_ary_test("while", () => (here: N_while ) => _cond)
-  def _while  (_cond:N_while  =>Boolean)   = T_0_ary_test("while", () =>                     _cond)
-  def _if     (_cond:         =>Boolean)(c0: TemplateChildNode) = T_1_ary_test("if", () => (here: N_if) => _cond, c0)
-  def _if     (_cond:N_if     =>Boolean)(c0: TemplateChildNode) = T_1_ary_test("if", () =>                 _cond, c0)
-  def _if_else(_cond:         =>Boolean)(c0: TemplateChildNode, c1: TemplateChildNode) = T_2_ary_test("if_else", () => (here: N_if_else) => _cond, c0, c1)
-  def _if_else(_cond:N_if_else=>Boolean)(c0: TemplateChildNode, c1: TemplateChildNode) = T_2_ary_test("if_else", () =>                      _cond, c0, c1)
+  def _empty                                = _op0("(+)")
+  def _deadlock                             = _op0("(-)")
+  def _neutral                              = _op0("(+-)")
+  def _break                                = _op0("break")
+  def _optionalBreak                        = _op0(".")
+  def _optionalBreak_loop                   = _op0("..")
+  def _loop                                 = _op0("...")
+  def _if_inline                            = _op2("?")_
+  def _if_else_inline                       = _op3("?:")_
+  def _while0  (_cond:         =>Boolean)   = T_0_ary_test("while", () => (here: N_while ) => _cond)
+  def _while   (_cond:N_while  =>Boolean)   = T_0_ary_test("while", () =>                     _cond)
+  def _if0     (_cond:         =>Boolean)(c0: TemplateChildNode) = T_1_ary_test("if", () => (here: N_if) => _cond, c0)
+  def _if      (_cond:N_if     =>Boolean)(c0: TemplateChildNode) = T_1_ary_test("if", () =>                 _cond, c0)
+  def _if_else0(_cond:         =>Boolean)(c0: TemplateChildNode, c1: TemplateChildNode) = T_2_ary_test("if_else", () => (here: N_if_else) => _cond, c0, c1)
+  def _if_else (_cond:N_if_else=>Boolean)(c0: TemplateChildNode, c1: TemplateChildNode) = T_2_ary_test("if_else", () =>                      _cond, c0, c1)
  }
