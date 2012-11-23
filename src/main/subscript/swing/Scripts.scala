@@ -157,16 +157,15 @@ object Scripts {
   }
   
   // a ScriptReactor for key press events
-  case class KeyPressScriptReactor[N<:N_atomic_action_eh[N]](publisher:Publisher, keyCode: FormalConstrainedParameter[Char]) extends ScriptReactor[N] {
+  case class KeyTypedScriptReactor[N<:N_atomic_action_eh[N]](publisher:Publisher, keyCode: FormalConstrainedParameter[Char]) extends ScriptReactor[N] {
     // this does not compile: val event: Event = KeyPressed(comp, _, _, _, _)
     val listenedEvent = null
     override def reaction = myReaction
     private val myReaction: PartialFunction[Event,Unit] = {
-      case KeyPressed(comp, keyPressedValue, keyModifiers, keyLocationValue) => 
-        if (keyPressedValue.id < 256) {
-          val c = keyPressedValue.id.asInstanceOf[Char]
-	      if (keyCode.matches(c)) {
-	        keyCode.value = c
+      case KeyTyped(comp, char, keyModifiers, keyLocationValue) => 
+        if (char < 256) {
+	      if (keyCode.matches(char)) {
+	        keyCode.value = char
 	        executeMatching(true)
 	      }
         }
@@ -178,7 +177,7 @@ object Scripts {
   }
   
   // a ScriptReactor for virtual key press events
-  case class VKeyPressScriptReactor[N<:N_atomic_action_eh[N]](publisher:Publisher, keyValue: FormalConstrainedParameter[Key.Value]) extends ScriptReactor[N] {
+  case class VKeyTypedScriptReactor[N<:N_atomic_action_eh[N]](publisher:Publisher, keyValue: FormalConstrainedParameter[Key.Value]) extends ScriptReactor[N] {
     // this does not compile: val event: Event = KeyPressed(comp, _, _, _, _)
     val listenedEvent = null
     override def reaction = myReaction
@@ -247,7 +246,7 @@ object Scripts {
   // likewise for _clicked and _clicked0
   implicit def  _key(_p: FormalInputParameter[Publisher], _k: FormalConstrainedParameter[Char     ])  = {
      _script(this,  'key, _p~'p, _k~??'k) { 
-       _at{gui} (_at{(there:N_code_eh) => {val _r = KeyPressScriptReactor[N_code_eh](_p.value, _k) 
+       _at{gui} (_at{(there:N_code_eh) => {val _r = KeyTypedScriptReactor[N_code_eh](_p.value, _k) 
                                              _r.value.subscribe(there); 
                           there.onDeactivate{_r.value.unsubscribe}; 
                           there.onSuccess   {_r.value.acknowledgeEventHandled}}}
@@ -265,8 +264,8 @@ object Scripts {
       )
     }
   }           
-  implicit def  _key0(_p: FormalInputParameter[Publisher], _k: FormalConstrainedParameter[Char     ])  = {_script(this,  'key, _p~'p, _k~??'k) {_event( KeyPressScriptReactor[N_code_eh](_p.value, _k))}}
-  implicit def _vkey (_p: FormalInputParameter[Publisher], _k: FormalConstrainedParameter[Key.Value])  = {_script(this, 'vkey, _p~'p, _k~??'k) {_event(VKeyPressScriptReactor[N_code_eh](_p.value, _k))}}
+  implicit def  _key0(_p: FormalInputParameter[Publisher], _k: FormalConstrainedParameter[Char     ])  = {_script(this,  'key, _p~'p, _k~??'k) {_event( KeyTypedScriptReactor[N_code_eh](_p.value, _k))}}
+  implicit def _vkey (_p: FormalInputParameter[Publisher], _k: FormalConstrainedParameter[Key.Value])  = {_script(this, 'vkey, _p~'p, _k~??'k) {_event(VKeyTypedScriptReactor[N_code_eh](_p.value, _k))}}
                 
   implicit def _clicked0(_b: FormalInputParameter[Button   ])  = {_script(this,       'clicked, _b~'b) {_event( ClickedScriptReactor[N_code_eh](_b.value))} }
            def _anyEvent(_c: FormalInputParameter[Component])  = {_script(this,      'anyEvent, _c~'c) {_event(AnyEventScriptReactor[N_code_eh](_c.value))} }

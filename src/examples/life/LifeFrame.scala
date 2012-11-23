@@ -33,7 +33,7 @@ class LifeFrameApplication extends BasicLifeFrameApplication {
     //////////////////////////////////////////////
     // confirm exit dialog
     //////////////////////////////////////////////
-    def confirmExit: Boolean = Dialog.showConfirmation(null, "Are you sure?", "About to exit")==Dialog.Result.Yes
+    def confirmExit: Boolean = Dialog.showConfirmation(top.contents.head, "Are you sure?", "About to exit")==Dialog.Result.Yes
      
     canvas.listenTo(canvas.mouse.clicks)
     canvas.listenTo(canvas.mouse.moves)
@@ -77,7 +77,8 @@ class LifeFrameApplication extends BasicLifeFrameApplication {
 
       speedChanges     = ...; speedKeyInput + speedButtonInput + speedSliderInput
                     
-      speedKeyInput    = for(c <- '0' to '9' ) + private c key,c setSpeed(digit2Speed(c))
+      speedKeyInput    = times(10) 
+                       + val c=(passUp(here,1)+'0').asInstanceOf[Char] key,c setSpeed(digit2Speed(c))
                               
    speedButtonInput = if (speed>minSpeed) speedDecButton
                     + if (speed<maxSpeed) speedIncButton
@@ -92,7 +93,7 @@ class LifeFrameApplication extends BasicLifeFrameApplication {
 
       mouseInput    = mousePressInput & mouseDragInput
 
-    mousePressInput = mousePresses  (canvas, (me: MouseEvent) => canvas.mouseDownToggle(me))
+    mousePressInput = mousePresses  (canvas, (me: MouseEvent) => doMouseDown(me))
     mouseDragInput  = mouseDraggings(canvas, (me: MouseEvent) => canvas.mouseDragToggle(me))  
 
     live            = canvasOperations 
@@ -103,8 +104,7 @@ class LifeFrameApplication extends BasicLifeFrameApplication {
   def _vkey(_k:FormalConstrainedParameter[Key.Value]) = _script(this, 'vkey, _k~??'k) {subscript.swing.Scripts._vkey(top, _k~??)}
   def  _key(_c:FormalConstrainedParameter[Char     ]) = _script(this,  'key, _c~??'c) {subscript.swing.Scripts._key (top, _c~??)}
                
-  //override def _live     = _script(this,  'live            ) {_par_or2(_canvasOperations, _mouseInput, _speedChanges, _exit)}
-  override def _live     = _script(this,  'live            ) {_seq(_loop, _speedKeyInput)}
+  override def _live     = _script(this,  'live            ) {_par_or2(_canvasOperations, _mouseInput, _speedChanges, _exit)}
   def  _randomizeCommand = _script(this,  'randomizeCommand) {_alt(_clicked(randomizeButton), _key('r'))} 
   def      _clearCommand = _script(this,      'clearCommand) {_alt(_clicked(    clearButton), _key('c'))}
   def       _stepCommand = _script(this,       'stepCommand) {_alt(_clicked(     stepButton), _key(' '))}
@@ -119,9 +119,10 @@ class LifeFrameApplication extends BasicLifeFrameApplication {
                                                       _while{here=> {! _r.at(here).value}})}
                             }
 
-  def  _canvasOperations = _script(this, 'canvasOperations) {_seq(_loop, _par_or2(_seq(_seq(_optionalBreak_loop, _singleStep), _multiStep), _randomize, _clear))} 
+  def  _canvasOperations = _script(this, 'canvasOperations) {_seq(_loop, _par_or2(_disrupt(_noise, _seq(_seq(_optionalBreak_loop, _singleStep), _multiStep)), _randomize, _clear))} 
   def  _do1Step          = _script(this, 'do1Step         ) {_seq(_threaded0{canvas.calculateGeneration}, _at{gui}(_tiny0{canvas.validate}))} 
 
+  def  _noise            = _script(this, 'noise           ) {_seq( _key('n'), _seq(_loop, _at{gui}(_normal0{canvas.doRandomize()}), _threaded0{sleep}))} 
   def  _randomize        = _script(this, 'randomize       ) {_seq( _randomizeCommand, _at{gui}(_tiny0{canvas.doRandomize()}))} 
   def  _clear            = _script(this, 'clear           ) {_seq(     _clearCommand, _at{gui}(_tiny0{canvas.doClear}))} 
   def  _singleStep       = _script(this, 'singleStep      ) {_seq(      _stepCommand, _do1Step)} 
@@ -131,7 +132,6 @@ class LifeFrameApplication extends BasicLifeFrameApplication {
   
   def  _speedChanges     = _script(this, 'speedChanges    ) {_seq(_loop, _alt(_speedKeyInput, _speedButtonInput, _speedSliderInput))} 
 
-//def  _speedKeyInput    = _script(this, 'speedKeyInput   ) {_alt(_while{here=>pass(here)<10}, _seq(_key('0'), _setSpeed(digit2Speed('0'))))} 
   def  _speedKeyInput    = {val _c = _declare[Char]('r)
                            _script(this, 'speedKeyInput   ) {_alt(_times(10), _seq(_val(_c, (here:N_localvar[_]) => (pass(here.n_ary_op_ancestor)+'0').asInstanceOf[Char]), 
                                                                                    _call{here=>_key(_c.at(here).value)(here)}, 

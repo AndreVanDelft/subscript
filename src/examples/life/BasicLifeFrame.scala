@@ -64,7 +64,7 @@ class BasicLifeFrameApplication extends SimpleSubscriptApplication {
   }
   def digit2Speed(c: Char) = if (c=='0') maxSpeed else minSpeed+(c-'1')
   
-  setSpeed(5)
+  setSpeed(7)
   
   override def _live = _script(this, 'live) {_threaded0{Thread.sleep(34567)}}
   override def  live = _execute(_live)

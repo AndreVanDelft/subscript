@@ -205,6 +205,9 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
         val r = new Rectangle(boxLeft, boxTop, boxWidth, BOX_H)
         val n = if (currentMessage==null) null else currentMessage.node.asInstanceOf[CallGraphNode[_<:TemplateNode]]
         
+        // this check goes a bit wrong, resulting in too many template nodes being highlighted occasionally.
+        // The problem is that almost "equal" templates are still different per node, and we don't want to draw them all.
+        // Sometime a solution will be found
         val isCurrentTemplate = currentMessage            != null    && 
                                 n                         != null    && 
                                 n.template                != null    && 
@@ -293,14 +296,14 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
         val y2       = cTop
         
         if (currentMessage!=null) {
-          currentMessage match {
-            case AAStarted(p1,c1) if (p==p1 && c==c1)  => drawArrow(x2, y2, x1, y1, "AA Started")
-            case AAEnded  (p1,c1) if (p==p1 && c==c1)  => drawArrow(x2, y2, x1, y1, "AA Ended")
-            case Success  (p1,c1) if (p==p1 && c==c1)  => drawArrow(x2, y2, x1, y1, "Success")
-            case Break    (p1,c1, activationMode) 
-                                  if (p==p1 && c==c1)  => drawArrow(x2, y2, x1, y1,  getBreakText(activationMode))
-            case Exclude  (p1,c1) if (p==p1 && c==c1)  => drawArrow(x1, y1, x2, y2, "Exclude")
-            case _                                     => drawArrow(x1, y1, x2, y2, null)
+          currentMessage match { // node.index is not checked by node.equals!!!!
+            case AAStarted(mp,mc) if (p.index==mp.index&&c.index==mc.index)  => drawArrow(x2, y2, x1, y1, "AA Started")
+            case AAEnded  (mp,mc) if (p.index==mp.index&&c.index==mc.index)  => drawArrow(x2, y2, x1, y1, "AA Ended")
+            case Success  (mp,mc) if (p.index==mp.index&&c.index==mc.index)  => drawArrow(x2, y2, x1, y1, "Success")
+            case Break    (mp,mc, activationMode) if (p.index==mp.index&&c.index==mc.index) 
+                                                                             => drawArrow(x2, y2, x1, y1,  getBreakText(activationMode))
+            case Exclude  (mp,mc) if (p.index==mp.index&&c.index==mc.index)  => drawArrow(x1, y1, x2, y2, "Exclude")
+            case _                                                           => drawArrow(x1, y1, x2, y2, null)
           }
         }
         else drawArrow(x1, y1, x2, y2, null)
@@ -327,7 +330,7 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
         var resultW = 0d // drawn width of this subtree
         var childHCs = new ListBuffer[Double]
         
-        val isCurrentNode = currentMessage != null && currentMessage.node == n
+        val isCurrentNode = currentMessage != null && currentMessage.node.asInstanceOf[CallGraphNode[_<:TemplateNode]].index == n.index
 	    n match {
 	      case p:CallGraphParentNodeTrait[_] => 
 	        val pcl=p.children.length

@@ -109,9 +109,8 @@ class NormalCodeFragmentExecutor[N<:N_atomic_action[N]](n: N, scriptExecutor: Sc
   }
   override def afterExecuteAA = {
     if (!n.isExcluded) {
-       aaEnded; succeeded
+       aaEnded; succeeded; deactivate
     }
-    deactivate
   }
 }
 class UnsureCodeFragmentExecutor(n: N_code_unsure, scriptExecutor: ScriptExecutor) extends AACodeFragmentExecutor(n, scriptExecutor)  {

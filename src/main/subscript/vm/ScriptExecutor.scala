@@ -251,7 +251,7 @@ class CommonScriptExecutor extends ScriptExecutor {
   //insert(Activation(anchorNode)) 
   def activateFrom(parent: CallGraphParentNodeTrait[_<:TemplateNode], template: TemplateNode, pass: Option[Int] = None): CallGraphTreeNode[_<:TemplateNode] = {
     val n = createNode(template)
-    n.pass = pass.getOrElse(parent.pass)
+    n.pass = pass.getOrElse(if(parent.isInstanceOf[N_n_ary_op]) 0 else parent.pass)
     connect(parentNode = parent, childNode = n)
     if (n.isInstanceOf[N_script]) {
       val ns = n.asInstanceOf[N_script]
@@ -558,7 +558,7 @@ class CommonScriptExecutor extends ScriptExecutor {
 	          n.template.kind match {
 		          case ";" | "|;" 
 		           | "||;" | "|;|" 
-		           | "+"   | "|+"  => nodesToBeExcluded = n.children - message.child
+		           | "+"   | "|+"  => nodesToBeExcluded = n.children.filter(_.index != message.child.index)
 		                         // after (*), do: nodesToBeExcluded = n.children -- message.aaStarteds.map( (as:AAStarted) => as.child)  
 		                  
 		          case "/" | "|/" 
