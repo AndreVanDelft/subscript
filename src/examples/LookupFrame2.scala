@@ -56,7 +56,7 @@ class LookupFrame2Application extends SimpleSubscriptApplication {
 	cancelCommand     = cancelButton + Key.Escape 
 	exitCommand       =   exitButton + windowClosing
 	
-	exit              =   exitCommand @gui: while (!confirmExit)
+	exit              =   exitCommand var r: Boolean @gui: {r=confirmExit} while (!r)
 	cancelSearch      = cancelCommand @gui: showCanceledText
 	
 	live              = ...searchSequence || exit
@@ -67,27 +67,27 @@ class LookupFrame2Application extends SimpleSubscriptApplication {
 	showSearchingText = @gui: {outputTA.text = "Searching: "+searchTF.text}
 	showCanceledText  = @gui: {outputTA.text = "Searching Canceled"}
 	showSearchResults = @gui: {outputTA.text = ...}
-	searchInDatabase  = {* Thread.sleep(3000)*}||progressMonitor
+	searchInDatabase  = {* Thread.sleep(5000)*}||progressMonitor
 	
-	progressMonitor   = ...{*Thread.sleep(250)*} @gui:{searchTF.text+=pass}
+	progressMonitor   = ...{*Thread.sleep(200)*} @gui:{outputTA.text+=pass}
 	
 	implicit vkey(k: Key.Value??) = vkey(top, k??)
 */
   override def _live     = _script(this, 'live             ) {_par_or2(_seq(_loop, _searchSequence), _exit)}
   def _searchCommand     = _script(this, 'searchCommand    ) {_alt(_clicked(searchButton), _vkey(Key.Enter))} 
   def _cancelCommand     = _script(this, 'cancelCommand    ) {_alt(_clicked(cancelButton), _vkey(Key.Escape))}
-  def   _exitCommand     = _script(this, 'exitCommand      ) {_clicked(exitButton)} // windowClosing
+  def   _exitCommand     = _script(this, 'exitCommand      ) {_alt(_clicked(  exitButton), _windowClosing(top))}
   def _cancelSearch      = _script(this, 'cancelSearch     ) {_seq(_cancelCommand, _at{gui} (_call{_showCanceledText}))}
   def _searchSequence    = _script(this, 'searchSequence   ) {_seq(_guard(searchTF, ()=> !(searchTF.text.isEmpty)),  
                                                                    _searchCommand, 
      	                                                           _disrupt(_seq(_showSearchingText, _searchInDatabase, _showSearchResults),
                                                                                  _cancelSearch ))}
-  def   _exit1            = _script(this, 'exit             ) {_seq(  _exitCommand, _at{gui} (_while0{!confirmExit}))}
+
   def   _exit            = {val _r = _declare[Boolean]('r)
-                           _script(this, 'exit             ) {_seq(_var(_r, (here:N_localvar[_]) => false), 
-                                                                   _exitCommand,
-                                                                   _at{gui} (_normal{here => _r.at(here).value = confirmExit; println("confirmExit="+_r.at(here).value)}),
-                                                                   _while{here=> {! _r.at(here).value}})}
+                           _script(this, 'exit) {_seq(_var(_r, (here:N_localvar[_]) => false), 
+                                                      _exitCommand,
+                                                      _at{gui} (_normal{here => _r.at(here).value = confirmExit}),
+                                                      _while{here=> {! _r.at(here).value}})}
   }
   
   def _showSearchingText = _script(this, 'showSearchingText) {_at{gui} (_normal0 {            

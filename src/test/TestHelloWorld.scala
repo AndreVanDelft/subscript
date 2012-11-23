@@ -35,7 +35,7 @@ class  TestHelloWorldApp //extends SimpleSubscriptApplication
 
   //def _main(_args: FormalInputParameter[Array[String]]) = _script(this, 'main, _args~'args) {_par({print("Hello ")}, _unsure{here=> here.result=UnsureExecutionResult.Failure; println("world!") })}
   def _main(_args: FormalInputParameter[Array[String]]) = _script(this, 'main, _args~'args) {
-    _seq({print("Hello ")}, _seq(_optionalBreak, {print("World! ")} ))}
+    _par({println("Hello ")},  {println(" to the ")},  {println("World! ")} )}
   def  main( args: Array[String]): Unit = println("Success: "+_execute(_main(args)).hasSuccess)
 
   //override def _live = _script(this, 'live) {_par({print("A. Hello ")}, _unsure{here=> here.result=UnsureExecutionResult.Failure; println("B. world!") })}

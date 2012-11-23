@@ -1,5 +1,20 @@
 package subscript.vm
 
+/*
+ * Simple text based script debugger
+ * 
+ * Operation mode 1: pass the class to be debugged as parameter from the command line
+ * 
+ *   execute the main method of SimpleScriptDebuggerObject 
+ *   with first argument: the package+class name of the object to be debugged
+ *   and later argument: the arguments to be passed to the debugged object
+ * 
+ * Operation mode 2: pass the debugger as an argument to the subscript.vm._execute method:
+ * 
+ * 	  val debugger = new SimpleScriptDebugger
+ *    _execute(scriptDef, debugger, executor)
+ */
+
 object SimpleScriptDebuggerObject extends SimpleScriptDebugger {
   def main(args: Array[String]): Unit = {
     if (args.isEmpty) return

@@ -56,8 +56,11 @@ trait ScriptExecutor {
         }
 	}
   
-  // TBD: the callGraphMessages queue should become synchronized
+  // TBD: the callGraphMessages queue should become synchronized for 
+  //  AAExecutionFinished, AAToBeReexecuted and Deactivation messages, as these may be inserted
+  // asynchronously by a CodeExecutor (for threaded code, gui thread code and event handling code)
   // Also, it would become faster if it has internally separate queues for each priority level
+  // TBD: AAToBeReexecuted messages should be FIFO
   var callGraphMessageCount = 0
   val callGraphMessages = new PriorityQueue[CallGraphMessage[_ <: CallGraphNodeTrait[_<:TemplateNode]]]()(ScriptGraphMessageOrdering)
   def queueCallGraphMessage(m: CallGraphMessage[_ <: CallGraphNodeTrait[_<:TemplateNode]]) = {
@@ -93,7 +96,7 @@ trait ScriptExecutor {
   var nNodes = 0
   def nextNodeIndex() = {nNodes = nNodes+1; nNodes}
   
-  def trace(s: String) = {}//if(scriptDebugger==null) println(s)
+  def trace(s: String) = {}// println(s)
 }
 
 /*
@@ -391,7 +394,6 @@ class CommonScriptExecutor extends ScriptExecutor {
   }
   
   def handleSuccess(message: Success): Unit = {
-trace("handleSuccess: "+message.node+" message.child: "+message.child)    
           message.node match {
                case n@  N_annotation    (_: T_1_ary_code[_]) => {} // onSuccess?
                case n@  N_inline_if     (t: T_2_ary        )  => if (message.child.template==t.child0) {
@@ -663,11 +665,6 @@ trace("handleSuccess: "+message.node+" message.child: "+message.child)
     val n = message.node.asInstanceOf[CallGraphTreeNode_n_ary]
     n.continuation = null
     
-    if (message.index>400)
-    {
-      //println // to ease setting a break point
-      //traceTree
-    }
     // decide on what to do: 
     // activate next operand and/or have success, suspend, resume, exclude, or deactivate or nothing
     
@@ -800,7 +797,6 @@ trace("handleSuccess: "+message.node+" message.child: "+message.child)
                               nodesToBeExcluded = n.children -- consideredNodes
                               activateNext = false
                             }
-trace(n+" children: "+n.children+" deactivations: "+message.deactivations+" considered: "+consideredNodes+" toBeExcluded: "+nodesToBeExcluded)        
       case _ =>          
     }
     var shouldSucceed = false    
@@ -820,8 +816,6 @@ trace(n+" children: "+n.children+" deactivations: "+message.deactivations+" cons
 		            case LogicalKind.None =>
 		            case LogicalKind.And  => shouldSucceed = (isSequential || !n.aChildEndedInFailure && !activateNext) &&
 		                                                     n.children.forall((e:CallGraphNodeTrait[_])=>e.hasSuccess)
-		                     //for (c<-n.children) {trace("child: "+c+" hasSuccess="+c.hasSuccess)}    
-		                     //trace(n+" shouldSucceed="+shouldSucceed)          
 		            case LogicalKind.Or   => shouldSucceed = n.aChildEndedInSuccess || 
 		                                                     n.children.exists((e:CallGraphNodeTrait[_])=>e.hasSuccess)
                   }
@@ -845,6 +839,12 @@ trace(n+" children: "+n.children+" deactivations: "+message.deactivations+" cons
     if (activateNext) {
       val t = message.node.template.children(nextActivationTemplateIndex)
       activateFrom(message.node, t, Some(nextActivationPass))
+      if (message.activation!=null) {
+        val nary_op_isLeftMerge = n match {
+          case nary@N_n_ary_op (t: T_n_ary, isLeftMerge) => isLeftMerge case _ => false
+        }
+        if (!nary_op_isLeftMerge) insertContinuation(message.activation, n)
+      }
     }
     else if (n.children.isEmpty) {
       insertDeactivation(n, null)

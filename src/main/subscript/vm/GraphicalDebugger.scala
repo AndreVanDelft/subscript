@@ -8,6 +8,22 @@ import subscript.swing._
 import subscript.swing.Scripts._
 import subscript.DSL._
 
+/*
+ * Graphical script debugger
+ * 
+ * Operation mode 1: pass the class to be debugged as parameter from the command line
+ * 
+ *   execute the main method of GraphicalDebugger 
+ *   with optional first argument: -s "text to be displayed in description text field"
+ *   and then argument: the package+class name of the object to be debugged
+ *   and later arguments: the arguments to be passed to the debugged object
+ * 
+ * Operation mode 2: pass the debugger as an argument to the subscript.vm._execute method:
+ * 
+ * 	  val debugger = new GraphicalDebugger
+ *    _execute(scriptDef, debugger, executor)
+ */
+
 object GraphicalDebugger extends GraphicalDebuggerApp {
   override def main(args: Array[String]): Unit = {
     var lArgs = args
@@ -68,7 +84,7 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
   val stepButton = new Button("Step"  ) {enabled = false}
   val callGraphPanel = new Panel {
     background = AWTColor.white
-    preferredSize  = new Dimension(1000,2000)
+    preferredSize  = new Dimension(2000,2000)
     override def paint(g: Graphics2D) {
         g.setColor(AWTColor.white)
         g.fillRect(0, 0, size.width, size.height)
@@ -77,7 +93,7 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
   }
   val templateTreesPanel = new Panel {
     background = AWTColor.white
-    preferredSize  = new Dimension(800,800)
+    preferredSize  = new Dimension(2000,800)
     override def paint(g: Graphics2D) {
         g.setColor(AWTColor.white)
         g.fillRect(0, 0, size.width, size.height)

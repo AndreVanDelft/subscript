@@ -6,7 +6,8 @@ import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 
 import subscript.DSL._
-import subscript.vm.{TemplateChildNode, N_code_unsure, CallGraphNodeTrait, UnsureExecutionResult, ScriptExecutor, CommonScriptExecutor}
+import subscript.vm.{TemplateChildNode, N_code_unsure, CallGraphNodeTrait, UnsureExecutionResult, 
+                     ScriptExecutor, CommonScriptExecutor, SimpleScriptDebugger}
 
 /**
  * This class is a test suite for the script operators as implemented in the SubScript VM. 
@@ -207,7 +208,10 @@ class OperatorsSuite extends FunSuite {
       assert(!expectedResultFailure || expectedResultAtoms.isEmpty, "test specification error: no atoms expected after failure (0)")
 	
 	  executor = new CommonScriptExecutor
-      _execute(scriptDef, executor)
+
+	  val debug = true
+	  val debugger = if (debug) new SimpleScriptDebugger else null
+      _execute(scriptDef, debugger, executor)
       
       val executionSuccess = scriptSuccessAtEndOfInput.getOrElse(executor.hasSuccess)
       
@@ -240,7 +244,10 @@ class OperatorsSuite extends FunSuite {
        if (expectedAtomsAtEndOfInput== None) {
            expectedAtomsAtEndOfInput = Some(expectedAtoms)
            scriptSuccessAtEndOfInput = Some(executor.hasSuccess)
-  println("scriptSuccessAtEndOfInput = " + scriptSuccessAtEndOfInput)         
+println("inputStream.isEmpty=" + inputStream.isEmpty 
+      + " expectedAtoms = " + expectedAtoms.mkString 
+      + (if (inputStream.isEmpty) "" else " inputStream.head = " + inputStream.head) 
+      + " scriptSuccess = " + scriptSuccessAtEndOfInput)         
        }
     }
     else if (inputStream.head==atom) {inputStream = inputStream.drop(1); acceptedAtoms += atom}
@@ -307,10 +314,16 @@ class OperatorsSuite extends FunSuite {
    *   the outcomes are a input traces in relation to their outcomes, see #testScriptBehaviour
    */
   val scriptBehaviourList1 = List( // list, not a map, to remain ordered
-     "a&b"    -> "a->b b->a"
-   , "a&&b"   -> "a->b b->a"
-   , "(-)&&a" -> "->0"
-   , "(+)||a" -> ""
+    "a&b&c"   -> "cb->a" // goes wrong since "Ignore" status causes AAToBeReexecuted which may be stored in LIFO order...TBD in ScriptExecutor
+   , "(-)"    -> "->0"
+   , "(+)"    -> ""
+   , "(+-)"   -> ""
+   , "break"  -> "=(+-)"
+   , "."      -> "=(+-)"
+   , ".."     -> "=(+-)"
+   , "..."    -> "=(+-)"
+    
+   , "a"      -> "->a a"
   )
   val scriptBehaviourList = List( // list, not a map, to remain ordered
       
@@ -415,6 +428,11 @@ class OperatorsSuite extends FunSuite {
    , "b&(...;a)"   -> "=(...;a)&b"  // commutative
    , "b|(...;a)"   -> "=(...;a)|b"  // commutative
 
+ //, "a&b&c"       -> "->abc a->bc  b->ac  c->ab  ab->c  ac->b  ba->c  bc->a  ca->b  cb->a  abc acb bac bca cab cba"  TBD: fix LIFO => FIFO for AAToBeReexecuted msgs
+ //, "a&&b&&c"     -> "->abc a->bc  b->ac  c->ab  ab->c  ac->b  ba->c  bc->a  ca->b  cb->a  abc acb bac bca cab cba"  
+ //, "a|b|c"       -> "->abc a->1bc b->1ac c->1ab ab->1c ac->1b ba->1c bc->1a ca->1b cb->1a abc acb bac bca cab cba"  
+   , "a||b||c"     -> "->abc a b c"  
+   
    // disruption with compound left hand operand
    , "(a|b)/c"     -> "->abc a->1bc b->1ac c ac bc ab ba"
    , "(a;b)/c"     -> "->ac a->bc ab c ac" 

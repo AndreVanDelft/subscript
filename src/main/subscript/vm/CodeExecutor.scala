@@ -123,6 +123,7 @@ class UnsureCodeFragmentExecutor(n: N_code_unsure, scriptExecutor: ScriptExecuto
        aaStarted; aaEnded; succeeded; deactivate
     }
     else if (n.result==UnsureExecutionResult.Ignore){ // allow for deactivating result
+      n.result=UnsureExecutionResult.Success
       toBeReexecuted
     }
     else { 
