@@ -197,24 +197,30 @@ case class EventHandlingCodeFragmentExecutor[N<:N_atomic_action_eh[N]](_n: N, _s
     {
       n.template.code.apply.apply(n) // may affect n.hasSuccess
     }
-    if (n.hasSuccess) 
+    if (n.hasSuccess)  // probably this test can be ditched
     {
       executionFinished // will probably imply a call back to afterExecute from the ScriptExecutor thread
-      // TBD: maybe a provision should be taken here to prevent handling a second event here, in case this is a N_code_eh
+                        // TBD: maybe a provision should be taken here to prevent handling a second event here, in case this is a N_code_eh
       notifyScriptExecutor // kick the scriptExecutor, just in case it was waiting
     }
   }
-  override def afterExecuteAA = {
-    if (!n.isExcluded && n.hasSuccess) {
-      aaStarted
-      aaEnded
-      succeeded
-      deactivate 
-      // TBD: handle looping eh code fragment; check for optionalBreak and break...:
-      //n match {
-      //  case N_code_eh     (_) => 
-      //  case N_code_eh_loop(_) => 
-      //}
-    }
+  override def afterExecuteAA: Unit = {
+      if (n.isExcluded || !n.hasSuccess) return
+      n match {
+        case eh:N_code_eh =>       
+          aaStarted
+          aaEnded
+          succeeded
+          deactivate 
+
+        case eh:N_code_eh_loop =>
+             aaStarted
+             aaEnded
+             eh.result match {
+                case LoopingExecutionResult.Success       => 
+                case LoopingExecutionResult.Break         => succeeded
+                case LoopingExecutionResult.OptionalBreak => succeeded; deactivate
+             }
+      }
   }
 }

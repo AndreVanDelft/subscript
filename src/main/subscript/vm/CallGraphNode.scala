@@ -219,7 +219,7 @@ case class N_code_normal     (template: T_0_ary_code[N_code_normal  ]) extends N
 case class N_code_tiny       (template: T_0_ary_code[N_code_tiny    ]) extends N_atomic_action   [N_code_tiny    ](template) // not 100% appropriate
 case class N_code_threaded   (template: T_0_ary_code[N_code_threaded]) extends N_atomic_action   [N_code_threaded](template)
 case class N_code_unsure     (template: T_0_ary_code[N_code_unsure  ]) extends N_atomic_action   [N_code_unsure  ](template) {
-  private var _result = UnsureExecutionResult.Success; 
+  private var _result = UnsureExecutionResult.Success; // TBD: clean this all up; hasSuccess+result is too much
   def result = _result
   def result_=(value: UnsureExecutionResult.UnsureExecutionResultType): Unit = {
     _result = value
@@ -227,7 +227,14 @@ case class N_code_unsure     (template: T_0_ary_code[N_code_unsure  ]) extends N
   }
 }
 case class N_code_eh         (template: T_0_ary_code[N_code_eh      ]) extends N_atomic_action_eh[N_code_eh      ](template)
-case class N_code_eh_loop    (template: T_0_ary_code[N_code_eh_loop ]) extends N_atomic_action_eh[N_code_eh_loop ](template)
+case class N_code_eh_loop    (template: T_0_ary_code[N_code_eh_loop ]) extends N_atomic_action_eh[N_code_eh_loop ](template) {
+  private var _result = LoopingExecutionResult.Success; 
+  def result = _result
+  def result_=(value: LoopingExecutionResult.LoopingExecutionResultType): Unit = {
+    _result = value
+    hasSuccess = value==LoopingExecutionResult.Success || value==LoopingExecutionResult.Break || value==LoopingExecutionResult.OptionalBreak
+  }
+}
 case class N_localvar     [V](template: T_0_ary_local_valueCode[V], isLoop: Boolean) 
                                                     extends CallGraphLeafNode         [T_0_ary_local_valueCode[V]]
                                                        with CallGraphNodeWithCodeTrait[T_0_ary_local_valueCode[V],V] {

@@ -22,19 +22,34 @@ class LifeFrameApplication extends BasicLifeFrameApplication {
     
     def sleep = 
       try {
-        val sleepPart_ms = 10        
-        for (slept_ms <- 0 until getSleep_ms by sleepPart_ms)
-        {
+        val sleepPart_ms = 10
+        val startTime_ms = System.currentTimeMillis
+        while (System.currentTimeMillis - startTime_ms < getSleep_ms) {
           Thread.sleep(sleepPart_ms)
         }
       }
-      catch { case _ => }
+      catch { case _ => println("sleep interrupted")}
 
     //////////////////////////////////////////////
     // confirm exit dialog
     //////////////////////////////////////////////
     def confirmExit: Boolean = Dialog.showConfirmation(null, "Are you sure?", "About to exit")==Dialog.Result.Yes
-                            
+     
+    canvas.listenTo(canvas.mouse.clicks)
+    canvas.listenTo(canvas.mouse.moves)
+
+    //////////////////////////////////////////////
+    // handle MouseDown events
+    //////////////////////////////////////////////
+     def doMouseDown (e: MouseEvent): Unit = {
+       selectedPattern match {
+          case None => canvas.mouseDownToggle(e)
+          case Some(s) => val ec = Coord(e.point.x/canvas.cellSizeX, e.point.y/canvas.cellSizeY)
+                          for (pc <- ConwayPatterns.moveTo(s,ec)) {canvas.setCellValue(pc.x,pc.y,true)}
+       }
+     }
+
+    
   /* the following subscript code has manually been compiled into Scala; see below
  script..
 	implicit  key(c: Char     ??) =  key(top, c??)
@@ -88,7 +103,8 @@ class LifeFrameApplication extends BasicLifeFrameApplication {
   def _vkey(_k:FormalConstrainedParameter[Key.Value]) = _script(this, 'vkey, _k~??'k) {subscript.swing.Scripts._vkey(top, _k~??)}
   def  _key(_c:FormalConstrainedParameter[Char     ]) = _script(this,  'key, _c~??'c) {subscript.swing.Scripts._key (top, _c~??)}
                
-  override def _live     = _script(this,  'live            ) {_par_or2(_canvasOperations, _mouseInput, _speedChanges, _exit)}
+  //override def _live     = _script(this,  'live            ) {_par_or2(_canvasOperations, _mouseInput, _speedChanges, _exit)}
+  override def _live     = _script(this,  'live            ) {_seq(_loop, _speedKeyInput)}
   def  _randomizeCommand = _script(this,  'randomizeCommand) {_alt(_clicked(randomizeButton), _key('r'))} 
   def      _clearCommand = _script(this,      'clearCommand) {_alt(_clicked(    clearButton), _key('c'))}
   def       _stepCommand = _script(this,       'stepCommand) {_alt(_clicked(     stepButton), _key(' '))}
@@ -130,13 +146,13 @@ class LifeFrameApplication extends BasicLifeFrameApplication {
      
   def  _mouseInput       = _script(this, 'mouseInput      ) {_par(_mousePressInput, _mouseDragInput)} 
 
-  def  _mousePressInput  = _script(this, 'mousePressInput ) {_mousePresses  (canvas, (me: MouseEvent) => canvas.mouseDownToggle(me))} 
+  def  _mousePressInput  = _script(this, 'mousePressInput ) {_mousePresses  (canvas, (me: MouseEvent) => doMouseDown(me))} 
   def  _mouseDragInput   = _script(this, 'mouseDragInput  ) {_mouseDraggings(canvas, (me: MouseEvent) => canvas.mouseDragToggle(me))} 
 
   // bridge method   
   override def live = _execute(_live)
 
-  def _times(_n: FormalInputParameter[Int]) = _script(this, 'mouseDragInput, _n~'n) {_while{here=>pass(here)<_n.value}}
+  def _times(_n: FormalInputParameter[Int]) = _script(this, 'times, _n~'n) {_while{here=>pass(here)<_n.value}}
 }
 
 

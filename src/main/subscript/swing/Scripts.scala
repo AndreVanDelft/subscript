@@ -62,7 +62,8 @@ object Scripts {
     def enabled_=(b:Boolean) = {myEnabled=b}
     def acknowledgeEventHandled = {ScriptReactor.scriptExecutorThatConsumedEvent = null} // will be done when an Event Handling Code Fragment succeeds, performed by the ScriptExecutor
     
-    val event: Event
+    val listenedEvent: Event
+    var currentEvent : Event = null
     def reaction: PartialFunction[Event,Unit] = myReaction
     private val myReaction: PartialFunction[Event,Unit] = {
       case event if (ScriptReactor.scriptExecutorThatConsumedEvent != executor.scriptExecutor) => {
@@ -85,7 +86,7 @@ object Scripts {
     def canDisableOnUnsubscribe = true
     def unsubscribe: Unit = {
       publisher.reactions -= reaction
-      if (canDisableOnUnsubscribe && !publisher.reactions.isDefinedAt(event)) {enabled=false}
+      if (canDisableOnUnsubscribe && !publisher.reactions.isDefinedAt(listenedEvent)) {enabled=false}
     }
   }
   
@@ -100,37 +101,39 @@ object Scripts {
   // a ComponentScriptReactor for any events
   case class AnyEventScriptReactor[N<:N_atomic_action_eh[N]](comp:Component) extends ComponentScriptReactor[N](comp) {
     def publisher = comp
-    val event: Event = null
+    val listenedEvent: Event = null
     override def canDisableOnUnsubscribe = false
-    private var myReaction: PartialFunction[Event,Unit] = {case _ => execute}
+    private var myReaction: PartialFunction[Event,Unit] = {case e => currentEvent=e; execute; currentEvent=null}
     override def reaction: PartialFunction[Event,Unit] = myReaction
   }
   case class WindowClosingScriptReactor[N<:N_atomic_action_eh[N]](w:Window) extends ScriptReactor[N] {
     def publisher = w
-    val event: WindowClosing = null
+    val listenedEvent: WindowClosing = null
     override def canDisableOnUnsubscribe = false
-    private var myReaction: PartialFunction[Event,Unit] = {case wc: WindowClosing => execute}
+    private var myReaction: PartialFunction[Event,Unit] = {case e: WindowClosing => currentEvent=e; execute; currentEvent=null}
     override def reaction: PartialFunction[Event,Unit] = myReaction
   }
   case class SliderStateChangedScriptReactor[N<:N_atomic_action_eh[N]](s:Slider) extends ScriptReactor[N] {
     def publisher = s
-    val event: ValueChanged = null
+    val listenedEvent: ValueChanged = null
     override def canDisableOnUnsubscribe = false
-    private var myReaction: PartialFunction[Event,Unit] = {case ce: ValueChanged => execute}
+    private var myReaction: PartialFunction[Event,Unit] = {case e: ValueChanged => currentEvent=e; execute; currentEvent=null}
     override def reaction: PartialFunction[Event,Unit] = myReaction
   }
   case class MousePressedScriptReactor[N<:N_atomic_action_eh[N]](comp:Component) extends ScriptReactor[N] {
     def publisher = comp
-    val event: MousePressed = null
+    val listenedEvent: MousePressed = null
     override def canDisableOnUnsubscribe = false
-    private var myReaction: PartialFunction[Event,Unit] = {case ce: MousePressed => execute}
+    private var myReaction: PartialFunction[Event,Unit] = {case e: MousePressed => 
+      currentEvent=e; execute; currentEvent=null}
     override def reaction: PartialFunction[Event,Unit] = myReaction
   }
   case class MouseDraggedScriptReactor[N<:N_atomic_action_eh[N]](comp:Component) extends ScriptReactor[N] {
     def publisher = comp
-    val event: MouseDragged = null
+    val listenedEvent: MouseDragged = null
     override def canDisableOnUnsubscribe = false
-    private var myReaction: PartialFunction[Event,Unit] = {case ce: MouseDragged => execute}
+    private var myReaction: PartialFunction[Event,Unit] = {case e: MouseDragged =>
+      currentEvent=e; execute; currentEvent=null}
     override def reaction: PartialFunction[Event,Unit] = myReaction
   }
   
@@ -145,9 +148,9 @@ object Scripts {
     }
     def publisher = button
     //b.peer.addActionListener(new ActionListener {})
-    val event: Event = ButtonClicked(button)
+    val listenedEvent: Event = ButtonClicked(button)
     override def consumeEvent = {
-      event match {
+      listenedEvent match {
         case ie: InputEvent => ie.consume // unfortunately, this is not applicable
         case _ => // no consume event option seems to be available
     } }
@@ -156,7 +159,7 @@ object Scripts {
   // a ScriptReactor for key press events
   case class KeyPressScriptReactor[N<:N_atomic_action_eh[N]](publisher:Publisher, keyCode: FormalConstrainedParameter[Char]) extends ScriptReactor[N] {
     // this does not compile: val event: Event = KeyPressed(comp, _, _, _, _)
-    val event = null
+    val listenedEvent = null
     override def reaction = myReaction
     private val myReaction: PartialFunction[Event,Unit] = {
       case KeyPressed(comp, keyPressedValue, keyModifiers, keyLocationValue) => 
@@ -177,7 +180,7 @@ object Scripts {
   // a ScriptReactor for virtual key press events
   case class VKeyPressScriptReactor[N<:N_atomic_action_eh[N]](publisher:Publisher, keyValue: FormalConstrainedParameter[Key.Value]) extends ScriptReactor[N] {
     // this does not compile: val event: Event = KeyPressed(comp, _, _, _, _)
-    val event = null
+    val listenedEvent = null
     override def reaction = myReaction
     private val myReaction: PartialFunction[Event,Unit] = {
       case KeyPressed(comp, keyPressedValue, keyModifiers, keyLocationValue) => 
@@ -231,11 +234,11 @@ object Scripts {
    } 
   }
   def _event_loop[E<:Event](_r:FormalInputParameter[ScriptReactor[N_code_eh_loop]], task: E=>Unit)  = {
-   _script(this, 'event, _r~'r) {
+   _script(this, 'event_loop, _r~'r) {
        _at{gui} (_at{(there:N_code_eh_loop) => {_r.value.subscribe(there); 
                              there.onDeactivate{_r.value.unsubscribe}; 
                              there.onSuccess   {_r.value.acknowledgeEventHandled}}}
-         (_eventhandling_loop0{task.apply(_r.value.event.asInstanceOf[E])})
+         (_eventhandling_loop0{task.apply(_r.value.currentEvent.asInstanceOf[E])})
        )
    } 
   }
@@ -272,10 +275,14 @@ object Scripts {
   implicit def _stateChange (_slider: FormalInputParameter[Slider]) = {_script(this, 'stateChange, _slider~'slider) {_event(SliderStateChangedScriptReactor[N_code_eh](_slider.value))} }
 
            def _mousePresses(_c: FormalInputParameter[Component], _task: FormalInputParameter[MouseEvent=>Unit]) 
-                = {_script(this, '_mousePresses, _c~'c, _task~'task) {_event_loop(MousePressedScriptReactor[N_code_eh_loop](_c.value), _task.value)} }
+                = {_script(this, '_mousePresses, _c~'c, _task~'task) {_event_loop(MousePressedScriptReactor[N_code_eh_loop](_c.value), 
+                                                                              _task.value)
+                                                                     } }
            
            def _mouseDraggings(_c: FormalInputParameter[Component], _task: FormalInputParameter[MouseEvent=>Unit]) 
-                = {_script(this, 'mouseDraggings, _c~'c, _task~'task) {_event_loop(MouseDraggedScriptReactor[N_code_eh_loop](_c.value), _task.value)} }
+                = {_script(this, 'mouseDraggings, _c~'c, _task~'task) {_event_loop(MouseDraggedScriptReactor[N_code_eh_loop](_c.value), 
+                                                                                _task.value)
+                                                                      } }
            
   // TBD: work in progress
   //       def _anyEvent(_c: FormalInputParameter[Component], _t: FormalInputParameter[() => Boolean]) = {_script('anyEvent, _c~'c, _t~'t) {_handleEventOn(AnyEventScriptReactor[N_code_eh](_c.value, _t))} }

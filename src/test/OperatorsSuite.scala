@@ -209,8 +209,9 @@ class OperatorsSuite extends FunSuite {
 	
 	  executor = new CommonScriptExecutor
 
-	  val debug = true
+	  val debug = false
 	  val debugger = if (debug) new SimpleScriptDebugger else null
+	  
       _execute(scriptDef, debugger, executor)
       
       val executionSuccess = scriptSuccessAtEndOfInput.getOrElse(executor.hasSuccess)
@@ -244,7 +245,7 @@ class OperatorsSuite extends FunSuite {
        if (expectedAtomsAtEndOfInput== None) {
            expectedAtomsAtEndOfInput = Some(expectedAtoms)
            scriptSuccessAtEndOfInput = Some(executor.hasSuccess)
-println("inputStream.isEmpty=" + inputStream.isEmpty 
+if (false) println("inputStream.isEmpty=" + inputStream.isEmpty 
       + " expectedAtoms = " + expectedAtoms.mkString 
       + (if (inputStream.isEmpty) "" else " inputStream.head = " + inputStream.head) 
       + " scriptSuccess = " + scriptSuccessAtEndOfInput)         
@@ -428,9 +429,9 @@ println("inputStream.isEmpty=" + inputStream.isEmpty
    , "b&(...;a)"   -> "=(...;a)&b"  // commutative
    , "b|(...;a)"   -> "=(...;a)|b"  // commutative
 
- //, "a&b&c"       -> "->abc a->bc  b->ac  c->ab  ab->c  ac->b  ba->c  bc->a  ca->b  cb->a  abc acb bac bca cab cba"  TBD: fix LIFO => FIFO for AAToBeReexecuted msgs
- //, "a&&b&&c"     -> "->abc a->bc  b->ac  c->ab  ab->c  ac->b  ba->c  bc->a  ca->b  cb->a  abc acb bac bca cab cba"  
- //, "a|b|c"       -> "->abc a->1bc b->1ac c->1ab ab->1c ac->1b ba->1c bc->1a ca->1b cb->1a abc acb bac bca cab cba"  
+   , "a&b&c"       -> "->abc a->bc  b->ac  c->ab  ab->c  ac->b  ba->c  bc->a  ca->b  cb->a  abc acb bac bca cab cba" 
+   , "a&&b&&c"     -> "->abc a->bc  b->ac  c->ab  ab->c  ac->b  ba->c  bc->a  ca->b  cb->a  abc acb bac bca cab cba"  
+   , "a|b|c"       -> "->abc a->1bc b->1ac c->1ab ab->1c ac->1b ba->1c bc->1a ca->1b cb->1a abc acb bac bca cab cba"  
    , "a||b||c"     -> "->abc a b c"  
    
    // disruption with compound left hand operand

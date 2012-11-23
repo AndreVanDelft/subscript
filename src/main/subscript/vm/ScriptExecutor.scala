@@ -51,8 +51,9 @@ trait ScriptExecutor {
                 y: CallGraphMessage[_ <: CallGraphNodeTrait[_<:TemplateNode]]): Int = {
 	        val p = x.priority - y.priority
 	        if (p != 0) {p} // highest priority first
-	        else if (x.isInstanceOf[Continuation]) {  x.node.index - y.node.index}  // newest nodes first
-	        else                                   {- x.node.index + y.node.index}  // oldest nodes first
+	        else if (x.isInstanceOf[Continuation         ]) {  x.node.index - y.node.index}  // newest nodes first
+	        else if (x.isInstanceOf[AAToBeReexecuted[_,_]]) {- x.     index + y.     index}  // oldest messages first, so that retries are FIFO
+	        else                                            {- x.node.index + y.node.index}  // oldest nodes first
         }
 	}
   
