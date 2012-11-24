@@ -23,16 +23,6 @@ class LookupFrame2Application extends SimpleSubscriptApplication {
   val searchLabel  = new Label("Search")  {preferredSize = new Dimension(45,26)}
   val searchTF     = new TextField        {preferredSize = new Dimension(100, 26)}
   
-//  listenTo(searchTF)
-//  reactions += {
-//      case event => {
-//                 println(event); 
-//                 println("**************************************")
-//                 println(Thread.currentThread().getStackTrace().mkString("\n"))
-//                 println("**************************************")
-//               }
-//  }
-  
   val top          = new MainFrame {
     title          = "LookupFrame - Subscript"
     location       = new Point    (100,100)
@@ -69,7 +59,7 @@ class LookupFrame2Application extends SimpleSubscriptApplication {
 	showSearchResults = @gui: {outputTA.text = ...}
 	searchInDatabase  = {* Thread.sleep(5000)*}||progressMonitor
 	
-	progressMonitor   = ...{*Thread.sleep(200)*} @gui:{outputTA.text+=pass}
+	progressMonitor   = ... @gui:{outputTA.text+=pass} {*Thread.sleep(200)*}
 	
 	implicit vkey(k: Key.Value??) = vkey(top, k??)
 */
@@ -77,7 +67,7 @@ class LookupFrame2Application extends SimpleSubscriptApplication {
   def _searchCommand     = _script(this, 'searchCommand    ) {_alt(_clicked(searchButton), _vkey(Key.Enter))} 
   def _cancelCommand     = _script(this, 'cancelCommand    ) {_alt(_clicked(cancelButton), _vkey(Key.Escape))}
   def   _exitCommand     = _script(this, 'exitCommand      ) {_alt(_clicked(  exitButton), _windowClosing(top))}
-  def _cancelSearch      = _script(this, 'cancelSearch     ) {_seq(_cancelCommand, _at{gui} (_call{_showCanceledText}))}
+  def _cancelSearch      = _script(this, 'cancelSearch     ) {_seq(_cancelCommand, _at{gui0} (_call{_showCanceledText}))}
   def _searchSequence    = _script(this, 'searchSequence   ) {_seq(_guard(searchTF, ()=> !(searchTF.text.isEmpty)),  
                                                                    _searchCommand, 
      	                                                           _disrupt(_seq(_showSearchingText, _searchInDatabase, _showSearchResults),
@@ -86,23 +76,21 @@ class LookupFrame2Application extends SimpleSubscriptApplication {
   def   _exit            = {val _r = _declare[Boolean]('r)
                            _script(this, 'exit) {_seq(_var(_r, (here:N_localvar[_]) => false), 
                                                       _exitCommand,
-                                                      _at{gui} (_normal{here => _r.at(here).value = confirmExit}),
+                                                      _at{gui0} (_normal{here => _r.at(here).value = confirmExit}),
                                                       _while{here=> {! _r.at(here).value}})}
   }
   
-  def _showSearchingText = _script(this, 'showSearchingText) {_at{gui} (_normal0 {            
+  def _showSearchingText = _script(this, 'showSearchingText) {_at{gui0} (_normal0 {            
     outputTA.text = 
       "Searching: "+searchTF.text
       })}
-  def _showSearchResults = _script(this, 'showSearchResults) {_at{gui} (_normal{(here: N_code_normal) => 
+  def _showSearchResults = _script(this, 'showSearchResults) {_at{gui0} (_normal{(here: N_code_normal) => 
     outputTA.text = "Found: "+here.index+" items"})}
-  def _showCanceledText  = _script(this, 'showCanceledText ) {_at{gui} (_normal0 {outputTA.text = "Searching Canceled"})}
+  def _showCanceledText  = _script(this, 'showCanceledText ) {_at{gui0} (_normal0 {outputTA.text = "Searching Canceled"})}
   def _searchInDatabase  = _script(this, 'searchInDatabase ) {_par_or2(_threaded0{sleep(5000)}, _progressMonitor)} 
   def _progressMonitor   = _script(this, 'progressMonitor  ) {
   _seq(_loop, 
-      _at{gui} (
-          _normal{
-            (here: N_code_normal) => outputTA.text+=" "+pass(here)}), 
+      _at{gui0} (_normal{(here: N_code_normal) => outputTA.text+=" "+pass(here)}), 
       _threaded0{sleep(200)})}
  
   def _vkey(_k:FormalConstrainedParameter[Key.Value]) = _script(this, 'vkey, _k~??'k) {subscript.swing.Scripts._vkey(top, _k~??)}

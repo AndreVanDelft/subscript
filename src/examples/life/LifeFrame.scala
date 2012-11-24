@@ -115,20 +115,20 @@ class LifeFrameApplication extends BasicLifeFrameApplication {
   def   _exit            = {val _r = _declare[Boolean]('r)
                            _script(this, 'exit) {_seq(_var(_r, (here:N_localvar[_]) => false), 
                                                       _exitCommand,
-                                                      _at{gui} (_normal{here => _r.at(here).value = confirmExit}),
+                                                      _at{gui0} (_normal{here => _r.at(here).value = confirmExit}),
                                                       _while{here=> {! _r.at(here).value}})}
                             }
 
   def  _canvasOperations = _script(this, 'canvasOperations) {_seq(_loop, _par_or2(_disrupt(_noise, _seq(_seq(_optionalBreak_loop, _singleStep), _multiStep)), _randomize, _clear))} 
-  def  _do1Step          = _script(this, 'do1Step         ) {_seq(_threaded0{canvas.calculateGeneration}, _at{gui}(_tiny0{canvas.validate}))} 
+  def  _do1Step          = _script(this, 'do1Step         ) {_seq(_threaded0{canvas.calculateGeneration}, _at{gui0}(_tiny0{canvas.validate}))} 
 
-  def  _noise            = _script(this, 'noise           ) {_seq( _key('n'), _seq(_loop, _at{gui}(_normal0{canvas.doRandomize()}), _threaded0{sleep}))} 
-  def  _randomize        = _script(this, 'randomize       ) {_seq( _randomizeCommand, _at{gui}(_tiny0{canvas.doRandomize()}))} 
-  def  _clear            = _script(this, 'clear           ) {_seq(     _clearCommand, _at{gui}(_tiny0{canvas.doClear}))} 
+  def  _noise            = _script(this, 'noise           ) {_seq( _key('n'), _seq(_loop, _at{gui0}(_normal0{canvas.doRandomize()}), _threaded0{sleep}))} 
+  def  _randomize        = _script(this, 'randomize       ) {_seq( _randomizeCommand, _at{gui0}(_tiny0{canvas.doRandomize()}))} 
+  def  _clear            = _script(this, 'clear           ) {_seq(     _clearCommand, _at{gui0}(_tiny0{canvas.doClear}))} 
   def  _singleStep       = _script(this, 'singleStep      ) {_seq(      _stepCommand, _do1Step)} 
   def  _multiStep        = _script(this, 'multiStep       ) {_seq(_multiStepStartCmd, _disrupt(_seq(_loop, _do1Step, _threaded0{sleep}), _multiStepStopCmd))} 
       
-  def  _setSpeed(_s:FormalInputParameter[Int])  = _script(this, 'setSpeed, _s~'s) {_at{gui}(_tiny0{setSpeed(_s.value)})} 
+  def  _setSpeed(_s:FormalInputParameter[Int])  = _script(this, 'setSpeed, _s~'s) {_at{gui0}(_tiny0{setSpeed(_s.value)})} 
   
   def  _speedChanges     = _script(this, 'speedChanges    ) {_seq(_loop, _alt(_speedKeyInput, _speedButtonInput, _speedSliderInput))} 
 
@@ -152,6 +152,7 @@ class LifeFrameApplication extends BasicLifeFrameApplication {
   // bridge method   
   override def live = _execute(_live)
 
+  // utility script; should be moved to a utility object
   def _times(_n: FormalInputParameter[Int]) = _script(this, 'times, _n~'n) {_while{here=>pass(here)<_n.value}}
 }
 

@@ -32,6 +32,10 @@ import subscript.DSL._
 import subscript.Predef._
 import subscript.vm._
 
+/*
+ * SimpleSubscriptApplication: a SimpleSwingApplication
+ * with an abstract "live" script that is started in a new thread
+ */
 abstract class SimpleSubscriptApplication extends SimpleSwingApplication{
   override def startup(args: Array[String]) {
     super.startup(args)
@@ -40,17 +44,29 @@ abstract class SimpleSubscriptApplication extends SimpleSwingApplication{
   def _live: N_call => Unit
   def  live: ScriptExecutor
 }
+
+/*
+ * Scripts for GUI event handling: mouse down, mouse moves, keys, virtual keys, window events
+ * Also a method to acquire a CodeExecutor for processing in the swing thread
+ */
 object Scripts {
 
-  def gui [N<:CallGraphNodeTrait[_]] = (there:N)=>gui1(there)  
-  def gui1[N<:CallGraphNodeTrait[_]](implicit n:N) = {
+  def gui0 [N<:CallGraphNodeTrait[_]] = (there:N)=>gui(there)  
+  def gui[N<:CallGraphNodeTrait[_]](implicit n:N) = {
     n.adaptExecutor(new SwingCodeExecutorAdapter[CodeExecutorTrait])
   }             
 
+  /*
+   * A registry for the ScriptExecutor for which the most recent GUI event had been consumed
+   * Note: such executors may invoke one another
+   */
   object ScriptReactor {
     var scriptExecutorThatConsumedEvent: ScriptExecutor = null // event.consume not available for button clicks; this consumedEvent item is a workaround
   }
-  // an extension on scala.swing.Reactor that supports event handling scripts in Subscript
+  /*
+   * An extension on scala.swing.Reactor that supports event handling scripts in Subscript
+   * Allows an event handling script to subscribe and unsubscribe to events
+   */
   abstract class ScriptReactor[N<:N_atomic_action_eh[N]] extends Reactor {
     def publisher:Publisher
     var executor: EventHandlingCodeFragmentExecutor[N] = _
@@ -60,7 +76,8 @@ object Scripts {
     private var myEnabled = false
     def enabled = myEnabled
     def enabled_=(b:Boolean) = {myEnabled=b}
-    def acknowledgeEventHandled = {ScriptReactor.scriptExecutorThatConsumedEvent = null} // will be done when an Event Handling Code Fragment succeeds, performed by the ScriptExecutor
+    // acknowledgeEventHandled is done when an Event Handling Code Fragment succeeds, performed by the ScriptExecutor
+    def acknowledgeEventHandled = {ScriptReactor.scriptExecutorThatConsumedEvent = null} 
     
     val listenedEvent: Event
     var currentEvent : Event = null
@@ -90,7 +107,10 @@ object Scripts {
     }
   }
   
-  // a ScriptReactor that has a Component as a Publisher. Automatically enables and disables the component
+  /*
+   * A ScriptReactor that has a swing Component as a Publisher. 
+   * This automatically enables and disables the component
+   */
   abstract class ComponentScriptReactor[N<:N_atomic_action_eh[N]](publisher:Publisher with Component, autoEnableComponent: Boolean = true) extends ScriptReactor[N] {
     override def enabled_=(b:Boolean) = {
       super.enabled_=(b)
@@ -137,17 +157,17 @@ object Scripts {
     override def reaction: PartialFunction[Event,Unit] = myReaction
   }
   
-  // a ComponentScriptReactor for clicked events on a button
-  // TBD: a way to consume clicked events on the button
+  /*
+   * A ComponentScriptReactor for clicked events on a button
+   * TBD: a way to consume clicked events on the button
+   */
   case class ClickedScriptReactor[N<:N_atomic_action_eh[N]](button:AbstractButton) extends ComponentScriptReactor[N](button) {
     val wasFocusable = button.focusable
     override def enabled_=(b:Boolean) = {
       super.enabled_=(b)
       button.focusable = wasFocusable
-      //if (b && wasFocusable) button.requestFocus
     }
     def publisher = button
-    //b.peer.addActionListener(new ActionListener {})
     val listenedEvent: Event = ButtonClicked(button)
     override def consumeEvent = {
       listenedEvent match {
@@ -156,9 +176,10 @@ object Scripts {
     } }
   }
   
-  // a ScriptReactor for key press events
+  /*
+   * A ScriptReactor for key typed events
+   */
   case class KeyTypedScriptReactor[N<:N_atomic_action_eh[N]](publisher:Publisher, keyCode: FormalConstrainedParameter[Char]) extends ScriptReactor[N] {
-    // this does not compile: val event: Event = KeyPressed(comp, _, _, _, _)
     val listenedEvent = null
     override def reaction = myReaction
     private val myReaction: PartialFunction[Event,Unit] = {
@@ -172,13 +193,13 @@ object Scripts {
     }
     override def unsubscribe: Unit = {
       publisher1.reactions -= reaction
-      //if (!publisher1.reactions.isDefinedAt(KeyPressed(comp, _, _, _))) {enabled=false}
     }
   }
   
-  // a ScriptReactor for virtual key press events
+  /*
+   * A ScriptReactor for virtual key press events
+   */
   case class VKeyTypedScriptReactor[N<:N_atomic_action_eh[N]](publisher:Publisher, keyValue: FormalConstrainedParameter[Key.Value]) extends ScriptReactor[N] {
-    // this does not compile: val event: Event = KeyPressed(comp, _, _, _, _)
     val listenedEvent = null
     override def reaction = myReaction
     private val myReaction: PartialFunction[Event,Unit] = {
@@ -190,29 +211,28 @@ object Scripts {
     }
     override def unsubscribe: Unit = {
       publisher1.reactions -= reaction
-      //if (!publisher1.reactions.isDefinedAt(KeyPressed(comp, _, _, _))) {enabled=false}
     }
   }
   
   
-/* the following subscript code has manually been compiled into Scala; see below
-  // the redirections to the swing thread are needed because enabling and disabling the button etc must there be done
+ /*
+  * The following subscript code has manually been compiled into Scala; see below
+    The redirections to the swing thread using "@gui:" are needed 
+    because enabling and disabling the button etc must there be done
+    
  scripts
-  event     (r:ScriptReactor)                           =  @gui: @r.subscribe(there); there.onDeactivate{()=>r.unsubscribe};  there.onSuccess{()=>r.acknowledge}: {. .}
-  event_loop(r:ScriptReactor, task: MousEvent=>Unit)    =  @gui: @r.subscribe(there); there.onDeactivate{()=>r.unsubscribe};  there.onSuccess{()=>r.acknowledge}: {. .}
-  implicit clicked(b:Button)                            = event( ClickedScriptReactor(b))
-  implicit  key(comp: Component, keyCode : Char     ??) = event(KeyPressScriptReactor(comp, keyCode ))
-  implicit vkey(comp: Component, keyValue: Key.Value??) = event(KeyPressScriptReactor(comp, keyValue))
-       anyEvent(comp: Component)                        = event(AnyEventScriptReactor(comp))                                                    
- 
-      windowClosing(_w: Window)  =  {_event(WindowClosingScriptReactor[N_code_eh](_w.value))} }
+  event     (r:ScriptReactor)                           =  @gui: @r.subscribe(there); there.onDeactivate{()=>r.unsubscribe}; there.onSuccess{()=>r.acknowledge}: {. .}
+  event_loop(r:ScriptReactor, task: MousEvent=>Unit)    =  @gui: @r.subscribe(there); there.onDeactivate{()=>r.unsubscribe}; there.onSuccess{()=>r.acknowledge}: {. .}
+  implicit clicked(b:Button)                            = event(           ClickedScriptReactor(b))
+  implicit  key(comp: Component, keyCode : Char     ??) = event(          KeyPressScriptReactor(comp, keyCode ))
+  implicit vkey(comp: Component, keyValue: Key.Value??) = event(          KeyPressScriptReactor(comp, keyValue))
+       anyEvent(comp: Component)                        = event(          AnyEventScriptReactor(comp))                                                    
+           windowClosing(w: Window)                     = event(     WindowClosingScriptReactor(w))
+  implicit stateChange(slider: Slider)                  = event(SliderStateChangedScriptReactor(slider))
+     mousePresses(c: Component, task: MouseEvent=>Unit) = event_loop( MousePressedScriptReactor(c), task)
+   mouseDraggings(c: Component, task: MouseEvent=>Unit) = event_loop( MouseDraggedScriptReactor(c), task)
 
-  implicit def _stateChange (_slider: FormalInputParameter[Slider]) = {_script(this, 'stateChange, _slider~'slider) {_event(SliderStateChangedScriptReactor[N_code_eh](_slider.value))} }
-
-           def _mousePresses(_c: FormalInputParameter[Component], _task: FormalInputParameter[MouseEvent=>Unit]) 
-                = {_script(this, '_mousePresses, _c~'c, _task~'task) {_event_loop(AnyEventScriptReactor[N_code_eh_loop](_c.value), _task.value)} }
-
-  guard(comp: Component, test: => Boolean) = ... if (test) (.. anyEvent(comp, =>!test)) else anyEvent(comp, =>test)
+     guard(comp: Component, test: => Boolean)           = if (test) .. else ... anyEvent(comp, =>test)
 
 
  Note: the manual compilation yielded for the first annotation the type
@@ -225,7 +245,7 @@ object Scripts {
   
   def _event(_r:FormalInputParameter[ScriptReactor[N_code_eh]])  = {
    _script(this, 'event, _r~'r) {
-       _at{gui} (_at{(there:N_code_eh) => {_r.value.subscribe(there); 
+       _at{gui0} (_at{(there:N_code_eh) => {_r.value.subscribe(there); 
                         there.onDeactivate{_r.value.unsubscribe}; 
                         there.onSuccess   {_r.value.acknowledgeEventHandled}}}
          (_eventhandling0{})
@@ -234,7 +254,7 @@ object Scripts {
   }
   def _event_loop[E<:Event](_r:FormalInputParameter[ScriptReactor[N_code_eh_loop]], task: E=>Unit)  = {
    _script(this, 'event_loop, _r~'r) {
-       _at{gui} (_at{(there:N_code_eh_loop) => {_r.value.subscribe(there); 
+       _at{gui0} (_at{(there:N_code_eh_loop) => {_r.value.subscribe(there); 
                              there.onDeactivate{_r.value.unsubscribe}; 
                              there.onSuccess   {_r.value.acknowledgeEventHandled}}}
          (_eventhandling_loop0{task.apply(_r.value.currentEvent.asInstanceOf[E])})
@@ -246,7 +266,7 @@ object Scripts {
   // likewise for _clicked and _clicked0
   implicit def  _key(_p: FormalInputParameter[Publisher], _k: FormalConstrainedParameter[Char     ])  = {
      _script(this,  'key, _p~'p, _k~??'k) { 
-       _at{gui} (_at{(there:N_code_eh) => {val _r = KeyTypedScriptReactor[N_code_eh](_p.value, _k) 
+       _at{gui0} (_at{(there:N_code_eh) => {val _r = KeyTypedScriptReactor[N_code_eh](_p.value, _k) 
                                              _r.value.subscribe(there); 
                           there.onDeactivate{_r.value.unsubscribe}; 
                           there.onSuccess   {_r.value.acknowledgeEventHandled}}}
@@ -256,7 +276,7 @@ object Scripts {
   }           
   implicit def  _clicked(_b: FormalInputParameter[Button])  = {
      _script(this,  'clicked, _b~'b) { 
-       _at{gui} (_at{(there:N_code_eh) => {val _r = ClickedScriptReactor[N_code_eh](_b.value) 
+       _at{gui0} (_at{(there:N_code_eh) => {val _r = ClickedScriptReactor[N_code_eh](_b.value) 
                                              _r.value.subscribe(there); 
                           there.onDeactivate{_r.value.unsubscribe}; 
                           there.onSuccess   {_r.value.acknowledgeEventHandled}}}
@@ -267,28 +287,21 @@ object Scripts {
   implicit def  _key0(_p: FormalInputParameter[Publisher], _k: FormalConstrainedParameter[Char     ])  = {_script(this,  'key, _p~'p, _k~??'k) {_event( KeyTypedScriptReactor[N_code_eh](_p.value, _k))}}
   implicit def _vkey (_p: FormalInputParameter[Publisher], _k: FormalConstrainedParameter[Key.Value])  = {_script(this, 'vkey, _p~'p, _k~??'k) {_event(VKeyTypedScriptReactor[N_code_eh](_p.value, _k))}}
                 
-  implicit def _clicked0(_b: FormalInputParameter[Button   ])  = {_script(this,       'clicked, _b~'b) {_event( ClickedScriptReactor[N_code_eh](_b.value))} }
-           def _anyEvent(_c: FormalInputParameter[Component])  = {_script(this,      'anyEvent, _c~'c) {_event(AnyEventScriptReactor[N_code_eh](_c.value))} }
-      def _windowClosing(_w: FormalInputParameter[Window   ])  = {_script(this, 'windowClosing, _w~'w) {_event(WindowClosingScriptReactor[N_code_eh](_w.value))} }
+  implicit def _clicked0(_b: FormalInputParameter[Button     ]) = {_script(this,       'clicked, _b~'b) {_event( ClickedScriptReactor[N_code_eh](_b.value))} }
+           def _anyEvent(_c: FormalInputParameter[Component  ]) = {_script(this,      'anyEvent, _c~'c) {_event(AnyEventScriptReactor[N_code_eh](_c.value))} }
+           def _windowClosing(_w: FormalInputParameter[Window]) = {_script(this, 'windowClosing, _w~'w) {_event(WindowClosingScriptReactor[N_code_eh](_w.value))} }
 
   implicit def _stateChange (_slider: FormalInputParameter[Slider]) = {_script(this, 'stateChange, _slider~'slider) {_event(SliderStateChangedScriptReactor[N_code_eh](_slider.value))} }
 
            def _mousePresses(_c: FormalInputParameter[Component], _task: FormalInputParameter[MouseEvent=>Unit]) 
-                = {_script(this, '_mousePresses, _c~'c, _task~'task) {_event_loop(MousePressedScriptReactor[N_code_eh_loop](_c.value), 
-                                                                              _task.value)
+                = {_script(this, '_mousePresses, _c~'c, _task~'task) {_event_loop(MousePressedScriptReactor[N_code_eh_loop](_c.value), _task.value)
                                                                      } }
            
            def _mouseDraggings(_c: FormalInputParameter[Component], _task: FormalInputParameter[MouseEvent=>Unit]) 
-                = {_script(this, 'mouseDraggings, _c~'c, _task~'task) {_event_loop(MouseDraggedScriptReactor[N_code_eh_loop](_c.value), 
-                                                                                _task.value)
+                = {_script(this, 'mouseDraggings, _c~'c, _task~'task) {_event_loop(MouseDraggedScriptReactor[N_code_eh_loop](_c.value), _task.value)
                                                                       } }
-           
-  // TBD: work in progress
-  //       def _anyEvent(_c: FormalInputParameter[Component], _t: FormalInputParameter[() => Boolean]) = {_script('anyEvent, _c~'c, _t~'t) {_handleEventOn(AnyEventScriptReactor[N_code_eh](_c.value, _t))} }
-  def _guard(_comp: FormalInputParameter[Component], _test: FormalInputParameter[()=> Boolean]) = { 
-    // if(test) .. else ... anyEvent
-    _script(this, 'guard, _comp~'comp, _test~'test) {
-      _seq(_if_else((n:N_if_else) => _test.value.apply) (_optionalBreak_loop, _loop), _anyEvent(_comp.value))
-    }
-  }
+           def _guard(_comp: FormalInputParameter[Component], _test: FormalInputParameter[()=> Boolean]) = { 
+                   _script(this, 'guard, _comp~'comp, _test~'test) {
+                     _seq(_if_else((n:N_if_else) => _test.value.apply) (_optionalBreak_loop, _loop), _anyEvent(_comp.value))
+                   } }
 }

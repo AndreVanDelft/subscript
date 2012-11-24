@@ -26,7 +26,9 @@
 
 package subscript.vm
 
-// Template Nodes are used to describe abstract syntax trees of the compiled scripts
+/*
+ *  Template Nodes are used to describe abstract syntax trees of the compiled scripts
+ */
 
 trait TemplateNode { 
   def kind: String
@@ -121,8 +123,9 @@ case class T_2_ary_test[N<:CallGraphNodeTrait[TemplateNode]] (kind: String, code
 
 // TBD: case class T_match    (code: ScriptNode => Unit, caseParts)    extends TemplateNode;
 // TBD: case class T_exception(?)    extends TemplateNode;
+// TBD: case class T_for...    extends TemplateNode;
 
-// some utility objects
+// some utility objects:
 
 object LogicalKind extends Enumeration {
   type LogicalKindType = Value

@@ -28,6 +28,12 @@ package subscript.vm
 
 import scala.collection.mutable._
 
+/*
+ * Classes for representing run time nodes in the Call Graph.
+ * 
+ * TBD: rethink inheritance scheme. Maybe use traits exclusively for inheritance
+ */
+
 object ActivationMode extends Enumeration {
   type ActivationModeType = Value
   val Active, Optional, Inactive = Value
@@ -399,34 +405,3 @@ object CallGraphNode {
     return lowestSingleCommonAncestor
   }
 }
-
-	  /* for copy/paste convenience, overview of types to match against:
-		  node match {
-		 	  case n@( N_code_tiny     (_: T_0_ary_code) 
-	                 | N_code_normal   (_: T_0_ary_code) 
-		 	         | N_code_unsure   (_: T_0_ary_code)
-		 	         | N_code_threaded (_: T_0_ary_code)
-		 	         | N_code_eh       (_: T_0_ary_code) 
-		 	         | N_code_eh_loop  (_: T_0_ary_code)
-		 	         | N_localvar      (_: T_0_ary_name_value)
-		 	         | N_localvar_loop (_: T_0_ary_name_value)
-		 	         | N_break         (_: T_0_ary     )
-		 	         | N_optional_break(_: T_0_ary     )
-		 	         | N_delta         (_: T_0_ary     )
-		 	         | N_epsilon       (_: T_0_ary     )
-		 	         | N_nu            (_: T_0_ary     )
-		 	         | N_while         (_: T_0_ary_test)
-		 	         | N_1_ary_op      (_: T_1_ary     )
-		 	         | N_annotation    (_: T_1_ary_code)
-		 	         | N_if            (_: T_1_ary_test)
-		 	         | N_if_else       (_: T_2_ary_test)
-		 	         | N_inline_if     (_: T_2_ary     )
-		 	         | N_inline_if_else(_: T_3_ary     )
-		 	         | N_n_ary_op      (_: T_n_ary     )
-		 	         | N_n_ary_op_par  (_: T_n_ary, _  )
-		 	         | N_n_ary_op_seq  (_: T_n_ary     )
-		 	         | N_call          (_: T_0_ary_code)
-		 	         | N_script        (_: T_script    )) => {}
-	      }
-	      */	  
-

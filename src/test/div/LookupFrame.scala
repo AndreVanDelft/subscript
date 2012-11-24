@@ -44,8 +44,8 @@ class LookupFrameApplication extends SimpleSubscriptApplication {
   override def _live     = _script(this, 'live             ) {_seq(_loop, _searchSequence)}
   def _searchSequence    = _script(this, 'searchSequence   ) {_seq(_searchCommand, _showSearchingText, _searchInDatabase, _showSearchResults)}
   def _searchCommand     = _script(this, 'searchCommand    ) {_clicked(searchButton)}
-  def _showSearchingText = _script(this, 'showSearchingText) {_at{gui} (_normal0 {                         outputTA.text = "Searching: "+searchTF.text})}
-  def _showSearchResults = _script(this, 'showSearchResults) {_at{gui} (_normal{(here: N_code_normal) => outputTA.text = "Found: "+here.index+" items"})}
+  def _showSearchingText = _script(this, 'showSearchingText) {_at{gui0} (_normal0 {                         outputTA.text = "Searching: "+searchTF.text})}
+  def _showSearchResults = _script(this, 'showSearchResults) {_at{gui0} (_normal{(here: N_code_normal) => outputTA.text = "Found: "+here.index+" items"})}
   def _searchInDatabase  = _script(this, 'searchInDatabase ) {_threaded0{Thread.sleep(2000)}}
                
   // bridge method   

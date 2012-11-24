@@ -61,10 +61,10 @@ class BagApplication extends SimpleSubscriptApplication {
 
   override def _live = _script(this, 'live) {_bag}
            def _bag:N_call=>Unit  = _script(this, 'bag) {_alt(_seq(_A, _par(_bag, _Ax)),_seq(_B, _par(_bag, _Bx)))}
-           def _A                 = _script(this, 'A)   {_seq(_clicked(pA), _at(gui) {_tiny0{dA(+1)}})}
-           def _B                 = _script(this, 'B)   {_seq(_clicked(pB), _at(gui) {_tiny0{dB(+1)}})}
-           def _Ax                = _script(this, 'Ax)  {_seq(_clicked(mA), _at(gui) {_tiny0{dA(-1)}})}
-           def _Bx                = _script(this, 'Bx)  {_seq(_clicked(mB), _at(gui) {_tiny0{dB(-1)}})}
+           def _A                 = _script(this, 'A)   {_seq(_clicked(pA), _at(gui0) {_tiny0{dA(+1)}})}
+           def _B                 = _script(this, 'B)   {_seq(_clicked(pB), _at(gui0) {_tiny0{dB(+1)}})}
+           def _Ax                = _script(this, 'Ax)  {_seq(_clicked(mA), _at(gui0) {_tiny0{dA(-1)}})}
+           def _Bx                = _script(this, 'Bx)  {_seq(_clicked(mB), _at(gui0) {_tiny0{dB(-1)}})}
                
   // bridge methods; only the first one is actually used; implicit scripts do not get bridge methods   
   override def live = _execute(_live)

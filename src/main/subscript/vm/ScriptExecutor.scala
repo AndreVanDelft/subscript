@@ -58,9 +58,9 @@ trait ScriptExecutor {
 	}
   
   // TBD: the callGraphMessages queue should become synchronized for 
-  //  AAExecutionFinished, AAToBeReexecuted and Deactivation messages, as these may be inserted
-  // asynchronously by a CodeExecutor (for threaded code, gui thread code and event handling code)
-  // Also, it would become faster if it has internally separate queues for each priority level
+  //      AAExecutionFinished, AAToBeReexecuted and Deactivation messages, as these may be inserted
+  //      asynchronously by a CodeExecutor (for threaded code, gui thread code and event handling code)
+  //      Also, it would become faster if it has internally separate queues for each priority level
   // TBD: AAToBeReexecuted messages should be FIFO
   var callGraphMessageCount = 0
   val callGraphMessages = new PriorityQueue[CallGraphMessage[_ <: CallGraphNodeTrait[_<:TemplateNode]]]()(ScriptGraphMessageOrdering)
@@ -103,19 +103,10 @@ trait ScriptExecutor {
 /*
  * TBD:
  * 
- * compiled scripts; links to nary_op + script
- * here-features: hasSuccess, fail, neutral, breakFromLoop, optionalBreakFromLoop
- * optional exit
- * forced deactivate: / || &&
- * 
- * LookupFrame2
- * 
- * compiler
- * 
- * % ! -  ~
- * # #/ #/#/ #% #%#
+ * operators such as % ! -  ~
  * communication
  * networks and pipes
+ * match & for operands
  * exception handling 
  */
 
@@ -142,10 +133,6 @@ class CommonScriptExecutor extends ScriptExecutor {
       val p = parentNode.asInstanceOf[CallGraphTreeNode_n_ary]
       p.lastActivatedChild = childNode
     }
-    //if (childNode.isInstanceOf[CallGraphTreeNode_n_ary]) {
-    //  val p = childNode.asInstanceOf[CallGraphTreeNode_n_ary]
-    //  p.lastActivatedChild = childNode
-    //}
   }
   // disconnect a child node from its parent
   def disconnect(childNode: CallGraphNodeTrait[_<:TemplateNode]) {
@@ -452,6 +439,9 @@ class CommonScriptExecutor extends ScriptExecutor {
           message.node.forEachParent(p => insert(CAActivated(p, message.node)))
   }
   
+  /*
+   * Communication handling features: still in the think&try phase
+   */
   def handleCAActivatedTBD(message: CAActivatedTBD): Unit = {
     if (CommunicationMatchingMessage.activatedCommunicatorCalls.isEmpty) {
       insert(CommunicationMatchingMessage)
@@ -526,12 +516,11 @@ class CommonScriptExecutor extends ScriptExecutor {
 	      return false
 	    }
     }
-    
     // TBD: first try comms that may still grow (having multipicities other than One)
     return tryCommunicationWithPartners(Nil)
- }
+  }
 	          
- 
+
   // TBD: ensure that an n-ary node gets only 1 AAStarted msg after an AA started in a communication reachable from multiple child nodes (*)
   def handleAAStarted(message: AAStarted): Unit = {
     message.node.hasSuccess   = false
@@ -655,13 +644,21 @@ class CommonScriptExecutor extends ScriptExecutor {
      message.node.codeExecutor.afterExecuteAA
   }
   
-  // The most complicated method of the Script Executor: determine what an N-ary operator will do
-  // after it has received a set of messages.
-  // The decision is based on three aspects:
-  // - the kind of operator
-  // - the state of the node
-  // - the received messages
-  // 
+  /*
+   * handleContinuation:
+   * 
+   * The most complicated method of the Script Executor: determine what an N-ary operator will do
+   * after it has received a set of messages. Potential outcomes include:
+   * - activate next operand and/or have success
+   * - suspend, resume, exclude
+   * - deactivate
+   * - nothing
+   *   
+   * The decision is based on three aspects:
+   * - the kind of operator
+   * - the state of the node
+   * - the received messages
+  */ 
   def handleContinuation(message: Continuation): Unit = {
     val n = message.node.asInstanceOf[CallGraphTreeNode_n_ary]
     n.continuation = null
@@ -899,7 +896,7 @@ class CommonScriptExecutor extends ScriptExecutor {
             }
         }
         // note: there may also be deadlock because of unmatching communications
-        // so there should preferably be a check for the existence of waiting eh actions
+        // so there should preferably be a check for the existence of waiting event handling actions
       }
       else {
         isActive = false

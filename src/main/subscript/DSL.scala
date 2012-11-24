@@ -29,11 +29,21 @@ package subscript
 import scala.collection.mutable.LinkedList
 import subscript.vm._
 
+/*
+ * Internal Scala DSL for SubScript.
+ * Using this DSL one can make SubScript programs without the need 
+ * for a compiler that understands the specific SubScript syntax. 
+ * 
+ * Also this DSL may well be the target for a SubScript extension to the Scala compiler.
+ * 
+ * Usage: see example programs
+ */
 object DSL {
   type _scriptType = N_call=>Unit
   def _script   (owner : AnyRef, name        : Symbol      , p: FormalParameter_withName[_]*)(_t: TemplateChildNode): _scriptType = {(_c: N_call) => _c.calls(T_script    (owner, "script"       , name,     _t), p:_*)}
   def _comscript(owner : AnyRef, communicator: Communicator, p: FormalParameter_withName[_]*)                       : _scriptType = {(_c: N_call) => _c.calls(T_commscript(owner, "communicator" , communicator), p:_*)}
   
+// TBD: communication scripts
 //  def _communication(owner: Any, names: Symbol*): N_communication => TemplateNode = {
 //    (_c: N_communication) => _c.inits(T_communication("communication", names.toList.map(_.asInstanceOf[Symbol])), owner)
 //  }
@@ -79,7 +89,7 @@ object DSL {
   def _tiny0              (cf: => Unit) = _codeFragmentKind("{!!}",cf)
   def _eventhandling0     (cf: => Unit) = _codeFragmentKind("{..}",cf)
   def _eventhandling_loop0(cf: => Unit) = _codeFragmentKind("{......}",cf)
-
+  
   implicit def _call      (cf: => (N_call         =>Unit)) = T_call(()=>n=>cf)
   
   implicit def valueToActualValueParameter[T<:Any](value: T) = new ActualValueParameter(value)
@@ -106,7 +116,10 @@ object DSL {
   def _val     [T<:Any](v: LocalVariable[T], valueCode: => N_localvar[_]=>T) = T_0_ary_local_valueCode("val"    , v, () => valueCode)
   def _var_loop[T<:Any](v: LocalVariable[T], valueCode: => N_localvar[_]=>T) = T_0_ary_local_valueCode("var..." , v, () => valueCode)
   def _val_loop[T<:Any](v: LocalVariable[T], valueCode: => N_localvar[_]=>T) = T_0_ary_local_valueCode("val..." , v, () => valueCode)
-  
+
+  def _privatevar[T<:Any](vsym: Symbol) = T_0_ary_name[N_privatevar]("private", vsym)
+
+  // variants for operators with 0 to many operands
   def _op0(opSymbol: String)                                                                      = T_0_ary(opSymbol)
   def _op1(opSymbol: String)(c0: TemplateChildNode)                                               = T_1_ary(opSymbol, c0)
   def _op2(opSymbol: String)(c0: TemplateChildNode, c1: TemplateChildNode)                        = T_2_ary(opSymbol, c0, c1)
