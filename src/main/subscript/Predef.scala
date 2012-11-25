@@ -25,17 +25,22 @@
 */
 
 package subscript
-import subscript.vm._;
 
-// Predefined scripts. times, delta, epsilon, nu
+import subscript.vm._
+import subscript.DSL._
+
+// Predefined stuff - pass and some scripts: times, delta, epsilon, nu
 //
-// The swing stuff will have to be moved to object subscript.swing.Scripts or something like that
 object Predef {
-  def pass(implicit node: CallGraphNodeTrait[_]): Int = node.pass
+  def pass    (implicit node: CallGraphTreeNode[_]): Int = node.pass
+  def pass_up1(implicit node: CallGraphTreeNode[_]): Int = node.n_ary_op_ancestor.pass
+  def pass_up2(implicit node: CallGraphTreeNode[_]): Int = node.n_ary_op_ancestor.n_ary_op_ancestor.pass
   
 //  scripts
 //    times(n:Int) = while(pass<n)
 //    delta        = (-)
 //    epsilon      = (+)
 //    nu           = (+-)
+
+  def _times(_n: FormalInputParameter[Int]) = _script(this, 'times, _n~'n) {_while{here=>pass(here)<_n.value}}
 }

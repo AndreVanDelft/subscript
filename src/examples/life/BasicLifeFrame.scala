@@ -8,7 +8,7 @@ import subscript.swing.SimpleSubscriptApplication
 object BasicLifeFrame extends BasicLifeFrameApplication
 class BasicLifeFrameApplication extends SimpleSubscriptApplication {
  
-  val canvas          = new LifeDrawingPanel(150,100)
+  val     board       = new LifeBoard
   val     startButton = new Button("Start" ) {enabled       = false; focusable = false}
   val      stopButton = new Button("Stop"  ) {enabled       = false; focusable = false}
   val      stepButton = new Button("Step"  ) {enabled       = false; focusable = false}
@@ -40,7 +40,7 @@ class BasicLifeFrameApplication extends SimpleSubscriptApplication {
       }         , BorderPanel.Position.North)
       add(new BorderPanel { 
         add(new ScrollPane(patternList) {verticalScrollBarPolicy = ScrollPane.BarPolicy.Always; listenTo(keys)}, BorderPanel.Position.West) 
-        add(canvas, BorderPanel.Position.Center) 
+        add(board, BorderPanel.Position.Center) 
       }, BorderPanel.Position.Center)
     }
   }

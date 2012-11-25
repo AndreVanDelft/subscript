@@ -7,7 +7,7 @@ import scala.swing._
 import scala.swing.event._
 import java.awt.Color
 
-class LifeDrawingPanel(var cellColumns: Int = 100, var cellRows: Int = 70) extends Panel {
+class LifeBoard(var cellColumns: Int = 200, var cellRows: Int = 150) extends Panel {
     type CellState = Boolean
     val cellSizeX = 3
     val cellSizeY = 3
@@ -46,11 +46,9 @@ class LifeDrawingPanel(var cellColumns: Int = 100, var cellRows: Int = 70) exten
         val newHeight = size.height;
         if (bufferedImage == null) {
             createCells
-            repaint
         } else if (   bufferedImage.getWidth(null)  != newWidth 
                    || bufferedImage.getHeight(null) != newHeight) {
-                //resizeCells (newWidth, newHeight)
-         
+             createCells
         } else {
           renderBufferedImage
         }
@@ -103,13 +101,13 @@ class LifeDrawingPanel(var cellColumns: Int = 100, var cellRows: Int = 70) exten
 
     def createCells: Unit = createCells0(size.width, size.height)
     def createCells0 (width: Int, height: Int): Unit = {
-        if (width==0
-        || height==0)
-        {
-            return 
-        }
-        cellColumns = width  / cellSizeX
-        cellRows    = height / cellSizeY
+//        if (width==0
+//        || height==0)
+//        {
+//            return 
+//        }
+//        cellColumns = width  / cellSizeX
+//        cellRows    = height / cellSizeY
         cells         = Array.ofDim[CellState](cellColumns, cellRows)
         createBufferedImage
     }

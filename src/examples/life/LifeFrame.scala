@@ -35,22 +35,23 @@ class LifeFrameApplication extends BasicLifeFrameApplication {
     //////////////////////////////////////////////
     def confirmExit: Boolean = Dialog.showConfirmation(top.contents.head, "Are you sure?", "About to exit")==Dialog.Result.Yes
      
-    canvas.listenTo(canvas.mouse.clicks)
-    canvas.listenTo(canvas.mouse.moves)
+    board.listenTo(board.mouse.clicks)
+    board.listenTo(board.mouse.moves)
 
     //////////////////////////////////////////////
     // handle MouseDown events
     //////////////////////////////////////////////
      def doMouseDown (e: MouseEvent): Unit = {
        selectedPattern match {
-          case None => canvas.mouseDownToggle(e)
-          case Some(s) => val ec = Coord(e.point.x/canvas.cellSizeX, e.point.y/canvas.cellSizeY)
-                          for (pc <- ConwayPatterns.moveTo(s,ec)) {canvas.setCellValue(pc.x,pc.y,true)}
+          case None => board.mouseDownToggle(e)
+          case Some(s) => val ec = Coord(e.point.x/board.cellSizeX, e.point.y/board.cellSizeY)
+                          for (pc <- ConwayPatterns.moveTo(s,ec)) {board.setCellValue(pc.x,pc.y,true)}
        }
      }
 
     
   /* the following subscript code has manually been compiled into Scala; see below
+   * 
  script..
 	implicit  key(c: Char     ??) =  key(top, c??)
 	implicit vkey(k: Key.Value??) = vkey(top, k??)
@@ -64,21 +65,21 @@ class LifeFrameApplication extends BasicLifeFrameApplication {
 	
 	exit               =   exitCommand var r: Boolean @gui: {r=confirmExit} while (!r)
 	
-   canvasOperations    = ...; (..singleStep) multiStep || clear || randomize
+       boardControl    = ...; (..singleStep) multiStep || clear || randomize
 
-      do1Step          = {*canvas.calculateGeneration*} @gui: {!canvas.repaint!}
+      do1Step          = {*board.calculateGeneration*} @gui: {!board.repaint!}
       
-      randomize        =   randomizeCommand @gui: {!canvas.doRandomize!}
-      clear            =       clearCommand @gui: {!canvas.doClear!}
+      randomize        =   randomizeCommand @gui: {!board.doRandomize!}
+      clear            =       clearCommand @gui: {!board.doClear!}
       singleStep       =        stepCommand do1Step
        multiStep       = multiStepStartCmd; ...do1Step {*sleep*} / multiStepStopCmd
 
+      speedControl     = ...; speedKeyInput + speedButtonInput + speedSliderInput
+                    
     setSpeed(s: Int)   = @gui: {!setSpeed(s)!}
 
-      speedChanges     = ...; speedKeyInput + speedButtonInput + speedSliderInput
-                    
       speedKeyInput    = times(10) 
-                       + val c=(passUp(here,1)+'0').asInstanceOf[Char] key,c setSpeed(digit2Speed(c))
+                       + val c=(pass_up1(here)+'0').asInstanceOf[Char] key,c setSpeed(digit2Speed(c))
                               
    speedButtonInput = if (speed>minSpeed) speedDecButton
                     + if (speed<maxSpeed) speedIncButton
@@ -93,18 +94,18 @@ class LifeFrameApplication extends BasicLifeFrameApplication {
 
       mouseInput    = mousePressInput & mouseDragInput
 
-    mousePressInput = mousePresses  (canvas, (me: MouseEvent) => doMouseDown(me))
-    mouseDragInput  = mouseDraggings(canvas, (me: MouseEvent) => canvas.mouseDragToggle(me))  
+    mousePressInput = mousePresses  (board, (me: MouseEvent) => doMouseDown(me))
+    mouseDragInput  = mouseDraggings(board, (me: MouseEvent) => board.mouseDragToggle(me))  
 
-    live            = canvasOperations 
+    live            = boardControl 
                    || mouseInput 
-                   || speedChanges  
+                   || speedControl  
                    || exit
 */
   def _vkey(_k:FormalConstrainedParameter[Key.Value]) = _script(this, 'vkey, _k~??'k) {subscript.swing.Scripts._vkey(top, _k~??)}
   def  _key(_c:FormalConstrainedParameter[Char     ]) = _script(this,  'key, _c~??'c) {subscript.swing.Scripts._key (top, _c~??)}
                
-  override def _live     = _script(this,  'live            ) {_par_or2(_canvasOperations, _mouseInput, _speedChanges, _exit)}
+  override def _live     = _script(this,  'live            ) {_par_or2(_boardControl, _mouseInput, _speedControl, _exit)}
   def  _randomizeCommand = _script(this,  'randomizeCommand) {_alt(_clicked(randomizeButton), _key('r'))} 
   def      _clearCommand = _script(this,      'clearCommand) {_alt(_clicked(    clearButton), _key('c'))}
   def       _stepCommand = _script(this,       'stepCommand) {_alt(_clicked(     stepButton), _key(' '))}
@@ -119,41 +120,39 @@ class LifeFrameApplication extends BasicLifeFrameApplication {
                                                       _while{here=> {! _r.at(here).value}})}
                             }
 
-  def  _canvasOperations = _script(this, 'canvasOperations) {_seq(_loop, _par_or2(_disrupt(_noise, _seq(_seq(_optionalBreak_loop, _singleStep), _multiStep)), _randomize, _clear))} 
-  def  _do1Step          = _script(this, 'do1Step         ) {_seq(_threaded0{canvas.calculateGeneration}, _at{gui0}(_tiny0{canvas.validate}))} 
+  def _boardControl      = _script(this, 'boardControl    ) {_seq(_loop, _par_or2(_disrupt(_noise, _seq(_seq(_optionalBreak_loop, _singleStep), _multiStep)), _randomize, _clear))} 
+  def _do1Step           = _script(this, 'do1Step         ) {_seq(_threaded0{board.calculateGeneration}, _at{gui0}(_tiny0{board.validate}))} 
 
-  def  _noise            = _script(this, 'noise           ) {_seq( _key('n'), _seq(_loop, _at{gui0}(_normal0{canvas.doRandomize()}), _threaded0{sleep}))} 
-  def  _randomize        = _script(this, 'randomize       ) {_seq( _randomizeCommand, _at{gui0}(_tiny0{canvas.doRandomize()}))} 
-  def  _clear            = _script(this, 'clear           ) {_seq(     _clearCommand, _at{gui0}(_tiny0{canvas.doClear}))} 
-  def  _singleStep       = _script(this, 'singleStep      ) {_seq(      _stepCommand, _do1Step)} 
-  def  _multiStep        = _script(this, 'multiStep       ) {_seq(_multiStepStartCmd, _disrupt(_seq(_loop, _do1Step, _threaded0{sleep}), _multiStepStopCmd))} 
+  def _noise             = _script(this, 'noise           ) {_seq( _key('n'), _seq(_loop, _at{gui0}(_normal0{board.doRandomize()}), _threaded0{sleep}))} 
+  def _randomize         = _script(this, 'randomize       ) {_seq( _randomizeCommand, _at{gui0}(_tiny0{board.doRandomize()}))} 
+  def _clear             = _script(this, 'clear           ) {_seq(     _clearCommand, _at{gui0}(_tiny0{board.doClear}))} 
+  def _singleStep        = _script(this, 'singleStep      ) {_seq(      _stepCommand, _do1Step)} 
+  def _multiStep         = _script(this, 'multiStep       ) {_seq(_multiStepStartCmd, _disrupt(_seq(_loop, _do1Step, _threaded0{sleep}), _multiStepStopCmd))} 
       
-  def  _setSpeed(_s:FormalInputParameter[Int])  = _script(this, 'setSpeed, _s~'s) {_at{gui0}(_tiny0{setSpeed(_s.value)})} 
+  def _setSpeed(_s:FormalInputParameter[Int])  = _script(this, 'setSpeed, _s~'s) {_at{gui0}(_tiny0{setSpeed(_s.value)})} 
   
-  def  _speedChanges     = _script(this, 'speedChanges    ) {_seq(_loop, _alt(_speedKeyInput, _speedButtonInput, _speedSliderInput))} 
+  def _speedControl      = _script(this, 'speedControl    ) {_seq(_loop, _alt(_speedKeyInput, _speedButtonInput, _speedSliderInput))} 
 
-  def  _speedKeyInput    = {val _c = _declare[Char]('r)
-                           _script(this, 'speedKeyInput   ) {_alt(_times(10), _seq(_val(_c, (here:N_localvar[_]) => (pass(here.n_ary_op_ancestor)+'0').asInstanceOf[Char]), 
+  def _speedKeyInput     = {val _c = _declare[Char]('r)
+                           _script(this, 'speedKeyInput   ) {_alt(_times(10), _seq(_val(_c, (here:N_localvar[_]) => (pass_up1(here)+'0').asInstanceOf[Char]), 
                                                                                    _call{here=>_key(_c.at(here).value)(here)}, 
                                                                                    _call{here=>_setSpeed(digit2Speed(_c.at(here).value))(here)} ))}
                            }
-  def  _speedButtonInput = _script(this, 'speedButtonInput) {_alt(_if0{speed>minSpeed}(_buttonSpeedDec), _if0{speed<maxSpeed}(_buttonSpeedInc))} 
+  def _speedButtonInput  = _script(this, 'speedButtonInput) {_alt(_if0{speed>minSpeed}(_buttonSpeedDec), _if0{speed<maxSpeed}(_buttonSpeedInc))} 
 
-  def  _buttonSpeedDec   = _script(this, 'buttonSpeedDec  ) {_alt(_seq(_clicked(minSpeedButton), _setSpeed(minSpeed)), _seq(_clicked(slowerButton), _setSpeed(speed-1)))} 
-  def  _buttonSpeedInc   = _script(this, 'buttonSpeedInc  ) {_alt(_seq(_clicked(maxSpeedButton), _setSpeed(maxSpeed)), _seq(_clicked(fasterButton), _setSpeed(speed+1)))} 
+  def _buttonSpeedDec    = _script(this, 'buttonSpeedDec  ) {_alt(_seq(_clicked(minSpeedButton), _setSpeed(minSpeed)), _seq(_clicked(slowerButton), _setSpeed(speed-1)))} 
+  def _buttonSpeedInc    = _script(this, 'buttonSpeedInc  ) {_alt(_seq(_clicked(maxSpeedButton), _setSpeed(maxSpeed)), _seq(_clicked(fasterButton), _setSpeed(speed+1)))} 
   
-  def  _speedSliderInput = _script(this, 'speedSliderInput) {_seq(_stateChange(speedSlider), _setSpeed(speedSlider.value))} 
+  def _speedSliderInput  = _script(this, 'speedSliderInput) {_seq(_stateChange(speedSlider), _setSpeed(speedSlider.value))} 
      
-  def  _mouseInput       = _script(this, 'mouseInput      ) {_par(_mousePressInput, _mouseDragInput)} 
+  def _mouseInput        = _script(this, 'mouseInput      ) {_par(_mousePressInput, _mouseDragInput)} 
 
-  def  _mousePressInput  = _script(this, 'mousePressInput ) {_mousePresses  (canvas, (me: MouseEvent) => doMouseDown(me))} 
-  def  _mouseDragInput   = _script(this, 'mouseDragInput  ) {_mouseDraggings(canvas, (me: MouseEvent) => canvas.mouseDragToggle(me))} 
+  def _mousePressInput   = _script(this, 'mousePressInput ) {_mousePresses  (board, (me: MouseEvent) => doMouseDown(me))} 
+  def _mouseDragInput    = _script(this, 'mouseDragInput  ) {_mouseDraggings(board, (me: MouseEvent) => board.mouseDragToggle(me))} 
 
   // bridge method   
   override def live = _execute(_live)
 
-  // utility script; should be moved to a utility object
-  def _times(_n: FormalInputParameter[Int]) = _script(this, 'times, _n~'n) {_while{here=>pass(here)<_n.value}}
 }
 
 
