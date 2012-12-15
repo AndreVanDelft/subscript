@@ -48,7 +48,7 @@ class LifeFrameApplication extends BasicLifeFrameApplication {
                           for (pc <- ConwayPatterns.moveTo(s,ec)) {board.setCellValue(pc.x,pc.y,true)}
        }
      }
-
+     def doMouseDrag (e: MouseEvent): Unit = board.mouseDragToggle(e)
     
   /* the following subscript code has manually been compiled into Scala; see below
    * 
@@ -79,7 +79,7 @@ class LifeFrameApplication extends BasicLifeFrameApplication {
     setSpeed(s: Int)   = @gui: {!setSpeed(s)!}
 
       speedKeyInput    = times(10) 
-                       + val c=(pass_up1(here)+'0').asInstanceOf[Char] key,c setSpeed(digit2Speed(c))
+                       + val c=(pass_up1+'0').toChar key,c setSpeed(digit2Speed(c))
                               
    speedButtonInput = if (speed>minSpeed) speedDecButton
                     + if (speed<maxSpeed) speedIncButton
@@ -94,8 +94,8 @@ class LifeFrameApplication extends BasicLifeFrameApplication {
 
       mouseInput    = mousePressInput & mouseDragInput
 
-    mousePressInput = mousePresses  (board, (me: MouseEvent) => doMouseDown(me))
-    mouseDragInput  = mouseDraggings(board, (me: MouseEvent) => board.mouseDragToggle(me))  
+    mousePressInput = mousePresses  (board, (e: MouseEvent) => doMouseDown(e))
+    mouseDragInput  = mouseDraggings(board, (e: MouseEvent) => doMouseDrag(e))  
 
     live            = boardControl 
                    || mouseInput 
@@ -134,7 +134,7 @@ class LifeFrameApplication extends BasicLifeFrameApplication {
   def _speedControl      = _script(this, 'speedControl    ) {_seq(_loop, _alt(_speedKeyInput, _speedButtonInput, _speedSliderInput))} 
 
   def _speedKeyInput     = {val _c = _declare[Char]('r)
-                           _script(this, 'speedKeyInput   ) {_alt(_times(10), _seq(_val(_c, (here:N_localvar[_]) => (pass_up1(here)+'0').asInstanceOf[Char]), 
+                           _script(this, 'speedKeyInput   ) {_alt(_times(10), _seq(_val(_c, implicit here => (pass_up1+'0').toChar), 
                                                                                    _call{here=>_key(_c.at(here).value)(here)}, 
                                                                                    _call{here=>_setSpeed(digit2Speed(_c.at(here).value))(here)} ))}
                            }
@@ -147,8 +147,8 @@ class LifeFrameApplication extends BasicLifeFrameApplication {
      
   def _mouseInput        = _script(this, 'mouseInput      ) {_par(_mousePressInput, _mouseDragInput)} 
 
-  def _mousePressInput   = _script(this, 'mousePressInput ) {_mousePresses  (board, (me: MouseEvent) => doMouseDown(me))} 
-  def _mouseDragInput    = _script(this, 'mouseDragInput  ) {_mouseDraggings(board, (me: MouseEvent) => board.mouseDragToggle(me))} 
+  def _mousePressInput   = _script(this, 'mousePressInput ) {_mousePresses  (board, (e: MouseEvent) => doMouseDown(e))} 
+  def _mouseDragInput    = _script(this, 'mouseDragInput  ) {_mouseDraggings(board, (e: MouseEvent) => doMouseDrag(e))} 
 
   // bridge method   
   override def live = _execute(_live)

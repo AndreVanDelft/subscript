@@ -37,11 +37,11 @@ class BasicLifeFrameApplication extends SimpleSubscriptApplication {
       add(new BorderPanel {
         add (new FlowPanel(startButton,     stopButton,   stepButton, randomizeButton, clearButton,  exitButton), BorderPanel.Position.North)
         add (new FlowPanel(speedLabel , minSpeedButton, slowerButton, speedSlider, fasterButton, maxSpeedButton), BorderPanel.Position.South) 
-      }         , BorderPanel.Position.North)
+      }     , BorderPanel.Position.North)
       add(new BorderPanel { 
-        add(new ScrollPane(patternList) {verticalScrollBarPolicy = ScrollPane.BarPolicy.Always; listenTo(keys)}, BorderPanel.Position.West) 
-        add(board, BorderPanel.Position.Center) 
-      }, BorderPanel.Position.Center)
+        add (new ScrollPane(patternList) {verticalScrollBarPolicy = ScrollPane.BarPolicy.Always; listenTo(keys)}, BorderPanel.Position.West) 
+        add (board, BorderPanel.Position.Center) 
+      },      BorderPanel.Position.Center)
     }
   }
 

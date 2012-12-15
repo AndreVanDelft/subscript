@@ -42,5 +42,5 @@ object Predef {
 //    epsilon      = (+)
 //    nu           = (+-)
 
-  def _times(_n: FormalInputParameter[Int]) = _script(this, 'times, _n~'n) {_while{here=>pass(here)<_n.value}}
+  def _times(_n: FormalInputParameter[Int]) = _script(this, 'times, _n~'n) {_while{implicit here=>pass<_n.value}}
 }
