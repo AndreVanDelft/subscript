@@ -102,11 +102,11 @@ trait ScriptExecutor {
    * methods supporting debuggers
    */
   var scriptDebugger: ScriptDebugger = null;
-  def messageHandled     (m: CallGraphMessage[_]                 ) = if (scriptDebugger!=null) scriptDebugger.messageHandled (m)
-  def messageQueued      (m: CallGraphMessage[_]                 ) = if (scriptDebugger!=null) scriptDebugger.messageQueued  (m)
-  def messageDequeued    (m: CallGraphMessage[_]                 ) = if (scriptDebugger!=null) scriptDebugger.messageDequeued(m)
-  def messageContinuation(m: CallGraphMessage[_], c: Continuation) = if (scriptDebugger!=null) scriptDebugger.messageContinuation(m, c)
-  def messageAwaiting                                              = if (scriptDebugger!=null) scriptDebugger.messageAwaiting
+  def messageHandled     (m: CallGraphMessage[_ <: subscript.vm.CallGraphNodeTrait[_ <: subscript.vm.TemplateNode]]                 ) = if (scriptDebugger!=null) scriptDebugger.messageHandled (m)
+  def messageQueued      (m: CallGraphMessage[_ <: subscript.vm.CallGraphNodeTrait[_ <: subscript.vm.TemplateNode]]                 ) = if (scriptDebugger!=null) scriptDebugger.messageQueued  (m)
+  def messageDequeued    (m: CallGraphMessage[_ <: subscript.vm.CallGraphNodeTrait[_ <: subscript.vm.TemplateNode]]                 ) = if (scriptDebugger!=null) scriptDebugger.messageDequeued(m)
+  def messageContinuation(m: CallGraphMessage[_ <: subscript.vm.CallGraphNodeTrait[_ <: subscript.vm.TemplateNode]], c: Continuation) = if (scriptDebugger!=null) scriptDebugger.messageContinuation(m, c)
+  def messageAwaiting                                                                                                                 = if (scriptDebugger!=null) scriptDebugger.messageAwaiting
   
   /*
    * Message index and node index generators
@@ -460,7 +460,7 @@ class CommonScriptExecutor extends ScriptExecutor {
    */
   def handleSuccess(message: Success): Unit = {
           message.node match {
-               case n@  N_annotation    (_: T_1_ary_code[_]) => {} // onSuccess?
+               case n@  N_annotation    (_) => {} // onSuccess?
                case n@  N_inline_if     (t: T_2_ary        )  => if (message.child.template==t.child0) {
                                                                               activateFrom(n, t.child1)
                                                                               return
@@ -1022,11 +1022,11 @@ class CommonScriptExecutor extends ScriptExecutor {
     // decide on deactivation of n
     
   }
-  
+
   /*
    * message dispatcher; not really OO, but all real activity should be at the executors; other things should be passive
    */
-  def handle(message: CallGraphMessage[_]):Unit = {
+  def handle(message: CallGraphMessage[_ <: subscript.vm.CallGraphNodeTrait[_ <: subscript.vm.TemplateNode] ]):Unit = {
     message match {
       case a@ Activation        (_) => handleActivation   (a)
       case a@Continuation       (_) => handleContinuation (a)

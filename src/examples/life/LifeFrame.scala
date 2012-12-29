@@ -28,7 +28,7 @@ class LifeFrameApplication extends BasicLifeFrameApplication {
           Thread.sleep(sleepPart_ms)
         }
       }
-      catch { case _ => println("sleep interrupted")}
+      catch { case e: InterruptedException => println("sleep interrupted")}
 
     //////////////////////////////////////////////
     // confirm exit dialog

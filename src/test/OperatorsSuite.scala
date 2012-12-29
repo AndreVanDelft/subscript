@@ -296,14 +296,14 @@ if (false) println("inputStream.isEmpty=" + inputStream.isEmpty
   for((opnd1,name1)<-operandsWithNames) {
     addBM(name1, opnd1)
     for ((opnd2,name2)<-operandsWithNames; bos1<-behaviorOperators) {
-      val bo1 = _op(bos1) _
-      addBM(name1+bos1+name2, bo1(opnd1,opnd2))
+      //val bo1 = _op(bos1) _
+      addBM(name1+bos1+name2, _op(bos1)(opnd1,opnd2))
       for ((opnd3,name3)<-operandsWithNames) {
-        addBM(name1+bos1+name2+bos1+name3, bo1(opnd1,opnd2,opnd3))
+        addBM(name1+bos1+name2+bos1+name3, _op(bos1)(opnd1,opnd2,opnd3))
 	    for (bos2<-behaviorOperators) {
-	      val bo2 = _op(bos2) _
-	      addBM("("+name1+bos1+name2+")"+bos2+name3    , bo2(bo1(opnd1,opnd2),opnd3))
-	      addBM(    name1+bos1+"("+name2+bos2+name3+")", bo1(opnd1,bo2(opnd2,opnd3)))
+	      //val bo2 = _op(bos2) _
+	      addBM("("+name1+bos1+name2+")"+bos2+name3    , _op(bos2)(_op(bos1)(opnd1,opnd2),opnd3))
+	      addBM(    name1+bos1+"("+name2+bos2+name3+")", _op(bos1)(opnd1,_op(bos2)(opnd2,opnd3)))
 	    }
       }
     }
@@ -463,13 +463,13 @@ if (false) println("inputStream.isEmpty=" + inputStream.isEmpty
     val    neutralProcess = if ( isLogicalAnd) _empty else _deadlock
     val notNeutralProcess = if (!isLogicalAnd) _empty else _deadlock
     for (opStr<-operatorStrings) {
-      val op = _op(opStr) _
-      testScriptBehaviours(neutralProcess.kind+opStr+"a"         , "=a", op(_neutral,_a)) 
-      testScriptBehaviours("a"         +opStr+neutralProcess.kind, "=a", op(_a,_neutral))
+      //val op = _op(opStr) _
+      testScriptBehaviours(neutralProcess.kind+opStr+"a"         , "=a", _op(opStr)(_neutral,_a)) 
+      testScriptBehaviours("a"         +opStr+neutralProcess.kind, "=a", _op(opStr)(_a,_neutral))
       
       for ( (operandStr, operandTemplate)<-Map("a"->_a, _deadlock.kind->_deadlock, _empty.kind->_empty)) {
-          testScriptBehaviours(neutralProcess.kind+opStr+operandStr         , "="+operandStr, op(neutralProcess,operandTemplate))
-          testScriptBehaviours(operandStr         +opStr+neutralProcess.kind, "="+operandStr, op(operandTemplate,neutralProcess))
+          testScriptBehaviours(neutralProcess.kind+opStr+operandStr         , "="+operandStr, _op(opStr)(neutralProcess,operandTemplate))
+          testScriptBehaviours(operandStr         +opStr+neutralProcess.kind, "="+operandStr, _op(opStr)(operandTemplate,neutralProcess))
       }
     }
   }

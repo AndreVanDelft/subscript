@@ -273,7 +273,7 @@ case class N_inline_if_else(template: T_3_ary     ) extends CallGraphTreeParentN
 case class N_n_ary_op      (template: T_n_ary, isLeftMerge: Boolean) extends CallGraphTreeNode_n_ary {
   val mapNamePassToVariableHolder = new HashMap[(Symbol,Int), VariableHolder[_]]
   def    initLocalVariable[V<:Any](name: Symbol, fromPass: Int, value: V)         = mapNamePassToVariableHolder += ((name,fromPass)->new VariableHolder(value))
-  def    getVariableHolder[V<:Any](name: Symbol, fromPass: Int):VariableHolder[V] = mapNamePassToVariableHolder.get((name,fromPass)) match {case None=>null case Some(v:VariableHolder[_]) => v}
+  def    getVariableHolder[V<:Any](name: Symbol, fromPass: Int):VariableHolder[V] = mapNamePassToVariableHolder.get((name,fromPass)) match {case None=>null case Some(v:VariableHolder[V]) => v}
   override def toString = super.toString+/*" "+children.length+*/(if(isIteration)" ..."else"")
 }
 

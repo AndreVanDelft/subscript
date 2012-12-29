@@ -124,9 +124,13 @@ object DSL {
   def _op1(opSymbol: String)(c0: TemplateChildNode)                                               = T_1_ary(opSymbol, c0)
   def _op2(opSymbol: String)(c0: TemplateChildNode, c1: TemplateChildNode)                        = T_2_ary(opSymbol, c0, c1)
   def _op3(opSymbol: String)(c0: TemplateChildNode, c1: TemplateChildNode, c2: TemplateChildNode) = T_3_ary(opSymbol, c0, c1, c2)
+
+  /* the following does not function well, as of Scala 2.10.
+   * See https://issues.scala-lang.org/browse/SI-4176
+   *
   def _op (opSymbol: String)(children: TemplateChildNode*)                                        = T_n_ary(opSymbol, children:_*)
   
-  def _seq               = _op (";")_
+  def _seq               = _op(";")_
   def _alt               = _op ("+")_
   def _par               = _op ("&")_
   def _par_or            = _op ("|")_
@@ -139,6 +143,25 @@ object DSL {
   def _seq_1_or_more     = _op ("#%#")_
   def _disrup            = _op ("#/")_
   def _disrupt_0_or_more = _op ("#/#/")_
+  */
+  
+  def _op (opSymbol: String)(children: TemplateChildNode*) = T_n_ary(opSymbol, children:_*)
+  
+  def _seq              (children: TemplateChildNode*) = _op(";")(children:_*)
+  def _alt              (children: TemplateChildNode*) = _op ("+")(children:_*)
+  def _par              (children: TemplateChildNode*) = _op ("&")(children:_*)
+  def _par_or           (children: TemplateChildNode*) = _op ("|")(children:_*)
+  def _par_and2         (children: TemplateChildNode*) = _op ("&&")(children:_*)
+  def _par_or2          (children: TemplateChildNode*) = _op ("||")(children:_*)
+  def _par_equal        (children: TemplateChildNode*) = _op ("==")(children:_*)
+  def _disrupt          (children: TemplateChildNode*) = _op ("/")(children:_*)
+  def _shuffle          (children: TemplateChildNode*) = _op ("#")(children:_*)
+  def _shuffle_1_or_more(children: TemplateChildNode*) = _op ("#%#")(children:_*)
+  def _seq_1_or_more    (children: TemplateChildNode*) = _op ("#%#")(children:_*)
+  def _disrup           (children: TemplateChildNode*) = _op ("#/")(children:_*)
+  def _disrupt_0_or_more(children: TemplateChildNode*) = _op ("#/#/")(children:_*)
+  
+  
   def _not               = _op1("!")_
   def _not_react         = _op1("-")_
   def _react             = _op1("~")_

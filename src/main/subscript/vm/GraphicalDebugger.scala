@@ -49,7 +49,7 @@ object GraphicalDebugger extends GraphicalDebuggerApp {
     }
     catch {
       case e: ClassNotFoundException => println("Could not find class "+className)
-      case other => println(other)
+      case other: Throwable => println(other)
     }
   }
 }
@@ -66,7 +66,7 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
   // draw message lists
 
   var messageBeingHandled = false
-  var currentMessage: CallGraphMessage[_] = null
+  var currentMessage: CallGraphMessage[_ <: subscript.vm.CallGraphNodeTrait[_ <: subscript.vm.TemplateNode]] = null
   
   def interestingContinuationInternals(c: Continuation): List[String] = {
      var ss: List[String] = Nil
@@ -158,9 +158,10 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
 
     def getScriptTemplates: List[T_script] = {
       val lb = new ListBuffer[T_script]
-      def getScriptTemplates(n: CallGraphNodeTrait[_]): Unit = {
+      def getScriptTemplates(n: CallGraphNodeTrait[_ <: subscript.vm.TemplateNode]): Unit = {
         n match {case ns: N_script                    => if (!lb.exists(_.name.name==ns.template.name.name)) lb += ns.template case _ =>}
-        n match {case pn: CallGraphParentNodeTrait[_] =>pn.forEachChild{getScriptTemplates(_)} case _ =>}
+        n match {case pn: CallGraphParentNodeTrait[_] 
+                                                      =>pn.forEachChild{getScriptTemplates(_)} case _ =>}
       } 
       getScriptTemplates(rootNode)
       lb.toList
@@ -311,7 +312,7 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
         g.setStroke(normalStroke)
         g.setColor (AWTColor.black)
       }
-      def drawContinuationTexts(n: CallGraphNodeTrait[_], boxRight: Int, boxTop: Int) = {
+      def drawContinuationTexts(n: CallGraphNodeTrait[_ <: subscript.vm.TemplateNode], boxRight: Int, boxTop: Int) = {
         val x = boxRight + 3
         var y = boxTop
         n match {
@@ -471,7 +472,7 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
   
   val top               = new Frame {
     title               = "Subscript Graphical Debugger"
-    location            = new Point    (0,00)
+    location            = new Point    (0,0)
     preferredSize       = new Dimension(900,700)
     contents            = new BorderPanel {
       add(new FlowPanel(descriptionTF, stepButton, autoCheckBox, speedSlider, exitButton), BorderPanel.Position.North) 
@@ -564,15 +565,15 @@ class GraphicalDebuggerApp extends SimpleSubscriptApplication with ScriptDebugge
   def callGraphMessages = scriptExecutor.callGraphMessages
   def rootNode          = scriptExecutor.rootNode
   
-  def messageHandled(m: CallGraphMessage[_]): Unit = {
+  def messageHandled(m: CallGraphMessage[_ <: subscript.vm.CallGraphNodeTrait[_ <: subscript.vm.TemplateNode]]): Unit = {
     currentMessage = m
     messageBeingHandled=true 
     awaitMessageBeingHandled(false)
     currentMessage = null
   }
-  def messageQueued      (m: CallGraphMessage[_]                 ) = logMessage_GUIThread("++", m)
-  def messageDequeued    (m: CallGraphMessage[_]                 ) = logMessage_GUIThread("--", m)
-  def messageContinuation(m: CallGraphMessage[_], c: Continuation) = logMessage_GUIThread("**", c)
+  def messageQueued      (m: CallGraphMessage[_ <: CallGraphNodeTrait[_ <: TemplateNode]]                 ) = logMessage_GUIThread("++", m)
+  def messageDequeued    (m: CallGraphMessage[_ <: CallGraphNodeTrait[_ <: TemplateNode]]                 ) = logMessage_GUIThread("--", m)
+  def messageContinuation(m: CallGraphMessage[_ <: CallGraphNodeTrait[_ <: TemplateNode]], c: Continuation) = logMessage_GUIThread("**", c)
   def messageAwaiting: Unit = {
     currentMessageTF.text = "Waiting..."
     callGraphPanel.repaint()

@@ -27,7 +27,7 @@ object SimpleScriptDebuggerObject extends SimpleScriptDebugger {
     }
     catch {
       case e: ClassNotFoundException => println("Could not find class "+className)
-      case other => println(other)
+      case other: Throwable => println(other)
     }
   }
 }
@@ -82,7 +82,7 @@ class SimpleScriptDebugger extends ScriptDebugger {
   }
   
   
-  def messageHandled(m: CallGraphMessage[_]): Unit = {
+  def messageHandled(m: CallGraphMessage[_ <: subscript.vm.CallGraphNodeTrait[_ <: subscript.vm.TemplateNode]]): Unit = {
         trace(1,">> ",m)
         m match {
           case AAToBeExecuted(_) =>
@@ -91,8 +91,8 @@ class SimpleScriptDebugger extends ScriptDebugger {
           case _ =>  
         }
   }
-  def messageQueued      (m: CallGraphMessage[_]                 ) = trace(2, "++ ", m)
-  def messageDequeued    (m: CallGraphMessage[_]                 ) = trace(2, "-- ", m)
-  def messageContinuation(m: CallGraphMessage[_], c: Continuation) = trace(2, "** ", c)
+  def messageQueued      (m: CallGraphMessage[_ <: subscript.vm.CallGraphNodeTrait[_ <: subscript.vm.TemplateNode]]                 ) = trace(2, "++ ", m)
+  def messageDequeued    (m: CallGraphMessage[_ <: subscript.vm.CallGraphNodeTrait[_ <: subscript.vm.TemplateNode]]                ) = trace(2, "-- ", m)
+  def messageContinuation(m: CallGraphMessage[_ <: subscript.vm.CallGraphNodeTrait[_ <: subscript.vm.TemplateNode]], c: Continuation) = trace(2, "** ", c)
   def messageAwaiting: Unit = {traceTree; traceMessages}
 }
